@@ -14,6 +14,7 @@ ENV/
 db.sqlite3
 *.log
 logs/
+!logs/.gitkeep
 
 media/
 staticfiles/
