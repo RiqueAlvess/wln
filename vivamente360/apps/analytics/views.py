@@ -1,7 +1,7 @@
 from django.views.generic import TemplateView
 from apps.core.mixins import DashboardAccessMixin
-from selectors.campaign_selectors import CampaignSelectors
-from selectors.dashboard_selectors import DashboardSelectors
+from app_selectors.campaign_selectors import CampaignSelectors
+from app_selectors.dashboard_selectors import DashboardSelectors
 from services.risk_service import RiskService
 
 

@@ -2,7 +2,7 @@ from django.views.generic import ListView, CreateView, DetailView
 from django.urls import reverse_lazy
 from apps.core.mixins import RHRequiredMixin
 from apps.surveys.models import Campaign
-from selectors.campaign_selectors import CampaignSelectors
+from app_selectors.campaign_selectors import CampaignSelectors
 
 
 class CampaignListView(RHRequiredMixin, ListView):
