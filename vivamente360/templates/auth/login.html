@@ -9,7 +9,7 @@
             <div class="card-body">
                 <h3 class="card-title text-center mb-4">VIVAMENTE 360º</h3>
                 <form method="post">
-                    {{ csrf_token() }}
+                    {{ csrf_input }}
                     <div class="mb-3">
                         <label for="username" class="form-label">Usuário</label>
                         <input type="text" class="form-control" id="username" name="username" required>

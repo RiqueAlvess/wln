@@ -15,7 +15,7 @@
                 </div>
 
                 <form method="post" enctype="multipart/form-data">
-                    {{ csrf_token() }}
+                    {{ csrf_input }}
                     <div class="mb-3">
                         <label for="csv_file" class="form-label">Arquivo CSV</label>
                         <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>

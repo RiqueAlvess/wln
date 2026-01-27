@@ -19,7 +19,7 @@
                 <h5 class="card-title mb-4">{{ pergunta.texto }}</h5>
 
                 <form method="post">
-                    {{ csrf_token() }}
+                    {{ csrf_input }}
                     <input type="hidden" name="step" value="{{ current }}">
 
                     <div class="d-grid gap-2">
