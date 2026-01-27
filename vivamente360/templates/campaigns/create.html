@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Nova Campanha{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Nova Campanha</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {{ csrf_token() }}
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" name="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" name="descricao" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Empresa</label>
+                        <select class="form-select" name="empresa" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data Início</label>
+                            <input type="date" class="form-control" name="data_inicio" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data Fim</label>
+                            <input type="date" class="form-control" name="data_fim" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                    <a href="{{ url('surveys:list') }}" class="btn btn-secondary">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

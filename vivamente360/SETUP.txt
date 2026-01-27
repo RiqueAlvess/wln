@@ -1,0 +1,37 @@
+VIVAMENTE 360º - Setup Instructions
+
+1. Criar ambiente virtual:
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   venv\Scripts\activate     # Windows
+
+2. Instalar dependências:
+   pip install -r requirements.txt
+
+3. Configurar variáveis de ambiente:
+   cp .env.example .env
+   # Edite o arquivo .env com suas configurações
+
+4. Gerar chave de criptografia (32 bytes):
+   python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"
+
+5. Criar banco de dados PostgreSQL:
+   createdb vivamente360
+
+6. Executar migrations:
+   python manage.py makemigrations
+   python manage.py migrate
+
+7. Popular dimensões e perguntas HSE-IT:
+   python manage.py populate_hse_it
+
+8. Criar superusuário:
+   python manage.py createsuperuser
+
+9. Executar servidor de desenvolvimento:
+   python manage.py runserver
+
+10. Em outro terminal, executar worker de e-mails:
+    python manage.py process_email_queue
+
+Acesse: http://localhost:8000/admin para configurar empresas e usuários

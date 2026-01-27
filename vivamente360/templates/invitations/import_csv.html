@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar CSV{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Importar Convites - {{ campaign.nome }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Formato do CSV:</strong> unidade, setor, cargo, email
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {{ csrf_token() }}
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Arquivo CSV</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Importar</button>
+                    <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-secondary">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Dashboard{% if campaign %} - {{ campaign.nome }}{% endif %}</h1>
+    {% if campaigns %}
+    <select class="form-select w-auto" onchange="location = '?campaign=' + this.value;">
+        <option value="">Selecione uma campanha</option>
+        {% for c in campaigns %}
+        <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>{{ c.nome }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+</div>
+
+{% if not campaign %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Selecione uma campanha para visualizar os dados.
+</div>
+{% else %}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Taxa de Adesão</h6>
+                <h2 class="display-4 {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ adesao }}%
+                </h2>
+                <small class="text-muted">{{ respondidos }}/{{ total_convidados }} respostas</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">IGRP</h6>
+                <h2 class="display-4">{{ igrp }}</h2>
+                <small class="text-muted">Índice Geral de Riscos</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 border-danger">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Risco Alto/Crítico</h6>
+                <h2 class="display-4 text-danger">{{ pct_risco_alto }}%</h2>
+                <small class="text-muted">necessita atenção</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Índice por Dimensão HSE-IT</div>
+            <div class="card-body">
+                <canvas id="chartDimensoes"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">TOP 5 Setores Críticos</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                    {% for item in top5_setores %}
+                    <tr>
+                        <td>{{ item.setor }}</td>
+                        <td><span class="badge bg-{{ item.cor }}">{{ item.nivel_risco }}%</span></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if campaign %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('chartDimensoes').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ dimensoes_labels | tojson | safe }},
+        datasets: [{
+            label: '{{ campaign.nome }}',
+            data: {{ dimensoes_scores | tojson | safe }},
+            backgroundColor: {{ dimensoes_cores | tojson | safe }},
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        scales: {
+            x: { min: 0, max: 4 }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
