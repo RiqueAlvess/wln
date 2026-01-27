@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ campaign.nome }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">{{ campaign.nome }}</h4>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Empresa:</dt>
+            <dd class="col-sm-9">{{ campaign.empresa.nome }}</dd>
+
+            <dt class="col-sm-3">Período:</dt>
+            <dd class="col-sm-9">{{ campaign.data_inicio | dateformat }} a {{ campaign.data_fim | dateformat }}</dd>
+
+            <dt class="col-sm-3">Status:</dt>
+            <dd class="col-sm-9">
+                {% if campaign.status == 'active' %}
+                <span class="badge bg-success">Ativa</span>
+                {% elif campaign.status == 'draft' %}
+                <span class="badge bg-secondary">Rascunho</span>
+                {% else %}
+                <span class="badge bg-danger">Encerrada</span>
+                {% endif %}
+            </dd>
+
+            <dt class="col-sm-3">Descrição:</dt>
+            <dd class="col-sm-9">{{ campaign.descricao or '-' }}</dd>
+        </dl>
+
+        <div class="mt-4">
+            <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-primary">Gerenciar Convites</a>
+            <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}" class="btn btn-outline-primary">Ver Dashboard</a>
+            <a href="{{ url('surveys:list') }}" class="btn btn-secondary">Voltar</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

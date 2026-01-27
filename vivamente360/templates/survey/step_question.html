@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Questão {{ current }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between">
+                    <span>{{ dimensao.nome }}</span>
+                    <span>Pergunta {{ current }} de {{ total }}</span>
+                </div>
+                <div class="progress mt-2" style="height: 5px;">
+                    <div class="progress-bar" style="width: {{ (current / total) * 100 }}%"></div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <h5 class="card-title mb-4">{{ pergunta.texto }}</h5>
+
+                <form method="post">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="step" value="{{ current }}">
+
+                    <div class="d-grid gap-2">
+                        {% for valor, label in escala %}
+                        <button type="submit" name="valor" value="{{ valor }}" class="btn btn-outline-primary btn-lg text-start">
+                            <span class="badge bg-secondary me-2">{{ valor }}</span> {{ label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

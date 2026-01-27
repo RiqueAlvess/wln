@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Convites{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Convites - {{ campaign.nome }}</h1>
+    <div>
+        <a href="{{ url('invitations:import', campaign_id=campaign.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-upload"></i> Importar CSV
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDisparo">
+            <i class="bi bi-send"></i> Disparar E-mails ({{ pending_count }})
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Hash Token</th>
+                    <th>Unidade</th>
+                    <th>Setor</th>
+                    <th>Status</th>
+                    <th>Enviado em</th>
+                    <th>Respondido em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invitations %}
+                <tr>
+                    <td><code>{{ inv.hash_token | string | truncate(12) }}...</code></td>
+                    <td>{{ inv.unidade.nome }}</td>
+                    <td>{{ inv.setor.nome }}</td>
+                    <td>
+                        {% if inv.status == 'pending' %}
+                        <span class="badge bg-secondary">Pendente</span>
+                        {% elif inv.status == 'sent' %}
+                        <span class="badge bg-primary">Enviado</span>
+                        {% elif inv.status == 'used' %}
+                        <span class="badge bg-success">Respondido</span>
+                        {% else %}
+                        <span class="badge bg-danger">Expirado</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ inv.sent_at | datetimeformat if inv.sent_at else '-' }}</td>
+                    <td>{{ inv.used_at | datetimeformat if inv.used_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDisparo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Disparo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Serão enviados <strong>{{ pending_count }}</strong> e-mails para convites pendentes.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{{ url('invitations:dispatch', campaign_id=campaign.id) }}">
+                    {{ csrf_token() }}
+                    <button type="submit" class="btn btn-primary">Confirmar Disparo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

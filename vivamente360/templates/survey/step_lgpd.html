@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Consentimento LGPD{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Pesquisa {{ campaign.nome }}</h4>
+            </div>
+            <div class="card-body">
+                <h5>Termo de Consentimento LGPD</h5>
+                <p>Suas respostas são completamente anônimas e confidenciais. Não será possível identificar quem respondeu cada questionário.</p>
+                <p>Os dados coletados serão utilizados exclusivamente para análise do clima organizacional e identificação de riscos psicossociais.</p>
+                <p>Ao continuar, você declara estar ciente e de acordo com os termos acima.</p>
+
+                <form method="post">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="step" value="lgpd">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="lgpd_aceito" name="lgpd_aceito" required>
+                        <label class="form-check-label" for="lgpd_aceito">
+                            Li e aceito os termos acima
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">Continuar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

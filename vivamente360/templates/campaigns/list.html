@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Campanhas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Campanhas</h1>
+    <a href="{{ url('surveys:create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nova Campanha
+    </a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>Empresa</th>
+                    <th>Período</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for campaign in campaigns %}
+                <tr>
+                    <td>{{ campaign.nome }}</td>
+                    <td>{{ campaign.empresa.nome }}</td>
+                    <td>{{ campaign.data_inicio | dateformat }} a {{ campaign.data_fim | dateformat }}</td>
+                    <td>
+                        {% if campaign.status == 'active' %}
+                        <span class="badge bg-success">Ativa</span>
+                        {% elif campaign.status == 'draft' %}
+                        <span class="badge bg-secondary">Rascunho</span>
+                        {% else %}
+                        <span class="badge bg-danger">Encerrada</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url('surveys:detail', pk=campaign.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                        <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary">Convites</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

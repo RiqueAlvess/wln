@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Planos de Ação{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Planos de Ação - {{ campaign.nome }}</h1>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Dimensão</th>
+                    <th>Nível de Risco</th>
+                    <th>Ação Proposta</th>
+                    <th>Responsável</th>
+                    <th>Prazo</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plano in planos %}
+                <tr>
+                    <td>{{ plano.dimensao.nome }}</td>
+                    <td><span class="badge bg-danger">{{ plano.nivel_risco }}</span></td>
+                    <td>{{ plano.acao_proposta | truncate(50) }}</td>
+                    <td>{{ plano.responsavel }}</td>
+                    <td>{{ plano.prazo | dateformat }}</td>
+                    <td>
+                        {% if plano.status == 'pendente' %}
+                        <span class="badge bg-secondary">Pendente</span>
+                        {% elif plano.status == 'andamento' %}
+                        <span class="badge bg-primary">Em Andamento</span>
+                        {% elif plano.status == 'concluido' %}
+                        <span class="badge bg-success">Concluído</span>
+                        {% else %}
+                        <span class="badge bg-danger">Cancelado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
