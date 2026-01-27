@@ -16,7 +16,7 @@
                 <p>Ao continuar, você declara estar ciente e de acordo com os termos acima.</p>
 
                 <form method="post">
-                    {{ csrf_token() }}
+                    {{ csrf_input }}
                     <input type="hidden" name="step" value="lgpd">
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="lgpd_aceito" name="lgpd_aceito" required>
