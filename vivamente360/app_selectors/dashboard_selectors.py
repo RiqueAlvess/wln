@@ -121,3 +121,95 @@ class DashboardSelectors:
 
         heatmap_data.sort(key=lambda x: sum(x['scores']), reverse=False)
         return heatmap_data[:10]
+
+    @staticmethod
+    def get_scores_por_genero(campaign):
+        """
+        Retorna dict com {genero: {dimensao: score_medio}}
+        """
+        responses = SurveyResponse.objects.filter(campaign=campaign)
+        genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
+
+        genero_dimensoes = defaultdict(lambda: defaultdict(list))
+
+        for response in responses:
+            genero = genero_map.get(response.genero, 'Não informado')
+            for dimensao in ScoreService.DIMENSOES.keys():
+                score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
+                genero_dimensoes[genero][dimensao].append(score)
+
+        result = {}
+        for genero, dimensoes_scores in genero_dimensoes.items():
+            result[genero] = {}
+            for dimensao in ScoreService.DIMENSOES.keys():
+                if dimensoes_scores[dimensao]:
+                    avg_score = round(sum(dimensoes_scores[dimensao]) / len(dimensoes_scores[dimensao]), 2)
+                else:
+                    avg_score = 0.0
+                result[genero][dimensao] = avg_score
+
+        return result
+
+    @staticmethod
+    def get_scores_por_faixa_etaria(campaign):
+        """
+        Retorna dict com {faixa: {dimensao: score_medio}}
+        """
+        responses = SurveyResponse.objects.filter(campaign=campaign)
+
+        faixa_dimensoes = defaultdict(lambda: defaultdict(list))
+
+        for response in responses:
+            faixa = response.faixa_etaria
+            for dimensao in ScoreService.DIMENSOES.keys():
+                score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
+                faixa_dimensoes[faixa][dimensao].append(score)
+
+        result = {}
+        for faixa, dimensoes_scores in faixa_dimensoes.items():
+            result[faixa] = {}
+            for dimensao in ScoreService.DIMENSOES.keys():
+                if dimensoes_scores[dimensao]:
+                    avg_score = round(sum(dimensoes_scores[dimensao]) / len(dimensoes_scores[dimensao]), 2)
+                else:
+                    avg_score = 0.0
+                result[faixa][dimensao] = avg_score
+
+        return result
+
+    @staticmethod
+    def get_top_grupos_demograficos_criticos(campaign, limit=3):
+        """
+        Retorna TOP N grupos demográficos com maior percentual de respostas em risco crítico.
+        Grupos incluem combinações de gênero e faixa etária.
+        """
+        responses = SurveyResponse.objects.filter(campaign=campaign)
+        genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
+
+        grupos_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})
+
+        for response in responses:
+            genero = genero_map.get(response.genero, 'Não informado')
+            faixa = response.faixa_etaria
+            grupo = f"{genero} ({faixa})"
+
+            scores = ScoreService.processar_resposta_completa(response.respostas)
+
+            for dimensao, data in scores.items():
+                grupos_riscos[grupo]['total'] += 1
+                if data['nivel'] >= 13:
+                    grupos_riscos[grupo]['criticos'] += 1
+
+        top_grupos = []
+        for grupo, data in grupos_riscos.items():
+            if data['total'] > 0:
+                pct_critico = (data['criticos'] / data['total'] * 100)
+                top_grupos.append({
+                    'grupo': grupo,
+                    'nivel_risco': round(pct_critico, 1),
+                    'total_respostas': data['total'] // len(ScoreService.DIMENSOES),
+                    'cor': 'vermelho' if pct_critico > 50 else 'laranja' if pct_critico > 25 else 'amarelo'
+                })
+
+        top_grupos.sort(key=lambda x: x['nivel_risco'], reverse=True)
+        return top_grupos[:limit]

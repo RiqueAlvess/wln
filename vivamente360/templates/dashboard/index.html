@@ -282,6 +282,82 @@
     </div>
 </div>
 
+<h3 class="section-title">👥 Análise Demográfica Detalhada</h3>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line text-primary"></i> Score Médio por Dimensão - Gênero</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartScoresGenero"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-graph-up text-primary"></i> Score Médio por Dimensão - Faixa Etária</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartScoresFaixaEtaria"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-diamond-fill"></i> TOP 3 Grupos Demográficos em Risco Crítico</h5>
+            </div>
+            <div class="card-body">
+                {% if top_grupos_criticos %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="bi bi-trophy-fill"></i> Ranking</th>
+                                <th><i class="bi bi-people-fill"></i> Grupo Demográfico</th>
+                                <th class="text-center"><i class="bi bi-person-badge"></i> N° Respostas</th>
+                                <th class="text-center"><i class="bi bi-exclamation-triangle-fill"></i> Nível de Risco</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in top_grupos_criticos %}
+                            <tr>
+                                <td class="fw-bold">
+                                    {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
+                                    #{{ loop.index }}
+                                </td>
+                                <td><strong>{{ item.grupo }}</strong></td>
+                                <td class="text-center">{{ item.total_respostas }}</td>
+                                <td class="text-center">
+                                    <span class="badge badge-{{ item.cor }} fs-6">{{ item.nivel_risco }}%</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                    <p class="mt-2 mb-0">Nenhum grupo demográfico em risco crítico identificado</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm">
@@ -424,6 +500,121 @@ new Chart(ctxFaixa, {
         maintainAspectRatio: false,
         plugins: {
             legend: { display: false }
+        }
+    }
+});
+
+// Gráfico de Scores por Gênero (Barras Agrupadas)
+const ctxScoresGenero = document.getElementById('chartScoresGenero').getContext('2d');
+const scoresGeneroData = {{ scores_por_genero | tojson | safe }};
+const generos = Object.keys(scoresGeneroData);
+const dimensoesLabels = {{ dimensoes_labels | tojson | safe }};
+
+const datasetsGenero = generos.map((genero, index) => {
+    const colors = ['#4e73df', '#e74a3b', '#36b9cc', '#858796'];
+    const scoresArray = dimensoesLabels.map(dim => scoresGeneroData[genero][dim] || 0);
+
+    return {
+        label: genero,
+        data: scoresArray,
+        backgroundColor: colors[index % colors.length],
+        borderColor: colors[index % colors.length],
+        borderWidth: 2
+    };
+});
+
+new Chart(ctxScoresGenero, {
+    type: 'bar',
+    data: {
+        labels: dimensoesLabels,
+        datasets: datasetsGenero
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 } }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' (0-4)';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                min: 0,
+                max: 4,
+                title: { display: true, text: 'Score Médio (0-4)' }
+            },
+            x: {
+                title: { display: true, text: 'Dimensões HSE-IT' }
+            }
+        }
+    }
+});
+
+// Gráfico de Scores por Faixa Etária (Linhas)
+const ctxScoresFaixa = document.getElementById('chartScoresFaixaEtaria').getContext('2d');
+const scoresFaixaData = {{ scores_por_faixa_etaria | tojson | safe }};
+const faixas = Object.keys(scoresFaixaData).sort((a, b) => {
+    const ordem = ['18-24', '25-34', '35-49', '50-59', '60+'];
+    return ordem.indexOf(a) - ordem.indexOf(b);
+});
+
+const datasetsFaixa = dimensoesLabels.map((dimensao, index) => {
+    const colors = [
+        '#dc3545', '#fd7e14', '#ffc107', '#28a745',
+        '#20c997', '#17a2b8', '#007bff', '#6610f2', '#6f42c1'
+    ];
+    const scoresArray = faixas.map(faixa => scoresFaixaData[faixa][dimensao] || 0);
+
+    return {
+        label: dimensao,
+        data: scoresArray,
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length],
+        borderWidth: 2,
+        tension: 0.4,
+        fill: false
+    };
+});
+
+new Chart(ctxScoresFaixa, {
+    type: 'line',
+    data: {
+        labels: faixas,
+        datasets: datasetsFaixa
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 10 } }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' (0-4)';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                min: 0,
+                max: 4,
+                title: { display: true, text: 'Score Médio (0-4)' }
+            },
+            x: {
+                title: { display: true, text: 'Faixa Etária' }
+            }
         }
     }
 });
