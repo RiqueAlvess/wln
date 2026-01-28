@@ -23,7 +23,7 @@ VIVAMENTE 360º - Setup Instructions
    python manage.py migrate
 
 7. Popular dimensões e perguntas HSE-IT:
-   python manage.py populate_hse_it
+   python manage.py populate_hse
 
 8. Criar superusuário:
    python manage.py createsuperuser
