@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from apps.tenants.models import Empresa
 
 
 class TimeStampedModel(models.Model):
@@ -41,7 +40,7 @@ class TaskQueue(models.Model):
 
 
 class LGPDComplianceItem(models.Model):
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    empresa = models.ForeignKey('tenants.Empresa', on_delete=models.CASCADE)
     item = models.CharField(max_length=255)
     descricao = models.TextField()
     concluido = models.BooleanField(default=False)
