@@ -1,6 +1,7 @@
 from django.views.generic import ListView, View
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from cryptography.exceptions import InvalidTag
 from apps.core.mixins import RHRequiredMixin
 from apps.invitations.models import SurveyInvitation
 from apps.surveys.models import Campaign
@@ -8,6 +9,9 @@ from apps.core.models import TaskQueue
 from services.crypto_service import CryptoService
 from services.import_service import ImportService
 from services.audit_service import AuditService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ManageInvitationsView(RHRequiredMixin, ListView):
@@ -87,31 +91,60 @@ class DispatchEmailsView(RHRequiredMixin, View):
 
         crypto_service = CryptoService()
         count = 0
+        failed_count = 0
 
         for invitation in invitations:
-            email = crypto_service.decrypt(invitation.email_encrypted)
-            magic_link = f"{request.scheme}://{request.get_host()}/survey/{invitation.hash_token}/"
+            try:
+                email = crypto_service.decrypt(invitation.email_encrypted)
+                magic_link = f"{request.scheme}://{request.get_host()}/survey/{invitation.hash_token}/"
 
-            html_body = f"""
-            <h2>Pesquisa de Clima Organizacional - {campaign.empresa.nome_app}</h2>
-            <p>Você foi convidado(a) a participar da pesquisa {campaign.nome}.</p>
-            <p><a href="{magic_link}">Clique aqui para responder</a></p>
-            <p>Este link expira em 48 horas e só pode ser usado uma vez.</p>
-            """
+                html_body = f"""
+                <h2>Pesquisa de Clima Organizacional - {campaign.empresa.nome_app}</h2>
+                <p>Você foi convidado(a) a participar da pesquisa {campaign.nome}.</p>
+                <p><a href="{magic_link}">Clique aqui para responder</a></p>
+                <p>Este link expira em 48 horas e só pode ser usado uma vez.</p>
+                """
 
-            TaskQueue.objects.create(
-                task_type='send_email',
-                payload={
-                    'to': email,
-                    'subject': f'Pesquisa {campaign.nome} - {campaign.empresa.nome}',
-                    'html': html_body,
-                    'invitation_id': invitation.id
-                }
+                TaskQueue.objects.create(
+                    task_type='send_email',
+                    payload={
+                        'to': email,
+                        'subject': f'Pesquisa {campaign.nome} - {campaign.empresa.nome}',
+                        'html': html_body,
+                        'invitation_id': invitation.id
+                    }
+                )
+                count += 1
+
+            except InvalidTag:
+                failed_count += 1
+                logger.error(
+                    f"Erro de descriptografia para convite ID {invitation.id}. "
+                    f"O email pode ter sido criptografado com uma chave diferente."
+                )
+                messages.warning(
+                    request,
+                    f"Convite ID {invitation.id}: Não foi possível descriptografar o email. "
+                    f"O convite pode ter sido criado com uma chave de criptografia diferente."
+                )
+
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Erro ao processar convite ID {invitation.id}: {str(e)}")
+                messages.warning(
+                    request,
+                    f"Convite ID {invitation.id}: Erro ao processar - {str(e)}"
+                )
+
+        if count > 0:
+            messages.success(request, f'{count} e-mails enfileirados para envio.')
+            AuditService.log(request.user, campaign.empresa, 'disparo_email',
+                             f'Disparados {count} e-mails', request)
+
+        if failed_count > 0:
+            messages.error(
+                request,
+                f'{failed_count} convites falharam. Verifique os logs para mais detalhes.'
             )
-            count += 1
-
-        messages.success(request, f'{count} e-mails enfileirados para envio.')
-        AuditService.log(request.user, campaign.empresa, 'disparo_email',
-                         f'Disparados {count} e-mails', request)
 
         return redirect('invitations:manage', campaign_id=campaign_id)
