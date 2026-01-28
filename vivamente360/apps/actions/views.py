@@ -1,8 +1,10 @@
-from django.views.generic import ListView, TemplateView
+from django.views.generic import ListView, TemplateView, CreateView, DeleteView
 from django.shortcuts import get_object_or_404
+from django.urls import reverse_lazy
 from apps.core.mixins import RHRequiredMixin
-from apps.actions.models import ChecklistEtapa, PlanoAcao
+from apps.actions.models import ChecklistEtapa, PlanoAcao, Evidencia
 from apps.surveys.models import Campaign
+from .forms import EvidenciaForm
 
 
 class ChecklistView(RHRequiredMixin, ListView):
@@ -36,3 +38,77 @@ class PlanoAcaoListView(RHRequiredMixin, ListView):
         campaign_id = self.kwargs['campaign_id']
         context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
         return context
+
+
+class EvidenciaListView(RHRequiredMixin, ListView):
+    model = Evidencia
+    template_name = 'actions/evidencias_list.html'
+    context_object_name = 'evidencias'
+    paginate_by = 20
+
+    def get_queryset(self):
+        campaign_id = self.kwargs['campaign_id']
+        queryset = Evidencia.objects.filter(campaign_id=campaign_id).select_related(
+            'checklist_item', 'plano_acao', 'uploaded_by'
+        )
+
+        # Filtro por tipo
+        tipo_filter = self.request.GET.get('tipo')
+        if tipo_filter:
+            queryset = queryset.filter(tipo=tipo_filter)
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        campaign_id = self.kwargs['campaign_id']
+        context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
+        context['tipo_filter'] = self.request.GET.get('tipo', '')
+        return context
+
+
+class EvidenciaUploadView(RHRequiredMixin, CreateView):
+    model = Evidencia
+    form_class = EvidenciaForm
+    template_name = 'actions/evidencia_upload.html'
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        campaign_id = self.kwargs['campaign_id']
+
+        # Filtrar checklist items e planos de ação pela campanha
+        form.fields['checklist_item'].queryset = ChecklistEtapa.objects.filter(
+            campaign_id=campaign_id
+        )
+        form.fields['plano_acao'].queryset = PlanoAcao.objects.filter(
+            campaign_id=campaign_id
+        )
+
+        # Tornar ambos os campos opcionais
+        form.fields['checklist_item'].required = False
+        form.fields['plano_acao'].required = False
+
+        return form
+
+    def form_valid(self, form):
+        campaign_id = self.kwargs['campaign_id']
+        form.instance.campaign_id = campaign_id
+        form.instance.empresa = self.request.user.empresa
+        form.instance.uploaded_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('actions:evidencias', kwargs={'campaign_id': self.kwargs['campaign_id']})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        campaign_id = self.kwargs['campaign_id']
+        context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
+        return context
+
+
+class EvidenciaDeleteView(RHRequiredMixin, DeleteView):
+    model = Evidencia
+
+    def get_success_url(self):
+        return reverse_lazy('actions:evidencias', kwargs={'campaign_id': self.object.campaign.id})

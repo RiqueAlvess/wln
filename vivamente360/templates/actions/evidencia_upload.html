@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload de Evidência{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Upload de Evidência - {{ campaign.nome }}</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Tipo de Evidência -->
+            <div class="mb-3">
+                <label for="{{ form.tipo.id_for_label }}" class="form-label">{{ form.tipo.label }}</label>
+                {{ form.tipo }}
+                {% if form.tipo.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.tipo.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Upload de Arquivo -->
+            <div class="mb-3">
+                <label for="{{ form.arquivo.id_for_label }}" class="form-label">{{ form.arquivo.label }}</label>
+                <div class="border rounded p-4 text-center" style="border-style: dashed !important; background-color: #f8f9fa;">
+                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                    <p class="mb-2 mt-2">Arraste e solte o arquivo aqui ou clique para selecionar</p>
+                    {{ form.arquivo }}
+                </div>
+                <div class="form-text">
+                    Formatos aceitos: imagens (JPG, PNG, etc.), PDF, DOC, DOCX, XLS, XLSX
+                </div>
+                {% if form.arquivo.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.arquivo.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Descrição -->
+            <div class="mb-3">
+                <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                {{ form.descricao }}
+                {% if form.descricao.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.descricao.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <hr class="my-4">
+
+            <h5 class="mb-3">Vinculação (Opcional)</h5>
+            <p class="text-muted small">Você pode vincular esta evidência a um item do checklist OU a um plano de ação</p>
+
+            <!-- Vinculação com Checklist Item -->
+            <div class="mb-3">
+                <label for="{{ form.checklist_item.id_for_label }}" class="form-label">
+                    <i class="bi bi-list-check"></i> {{ form.checklist_item.label }}
+                </label>
+                {{ form.checklist_item }}
+                {% if form.checklist_item.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.checklist_item.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Vinculação com Plano de Ação -->
+            <div class="mb-3">
+                <label for="{{ form.plano_acao.id_for_label }}" class="form-label">
+                    <i class="bi bi-clipboard-check"></i> {{ form.plano_acao.label }}
+                </label>
+                {{ form.plano_acao }}
+                {% if form.plano_acao.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.plano_acao.errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Botões -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url('actions:evidencias', campaign_id=campaign.id) }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Fazer Upload
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Script para drag & drop (apenas visual, não é customizado) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('{{ form.arquivo.id_for_label }}');
+    const dropArea = fileInput.closest('.border');
+
+    if (dropArea && fileInput) {
+        // Prevenir comportamento padrão
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Destacar área quando arrastar arquivo
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, function() {
+                dropArea.classList.add('border-primary');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, function() {
+                dropArea.classList.remove('border-primary');
+            });
+        });
+
+        // Manipular o drop
+        dropArea.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                // Atualizar texto visual
+                const fileName = files[0].name;
+                const textElement = dropArea.querySelector('p');
+                if (textElement) {
+                    textElement.textContent = 'Arquivo selecionado: ' + fileName;
+                }
+            }
+        });
+
+        // Atualizar texto quando selecionar via clique
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length) {
+                const fileName = fileInput.files[0].name;
+                const textElement = dropArea.querySelector('p');
+                if (textElement) {
+                    textElement.textContent = 'Arquivo selecionado: ' + fileName;
+                }
+            }
+        });
+
+        // Fazer área clicável
+        dropArea.style.cursor = 'pointer';
+        dropArea.addEventListener('click', function(e) {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
