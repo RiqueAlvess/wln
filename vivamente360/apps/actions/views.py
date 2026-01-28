@@ -1,10 +1,12 @@
-from django.views.generic import ListView, TemplateView, CreateView, DeleteView
+from django.views.generic import ListView, TemplateView, CreateView, DeleteView, View
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
+from django.http import HttpResponse
 from apps.core.mixins import RHRequiredMixin
 from apps.actions.models import ChecklistEtapa, PlanoAcao, Evidencia
 from apps.surveys.models import Campaign
 from .forms import EvidenciaForm
+from services.export_service import ExportService
 
 
 class ChecklistView(RHRequiredMixin, ListView):
@@ -112,3 +114,19 @@ class EvidenciaDeleteView(RHRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse_lazy('actions:evidencias', kwargs={'campaign_id': self.object.campaign.id})
+
+
+class ExportPlanoAcaoWordView(RHRequiredMixin, View):
+    def get(self, request, campaign_id):
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        planos = PlanoAcao.objects.filter(campaign=campaign).select_related('dimensao')
+
+        doc = ExportService.export_plano_acao_word(campaign, planos)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename=plano_acao_{campaign.nome}.docx'
+        doc.save(response)
+
+        return response

@@ -5,6 +5,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2">Planos de Ação - {{ campaign.nome }}</h1>
+    <a href="{% url 'actions:export_plano_word' campaign_id=campaign.id %}" class="btn btn-success">
+        <i class="bi bi-file-earmark-word"></i> Exportar Word
+    </a>
 </div>
 
 <div class="card">
