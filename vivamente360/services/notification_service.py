@@ -11,8 +11,8 @@ Este módulo gerencia o envio de notificações automáticas relacionadas a:
 from datetime import date, timedelta
 from django.conf import settings
 from django.template.loader import render_to_string
-from vivamente360.services.email_service import get_email_service
-from vivamente360.apps.core.models import TaskQueue
+from services.email_service import get_email_service
+from apps.core.models import TaskQueue
 import logging
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class NotificationService:
         """
         try:
             # Buscar convite relacionado para obter email do respondente
-            from vivamente360.apps.invitations.models import SurveyInvitation
+            from apps.invitations.models import SurveyInvitation
 
             invitation = SurveyInvitation.objects.filter(
                 campaign=survey_response.campaign,
@@ -91,7 +91,7 @@ class NotificationService:
                 return None
 
             # Calcular scores por dimensão
-            from vivamente360.app_selectors.analytics_selectors import AnalyticsSelectors
+            from app_selectors.analytics_selectors import AnalyticsSelectors
             scores = AnalyticsSelectors.calcular_scores_individuais(survey_response)
 
             # Renderizar template de email
@@ -135,8 +135,8 @@ class NotificationService:
             Envia alerta para o criador da campanha e gestores da empresa.
         """
         try:
-            from vivamente360.apps.invitations.models import SurveyInvitation
-            from vivamente360.apps.responses.models import SurveyResponse
+            from apps.invitations.models import SurveyInvitation
+            from apps.responses.models import SurveyResponse
 
             # Calcular taxa de adesão
             total_convidados = SurveyInvitation.objects.filter(
@@ -211,7 +211,7 @@ class NotificationService:
             - Score médio < 2.5 em múltiplas dimensões
         """
         try:
-            from vivamente360.app_selectors.analytics_selectors import AnalyticsSelectors
+            from app_selectors.analytics_selectors import AnalyticsSelectors
 
             # Calcular scores individuais
             scores = AnalyticsSelectors.calcular_scores_individuais(survey_response)

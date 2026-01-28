@@ -16,7 +16,7 @@ Uso:
 """
 
 from django.core.management.base import BaseCommand
-from vivamente360.tasks.notification_tasks import (
+from tasks.notification_tasks import (
     process_notification_queue,
     check_campaign_adhesion,
     check_action_plan_deadlines,

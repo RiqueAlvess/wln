@@ -10,9 +10,9 @@ Este módulo contém tasks assíncronas para:
 from celery import shared_task
 from datetime import date, timedelta
 from django.utils import timezone
-from vivamente360.apps.core.models import TaskQueue
-from vivamente360.services.notification_service import NotificationService
-from vivamente360.services.email_service import get_email_service
+from apps.core.models import TaskQueue
+from services.notification_service import NotificationService
+from services.email_service import get_email_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def process_notification_queue(batch_size=10, max_attempts=3):
 
     Exemplo de uso:
         # Executar manualmente
-        from vivamente360.tasks.notification_tasks import process_notification_queue
+        from tasks.notification_tasks import process_notification_queue
         result = process_notification_queue.delay(batch_size=20)
 
         # Agendamento periódico (configurar em celery beat)
@@ -147,7 +147,7 @@ def check_campaign_adhesion():
     }
 
     try:
-        from vivamente360.apps.surveys.models import Campaign
+        from apps.surveys.models import Campaign
 
         # Buscar campanhas ativas
         active_campaigns = Campaign.objects.filter(status='active')
@@ -202,7 +202,7 @@ def check_action_plan_deadlines(dias_antecedencia=7):
     }
 
     try:
-        from vivamente360.apps.actions.models import PlanoAcao
+        from apps.actions.models import PlanoAcao
 
         # Data limite para alertas
         data_limite = date.today() + timedelta(days=dias_antecedencia)
@@ -264,7 +264,7 @@ def check_critical_risks():
     }
 
     try:
-        from vivamente360.apps.responses.models import SurveyResponse
+        from apps.responses.models import SurveyResponse
 
         # Buscar respostas das últimas 24 horas
         cutoff_time = timezone.now() - timedelta(hours=24)
