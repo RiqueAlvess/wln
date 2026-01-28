@@ -56,15 +56,6 @@
                             <i class="bi bi-clipboard-data"></i> Campanhas
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear"></i> Gestão
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url('surveys:list') }}"><i class="bi bi-file-earmark-arrow-up"></i> Importação de Contatos</a></li>
-                            <li><a class="dropdown-item" href="{{ url('surveys:list') }}"><i class="bi bi-link-45deg"></i> Gestão de Links</a></li>
-                        </ul>
-                    </li>
                     {% if request.user.profile.role in ['admin', 'rh'] %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url('core:lgpd_compliance') }}">

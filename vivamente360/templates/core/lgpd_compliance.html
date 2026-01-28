@@ -95,7 +95,7 @@
                                     <div class="alert alert-success py-2 mb-3">
                                         <small>
                                             <i class="bi bi-calendar-check"></i>
-                                            Concluído em: {{ item.data_conclusao|date:"d/m/Y H:i" }}
+                                            Concluído em: {{ item.data_conclusao.strftime('%d/%m/%Y %H:%M') }}
                                         </small>
                                     </div>
                                     {% endif %}
