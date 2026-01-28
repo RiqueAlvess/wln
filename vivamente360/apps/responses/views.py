@@ -7,6 +7,7 @@ from apps.invitations.models import SurveyInvitation
 from apps.responses.models import SurveyResponse
 from apps.surveys.models import Pergunta
 from services.token_service import TokenService
+from services.notification_service import NotificationService
 
 
 class SurveyFormView(View):
@@ -87,7 +88,7 @@ class SurveyFormView(View):
                 demographics = request.session.get(f'survey_{token}', {})
                 respostas = request.session.get(f'respostas_{token}', {})
 
-                SurveyResponse.objects.create(
+                survey_response = SurveyResponse.objects.create(
                     campaign=invitation.campaign,
                     unidade=invitation.unidade,
                     setor=invitation.setor,
@@ -99,6 +100,10 @@ class SurveyFormView(View):
                     lgpd_aceito=True,
                     lgpd_aceito_em=timezone.now()
                 )
+
+                # Enviar notificações após salvar resposta
+                NotificationService.enviar_resultado_individual(survey_response)
+                NotificationService.alerta_risco_critico(survey_response)
 
                 TokenService.invalidate_token(invitation)
 
