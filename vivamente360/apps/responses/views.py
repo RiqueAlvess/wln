@@ -11,7 +11,7 @@ from services.notification_service import NotificationService
 
 
 class SurveyFormView(View):
-    @method_decorator(ratelimit(key='ip', rate='30/h', method='POST', block=True))
+    @method_decorator(ratelimit(key='ip', rate='100/h', method='POST', block=True))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
