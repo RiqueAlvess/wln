@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.contrib.messages import get_messages
 from jinja2 import Environment
 
+from apps.core.context_processors import branding
+
 
 def environment(**options):
     env = Environment(**options)
@@ -23,5 +25,9 @@ def environment(**options):
 
 
 def jinja2_context_processor(request):
-    from apps.core.context_processors import branding
+    """
+    Context processor para Jinja2 que integra os dados de branding.
+    Este context processor adiciona variáveis de branding (empresa, logo, cores, etc.)
+    disponíveis em todos os templates Jinja2.
+    """
     return branding(request)
