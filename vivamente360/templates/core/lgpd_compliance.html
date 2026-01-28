@@ -140,7 +140,7 @@ document.getElementById('lgpdForm')?.addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    fetch('{% url "core:lgpd_compliance" %}', {
+    fetch('{{ url("core:lgpd_compliance") }}', {
         method: 'POST',
         body: formData,
         headers: {
