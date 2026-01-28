@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente do arquivo .env
+env_path = Path(__file__).resolve().parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 if __name__ == '__main__':
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
