@@ -109,6 +109,47 @@ python manage.py collectstatic --noinput
 - Check Jinja2 configuration in `config/jinja2.py`
 - Verify template syntax
 
+### 5. ModuleNotFoundError: No module named 'exceptions' (python-docx issue)
+
+If you encounter this error when running `makemigrations` or starting the server:
+```
+ModuleNotFoundError: No module named 'exceptions'
+```
+
+This is caused by a conflict between the `docx` and `python-docx` packages. The `exceptions` module was removed in Python 3, but the `docx` package (not `python-docx`) still tries to import it.
+
+**Solution:**
+
+1. **Activate your virtual environment** (if not already activated):
+   ```bash
+   source venv/bin/activate  # Linux/Mac
+   # or
+   venv\Scripts\activate  # Windows
+   ```
+
+2. **Uninstall both packages**:
+   ```bash
+   pip uninstall docx python-docx -y
+   ```
+
+3. **Reinstall the correct package**:
+   ```bash
+   pip install python-docx==0.8.11
+   ```
+
+4. **Verify the installation**:
+   ```bash
+   pip list | grep docx
+   # Should show: python-docx 0.8.11
+   ```
+
+5. **Test the fix**:
+   ```bash
+   python manage.py makemigrations
+   ```
+
+**Note**: Always use `python-docx`, NOT `docx`. The `python-docx` package is the correct, actively maintained library for working with Word documents.
+
 ## Getting Help
 
 If the problem persists after trying these solutions:
