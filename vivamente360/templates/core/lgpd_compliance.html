@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Conformidade LGPD{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-shield-check"></i> Conformidade LGPD
+                    </h4>
+                    <div>
+                        <span class="badge bg-light text-dark fs-6">
+                            {{ completed_items }} de {{ total_items }} concluídos
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">Progresso de Conformidade:</span>
+                        <span class="fw-bold text-primary">{{ completion_percentage }}%</span>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-primary" role="progressbar"
+                             style="width: {{ completion_percentage }}%;"
+                             aria-valuenow="{{ completion_percentage }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            {{ completion_percentage }}%
+                        </div>
+                    </div>
+                </div>
+
+                {% if not empresa %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Nenhuma empresa associada ao seu perfil.
+                </div>
+                {% elif not items %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Nenhum item de conformidade encontrado. Execute o comando de população de dados.
+                </div>
+                {% else %}
+                <form id="lgpdForm" method="post">
+                    {% csrf_token %}
+
+                    <div class="accordion" id="lgpdAccordion">
+                        {% for item in items %}
+                        <div class="accordion-item mb-3 border rounded">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapse{{ item.id }}"
+                                        aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                                        aria-controls="collapse{{ item.id }}">
+                                    <div class="d-flex w-100 align-items-center justify-content-between pe-3">
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-secondary me-2">{{ item.ordem }}</span>
+                                            <strong>{{ item.item }}</strong>
+                                        </div>
+                                        {% if item.concluido %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Concluído
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-clock"></i> Pendente
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ item.id }}"
+                                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                                 data-bs-parent="#lgpdAccordion">
+                                <div class="card-body">
+                                    <p class="text-muted mb-3">{{ item.descricao }}</p>
+
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="concluido_{{ item.id }}"
+                                               id="concluido_{{ item.id }}"
+                                               {% if item.concluido %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold" for="concluido_{{ item.id }}">
+                                            Marcar como concluído
+                                        </label>
+                                    </div>
+
+                                    {% if item.data_conclusao %}
+                                    <div class="alert alert-success py-2 mb-3">
+                                        <small>
+                                            <i class="bi bi-calendar-check"></i>
+                                            Concluído em: {{ item.data_conclusao|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="mb-3">
+                                        <label for="observacoes_{{ item.id }}" class="form-label">
+                                            <i class="bi bi-pencil"></i> Observações:
+                                        </label>
+                                        <textarea class="form-control"
+                                                  name="observacoes_{{ item.id }}"
+                                                  id="observacoes_{{ item.id }}"
+                                                  rows="3"
+                                                  placeholder="Adicione observações sobre este item...">{{ item.observacoes }}</textarea>
+                                    </div>
+
+                                    <input type="hidden" name="item_{{ item.id }}" value="1">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save"></i> Salvar Progresso
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="alertContainer"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('lgpdForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('{% url "core:lgpd_compliance" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const alertContainer = document.getElementById('alertContainer');
+
+        if (data.success) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle"></i> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Recarregar a página após 1 segundo para atualizar os percentuais
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            alertContainer.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> Erro: ${data.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        // Scroll para o alerta
+        alertContainer.scrollIntoView({ behavior: 'smooth' });
+    })
+    .catch(error => {
+        const alertContainer = document.getElementById('alertContainer');
+        alertContainer.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Erro ao salvar: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    });
+});
+</script>
+{% endblock %}
