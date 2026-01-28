@@ -32,9 +32,15 @@ class ManageInvitationsView(RHRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         campaign_id = self.kwargs['campaign_id']
         context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
-        context['pending_count'] = SurveyInvitation.objects.filter(
-            campaign_id=campaign_id, status='pending'
-        ).count()
+
+        base_queryset = SurveyInvitation.objects.filter(campaign_id=campaign_id)
+
+        context['total_count'] = base_queryset.count()
+        context['pending_count'] = base_queryset.filter(status='pending').count()
+        context['sent_count'] = base_queryset.filter(status='sent').count()
+        context['used_count'] = base_queryset.filter(status='used').count()
+        context['filter_status'] = self.request.GET.get('status', '')
+
         return context
 
 

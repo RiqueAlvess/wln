@@ -4,71 +4,302 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Convites - {{ campaign.nome }}</h1>
     <div>
-        <a href="{{ url('invitations:import', campaign_id=campaign.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-upload"></i> Importar CSV
+        <h1 class="h2 mb-1">
+            <i class="bi bi-envelope-paper text-primary"></i> Gerenciar Convites
+        </h1>
+        <p class="text-muted mb-0">Campanha: <strong>{{ campaign.nome }}</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
         </a>
+        <a href="{{ url('invitations:import', campaign_id=campaign.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-cloud-upload"></i> Importar CSV
+        </a>
+        {% if pending_count > 0 %}
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDisparo">
-            <i class="bi bi-send"></i> Disparar E-mails ({{ pending_count }})
+            <i class="bi bi-send-fill"></i> Enviar E-mails ({{ pending_count }})
         </button>
+        {% endif %}
     </div>
 </div>
 
-<div class="card">
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Total de Convites</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2">
+                        <i class="bi bi-envelope fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-warning border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Pendentes</p>
+                        <h3 class="mb-0 text-warning">{{ pending_count }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2">
+                        <i class="bi bi-hourglass-split fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-info border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Enviados</p>
+                        <h3 class="mb-0 text-info">{{ sent_count }}</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-2">
+                        <i class="bi bi-send-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-success border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small">Respondidos</p>
+                        <h3 class="mb-0 text-success">{{ used_count }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-2">
+                        <i class="bi bi-check-circle fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+            </div>
+            <div class="col-md-6">
+                <form method="get" class="row g-2">
+                    <div class="col-md-6">
+                        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Todos os status</option>
+                            <option value="pending" {{ 'selected' if filter_status == 'pending' }}>Pendentes</option>
+                            <option value="sent" {{ 'selected' if filter_status == 'sent' }}>Enviados</option>
+                            <option value="used" {{ 'selected' if filter_status == 'used' }}>Respondidos</option>
+                            <option value="expired" {{ 'selected' if filter_status == 'expired' }}>Expirados</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle"></i> Limpar Filtros
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Convites</h5>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Hash Token</th>
+                    <th width="120">Token</th>
                     <th>Unidade</th>
                     <th>Setor</th>
-                    <th>Status</th>
+                    <th>Cargo</th>
+                    <th width="120">Status</th>
                     <th>Enviado em</th>
                     <th>Respondido em</th>
                 </tr>
             </thead>
             <tbody>
-                {% for inv in invitations %}
-                <tr>
-                    <td><code>{{ inv.hash_token | string | truncate(12) }}...</code></td>
-                    <td>{{ inv.unidade.nome }}</td>
-                    <td>{{ inv.setor.nome }}</td>
-                    <td>
-                        {% if inv.status == 'pending' %}
-                        <span class="badge bg-secondary">Pendente</span>
-                        {% elif inv.status == 'sent' %}
-                        <span class="badge bg-primary">Enviado</span>
-                        {% elif inv.status == 'used' %}
-                        <span class="badge bg-success">Respondido</span>
-                        {% else %}
-                        <span class="badge bg-danger">Expirado</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ inv.sent_at | datetimeformat if inv.sent_at else '-' }}</td>
-                    <td>{{ inv.used_at | datetimeformat if inv.used_at else '-' }}</td>
-                </tr>
-                {% endfor %}
+                {% if invitations %}
+                    {% for inv in invitations %}
+                    <tr>
+                        <td>
+                            <code class="small">{{ inv.hash_token | string | truncate(10) }}...</code>
+                        </td>
+                        <td>
+                            <i class="bi bi-building text-muted"></i> {{ inv.unidade.nome }}
+                        </td>
+                        <td>
+                            <i class="bi bi-diagram-3 text-muted"></i> {{ inv.setor.nome }}
+                        </td>
+                        <td>
+                            <i class="bi bi-person-badge text-muted"></i> {{ inv.cargo.nome }}
+                        </td>
+                        <td>
+                            {% if inv.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-hourglass-split"></i> Pendente
+                            </span>
+                            {% elif inv.status == 'sent' %}
+                            <span class="badge bg-info">
+                                <i class="bi bi-send-check"></i> Enviado
+                            </span>
+                            {% elif inv.status == 'used' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle-fill"></i> Respondido
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle"></i> Expirado
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if inv.sent_at %}
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i> {{ inv.sent_at | datetimeformat }}
+                            </small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if inv.used_at %}
+                            <small class="text-success">
+                                <i class="bi bi-check2-circle"></i> {{ inv.used_at | datetimeformat }}
+                            </small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                            <p>Nenhum convite encontrado para este filtro.</p>
+                            <a href="{{ url('invitations:import', campaign_id=campaign.id) }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Importar Convites
+                            </a>
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
+
+    {% if invitations %}
+    <div class="card-footer bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Mostrando {{ invitations|length }} de {{ total_count }} convites
+            </small>
+            <nav>
+                {% if page_obj and page_obj.has_other_pages %}
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próximo</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="modal fade" id="modalDisparo" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirmar Disparo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-send-fill"></i> Confirmar Disparo de E-mails
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Serão enviados <strong>{{ pending_count }}</strong> e-mails para convites pendentes.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Atenção:</strong> Esta ação irá enviar e-mails para todos os convites pendentes.
+                </div>
+
+                <div class="row text-center mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h2 class="display-4 text-primary mb-0">{{ pending_count }}</h2>
+                                <p class="text-muted mb-0">E-mails serão enviados</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h2 class="display-4 text-success mb-0">48h</h2>
+                                <p class="text-muted mb-0">Validade dos links</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-lightning-fill text-warning"></i> O que acontecerá:
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Os e-mails serão enfileirados para envio</li>
+                            <li>Cada colaborador receberá um link único (magic link)</li>
+                            <li>Os links expiram em 48 horas</li>
+                            <li>Cada link pode ser usado apenas uma vez</li>
+                            <li>Você pode acompanhar o progresso nesta tela</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" action="{{ url('invitations:dispatch', campaign_id=campaign.id) }}">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form method="post" action="{{ url('invitations:dispatch', campaign_id=campaign.id) }}" class="d-inline">
                     {{ csrf_input }}
-                    <button type="submit" class="btn btn-primary">Confirmar Disparo</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send-check-fill"></i> Confirmar e Enviar
+                    </button>
                 </form>
             </div>
         </div>

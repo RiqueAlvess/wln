@@ -48,6 +48,9 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'environment': 'config.jinja2.environment',
+            'context_processors': [
+                'config.jinja2.jinja2_context_processor',
+            ],
             'extensions': [
                 'jinja2.ext.do',
                 'jinja2.ext.loopcontrols',

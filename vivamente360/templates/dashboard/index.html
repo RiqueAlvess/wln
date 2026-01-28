@@ -1,83 +1,318 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard de Riscos Psicossociais{% endblock %}
+
+{% block extra_head %}
+<style>
+    .metric-card {
+        border-left: 4px solid;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .metric-card.success { border-color: #28a745; }
+    .metric-card.warning { border-color: #ffc107; }
+    .metric-card.danger { border-color: #dc3545; }
+    .metric-card.info { border-color: #17a2b8; }
+
+    .chart-container {
+        position: relative;
+        height: 400px;
+    }
+
+    .badge-vermelho { background-color: #dc3545; }
+    .badge-laranja { background-color: #fd7e14; }
+    .badge-amarelo { background-color: #ffc107; color: #000; }
+    .badge-verde { background-color: #28a745; }
+
+    .section-title {
+        border-left: 4px solid {{ branding.cor_primaria }};
+        padding-left: 15px;
+        margin: 30px 0 20px 0;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Dashboard{% if campaign %} - {{ campaign.nome }}{% endif %}</h1>
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-graph-up-arrow text-primary"></i> Dashboard de Riscos Psicossociais
+        </h1>
+        {% if campaign %}
+        <p class="text-muted mb-0">Análise da campanha: <strong>{{ campaign.nome }}</strong></p>
+        {% endif %}
+    </div>
     {% if campaigns %}
-    <select class="form-select w-auto" onchange="location = '?campaign=' + this.value;">
-        <option value="">Selecione uma campanha</option>
-        {% for c in campaigns %}
-        <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>{{ c.nome }}</option>
-        {% endfor %}
-    </select>
+    <div class="d-flex gap-2">
+        <select class="form-select" style="width: 300px;" onchange="location = '?campaign=' + this.value;">
+            <option value="">📊 Selecione uma campanha</option>
+            {% for c in campaigns %}
+            <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>
+                {{ c.nome }} ({{ c.data_inicio | dateformat }})
+            </option>
+            {% endfor %}
+        </select>
+        {% if campaign %}
+        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-gear"></i> Configurar
+        </a>
+        {% endif %}
+    </div>
     {% endif %}
 </div>
 
 {% if not campaign %}
-<div class="alert alert-info">
-    <i class="bi bi-info-circle"></i> Selecione uma campanha para visualizar os dados.
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-clipboard-data text-muted" style="font-size: 5rem;"></i>
+                <h3 class="mt-3">Nenhuma campanha selecionada</h3>
+                <p class="text-muted">Selecione uma campanha no menu acima para visualizar os dados ou crie uma nova campanha.</p>
+                <a href="{{ url('surveys:create') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle"></i> Nova Campanha
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 {% else %}
 
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <h6 class="text-muted">Taxa de Adesão</h6>
-                <h2 class="display-4 {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}">
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card {% if adesao >= 70 %}success{% elif adesao >= 50 %}warning{% else %}danger{% endif %} border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="fs-6 text-muted fw-semibold">Taxa de Adesão</div>
+                    <i class="bi bi-people-fill {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}" style="font-size: 1.5rem;"></i>
+                </div>
+                <h2 class="display-5 mb-1 fw-bold {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}">
                     {{ adesao }}%
                 </h2>
-                <small class="text-muted">{{ respondidos }}/{{ total_convidados }} respostas</small>
+                <p class="text-muted mb-0 small">
+                    <strong>{{ respondidos }}</strong> de <strong>{{ total_convidados }}</strong> convidados
+                </p>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar {% if adesao >= 70 %}bg-success{% elif adesao >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width: {{ adesao }}%"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <h6 class="text-muted">IGRP</h6>
-                <h2 class="display-4">{{ igrp }}</h2>
-                <small class="text-muted">Índice Geral de Riscos</small>
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card info border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="fs-6 text-muted fw-semibold">IGRP</div>
+                    <i class="bi bi-clipboard-pulse text-info" style="font-size: 1.5rem;"></i>
+                </div>
+                <h2 class="display-5 mb-1 fw-bold text-info">{{ igrp }}</h2>
+                <p class="text-muted mb-0 small">Índice Geral de Riscos Psicossociais</p>
+                <div class="mt-2">
+                    <span class="badge bg-secondary">Escala 0-4</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card h-100 border-danger">
-            <div class="card-body text-center">
-                <h6 class="text-muted">Risco Alto/Crítico</h6>
-                <h2 class="display-4 text-danger">{{ pct_risco_alto }}%</h2>
-                <small class="text-muted">necessita atenção</small>
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card danger border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="fs-6 text-muted fw-semibold">Risco Alto/Crítico</div>
+                    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 1.5rem;"></i>
+                </div>
+                <h2 class="display-5 mb-1 fw-bold text-danger">{{ pct_risco_alto }}%</h2>
+                <p class="text-muted mb-0 small">Colaboradores necessitam atenção</p>
+                {% if pct_risco_alto > 25 %}
+                <div class="mt-2">
+                    <span class="badge bg-danger">⚠️ Ação Imediata</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card success border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="fs-6 text-muted fw-semibold">Respostas Válidas</div>
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 1.5rem;"></i>
+                </div>
+                <h2 class="display-5 mb-1 fw-bold">{{ respondidos }}</h2>
+                <p class="text-muted mb-0 small">Questionários completos</p>
+                <div class="mt-2">
+                    <span class="badge bg-success">✓ Processados</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="section-title">📊 Análise por Dimensões HSE-IT</h3>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill text-primary"></i> Índice por Dimensão</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartDimensoes"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> TOP 5 Setores Críticos</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if top5_setores %}
+                <div class="list-group list-group-flush">
+                    {% for item in top5_setores %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-building"></i>
+                            <strong>{{ item.setor }}</strong>
+                        </div>
+                        <span class="badge badge-{{ item.cor }} rounded-pill">{{ item.nivel_risco }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 text-center text-muted">
+                    <i class="bi bi-check-circle"></i> Nenhum setor crítico identificado
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0"><i class="bi bi-pie-chart-fill text-primary"></i> Distribuição de Riscos</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="chartDistribuicao"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="section-title">📈 Análises Detalhadas</h3>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-gender-ambiguous text-primary"></i> Análise por Gênero</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="chartGenero"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-calendar-range text-primary"></i> Análise por Faixa Etária</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="chartFaixaEtaria"></canvas>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">Índice por Dimensão HSE-IT</div>
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="bi bi-ui-checks text-primary"></i> Matriz de Risco por Setor e Dimensão</h5>
+            </div>
             <div class="card-body">
-                <canvas id="chartDimensoes"></canvas>
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-info-circle"></i> Cores representam o nível de risco:
+                    <span class="badge badge-verde">Baixo</span>
+                    <span class="badge badge-amarelo">Moderado</span>
+                    <span class="badge badge-laranja">Alto</span>
+                    <span class="badge badge-vermelho">Crítico</span>
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered text-center">
+                        <thead>
+                            <tr class="table-light">
+                                <th>Setor</th>
+                                {% for dim_label in dimensoes_labels %}
+                                <th class="small">{{ dim_label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for setor_data in heatmap_data %}
+                            <tr>
+                                <td class="text-start fw-semibold">{{ setor_data.setor }}</td>
+                                {% for score in setor_data.scores %}
+                                <td style="background-color: {% if score >= 3.5 %}#d4edda{% elif score >= 2.5 %}#fff3cd{% elif score >= 1.5 %}#ffe5d0{% else %}#f8d7da{% endif %};">
+                                    {{ score }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">TOP 5 Setores Críticos</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <tbody>
-                    {% for item in top5_setores %}
-                    <tr>
-                        <td>{{ item.setor }}</td>
-                        <td><span class="badge bg-{{ item.cor }}">{{ item.nivel_risco }}%</span></td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check text-primary"></i> Ações Recomendadas</h5>
+                <a href="{{ url('actions:plano_acao_list') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i> Criar Plano de Ação
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-lightbulb-fill"></i> <strong>Recomendações baseadas nos resultados:</strong>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% if pct_risco_alto > 25 %}
+                    <li class="list-group-item">
+                        <i class="bi bi-exclamation-circle text-danger"></i>
+                        <strong>Prioridade Alta:</strong> Mais de 25% dos colaboradores em risco crítico. Implemente planos de ação imediatos.
+                    </li>
+                    {% endif %}
+                    {% if adesao < 70 %}
+                    <li class="list-group-item">
+                        <i class="bi bi-info-circle text-warning"></i>
+                        <strong>Adesão Baixa:</strong> Reforce a comunicação e incentive a participação na pesquisa.
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Revise o <a href="{{ url('actions:checklist') }}">checklist de conformidade NR-1</a> para garantir todas as etapas.
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -90,21 +325,105 @@
 {% if campaign %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-const ctx = document.getElementById('chartDimensoes').getContext('2d');
-new Chart(ctx, {
+// Gráfico de Dimensões
+const ctxDimensoes = document.getElementById('chartDimensoes').getContext('2d');
+new Chart(ctxDimensoes, {
     type: 'bar',
     data: {
         labels: {{ dimensoes_labels | tojson | safe }},
         datasets: [{
-            label: '{{ campaign.nome }}',
+            label: 'Score Médio',
             data: {{ dimensoes_scores | tojson | safe }},
             backgroundColor: {{ dimensoes_cores | tojson | safe }},
+            borderColor: {{ dimensoes_cores | tojson | safe }},
+            borderWidth: 2
         }]
     },
     options: {
+        responsive: true,
+        maintainAspectRatio: false,
         indexAxis: 'y',
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Score: ' + context.parsed.x.toFixed(2) + ' (0-4)';
+                    }
+                }
+            }
+        },
         scales: {
-            x: { min: 0, max: 4 }
+            x: {
+                min: 0,
+                max: 4,
+                title: { display: true, text: 'Score (0-4)' }
+            }
+        }
+    }
+});
+
+// Gráfico de Distribuição
+const ctxDist = document.getElementById('chartDistribuicao').getContext('2d');
+new Chart(ctxDist, {
+    type: 'doughnut',
+    data: {
+        labels: ['Aceitável', 'Moderado', 'Importante', 'Crítico'],
+        datasets: [{
+            data: {{ distribuicao_values | tojson | safe }},
+            backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// Gráfico por Gênero
+const ctxGenero = document.getElementById('chartGenero').getContext('2d');
+new Chart(ctxGenero, {
+    type: 'bar',
+    data: {
+        labels: {{ genero_labels | tojson | safe }},
+        datasets: [{
+            label: 'Número de Respostas',
+            data: {{ genero_values | tojson | safe }},
+            backgroundColor: ['#4e73df', '#e74a3b', '#36b9cc', '#858796']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+// Gráfico por Faixa Etária
+const ctxFaixa = document.getElementById('chartFaixaEtaria').getContext('2d');
+new Chart(ctxFaixa, {
+    type: 'line',
+    data: {
+        labels: {{ faixa_etaria_labels | tojson | safe }},
+        datasets: [{
+            label: 'Número de Respostas',
+            data: {{ faixa_etaria_values | tojson | safe }},
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
         }
     }
 });

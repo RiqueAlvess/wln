@@ -38,7 +38,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{{ url('surveys:detail', pk=campaign.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                         <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary">Convites</a>
                     </td>
                 </tr>
