@@ -108,7 +108,20 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', base64.b64encode(os.urandom(32)).decode())
+# Encryption key configuration
+_encryption_key_env = os.environ.get('ENCRYPTION_KEY', '')
+
+# Check if the key is a placeholder or invalid
+if not _encryption_key_env or _encryption_key_env in ['your-base64-encryption-key-32-bytes', 'chave-base64-32-bytes']:
+    # Generate a random key for development (WARNING: data will not persist across restarts)
+    ENCRYPTION_KEY = base64.b64encode(os.urandom(32)).decode()
+    import warnings
+    warnings.warn(
+        "ENCRYPTION_KEY not set or is a placeholder. Using a randomly generated key. "
+        "Generate a permanent key with: python -c 'import base64, os; print(base64.b64encode(os.urandom(32)).decode())'"
+    )
+else:
+    ENCRYPTION_KEY = _encryption_key_env
 
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'resend')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
