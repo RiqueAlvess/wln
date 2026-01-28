@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerta: Baixa Adesão</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #FF9800;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #FF9800;
+            margin: 0;
+            font-size: 24px;
+        }
+        .alert-box {
+            background-color: #FFF3E0;
+            border: 2px solid #FF9800;
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF9800;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ Alerta: Baixa Adesão</h1>
+        </div>
+
+        <div class="alert-box">
+            <h2 style="margin: 0 0 10px 0; color: #E65100;">{{ campaign.nome }}</h2>
+            <p style="margin: 0; font-size: 16px;">
+                A taxa de adesão está abaixo de 50%
+            </p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value">{{ taxa_adesao|round(1) }}%</div>
+                <div class="stat-label">Taxa de Adesão</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_respostas }}</div>
+                <div class="stat-label">Respostas</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_convidados }}</div>
+                <div class="stat-label">Convidados</div>
+            </div>
+        </div>
+
+        <div style="background-color: #E3F2FD; padding: 15px; border-radius: 4px; margin-top: 20px;">
+            <p style="margin: 0; font-size: 14px;">
+                <strong>💡 Ações sugeridas:</strong>
+            </p>
+            <ul style="font-size: 14px;">
+                <li>Reenviar convites para não respondentes</li>
+                <li>Comunicar importância da pesquisa</li>
+                <li>Verificar se há problemas técnicos</li>
+                <li>Considerar estender o prazo da campanha</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p><strong>{{ empresa.nome }}</strong></p>
+            <p>Campanha: {{ campaign.nome }}</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerta: Prazo de Ação Vencendo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #FF9800;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #FF9800;
+            margin: 0;
+            font-size: 24px;
+        }
+        .urgency-banner {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .urgency-hoje {
+            background-color: #FFEBEE;
+            border: 2px solid #f44336;
+        }
+        .urgency-urgente {
+            background-color: #FFF3E0;
+            border: 2px solid #FF9800;
+        }
+        .urgency-normal {
+            background-color: #E3F2FD;
+            border: 2px solid #2196F3;
+        }
+        .days-remaining {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .days-remaining.hoje {
+            color: #f44336;
+        }
+        .days-remaining.urgente {
+            color: #FF9800;
+        }
+        .days-remaining.normal {
+            color: #2196F3;
+        }
+        .plan-details {
+            background-color: #f9f9f9;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            border-left: 4px solid #FF9800;
+        }
+        .detail-row {
+            margin: 15px 0;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .detail-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        .risk-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .risk-critico {
+            background-color: #FFEBEE;
+            color: #c62828;
+        }
+        .risk-alto {
+            background-color: #FFF3E0;
+            color: #E65100;
+        }
+        .risk-medio {
+            background-color: #FFF9C4;
+            color: #F57F17;
+        }
+        .risk-baixo {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status-pendente {
+            background-color: #FFF3E0;
+            color: #E65100;
+        }
+        .status-andamento {
+            background-color: #E3F2FD;
+            color: #1565C0;
+        }
+        .action-section {
+            background-color: #E8F5E9;
+            border: 1px solid #4CAF50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .action-section h3 {
+            margin: 0 0 15px 0;
+            color: #2E7D32;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .checklist li:before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            font-size: 20px;
+            color: #4CAF50;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Alerta: Prazo de Ação Vencendo</h1>
+        </div>
+
+        <div class="urgency-banner urgency-{{ urgencia }}">
+            <div style="font-size: 18px; color: #666; margin-bottom: 10px;">
+                {% if urgencia == 'hoje' %}
+                    🚨 Prazo vence HOJE
+                {% elif urgencia == 'urgente' %}
+                    ⚠️ Prazo Urgente
+                {% else %}
+                    📅 Lembrete de Prazo
+                {% endif %}
+            </div>
+            <div class="days-remaining {{ urgencia }}">
+                {% if dias_restantes == 0 %}
+                    HOJE
+                {% elif dias_restantes == 1 %}
+                    1 dia
+                {% else %}
+                    {{ dias_restantes }} dias
+                {% endif %}
+            </div>
+            <div style="font-size: 14px; color: #666;">
+                {% if dias_restantes == 0 %}
+                    O prazo da ação vence hoje!
+                {% else %}
+                    restante(s) para o prazo
+                {% endif %}
+            </div>
+        </div>
+
+        <h2 style="color: #333; font-size: 18px; margin-top: 30px;">Detalhes do Plano de Ação</h2>
+
+        <div class="plan-details">
+            <div class="detail-row">
+                <div class="detail-label">Campanha</div>
+                <div class="detail-value">{{ campaign.nome }}</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Dimensão</div>
+                <div class="detail-value">{{ plano_acao.dimensao.nome }}</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Nível de Risco</div>
+                <div class="detail-value">
+                    <span class="risk-badge risk-{{ plano_acao.nivel_risco }}">
+                        {{ plano_acao.get_nivel_risco_display }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Status Atual</div>
+                <div class="detail-value">
+                    <span class="status-badge status-{{ plano_acao.status }}">
+                        {{ plano_acao.get_status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Responsável</div>
+                <div class="detail-value">{{ plano_acao.responsavel }}</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Prazo</div>
+                <div class="detail-value" style="font-weight: bold; color: #FF9800;">
+                    {{ plano_acao.prazo|date:"d/m/Y" }}
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Descrição do Risco</div>
+                <div class="detail-value">{{ plano_acao.descricao_risco }}</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Ação Proposta</div>
+                <div class="detail-value">{{ plano_acao.acao_proposta }}</div>
+            </div>
+        </div>
+
+        <div class="action-section">
+            <h3>✅ Ações Necessárias</h3>
+            <ul class="checklist">
+                <li>Verificar o andamento da ação proposta</li>
+                <li>Reunir evidências ou documentação necessária</li>
+                <li>Atualizar o status do plano de ação no sistema</li>
+                {% if dias_restantes <= 1 %}
+                <li style="font-weight: bold; color: #c62828;">
+                    URGENTE: Concluir ou solicitar extensão de prazo imediatamente
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        {% if dias_restantes <= 3 %}
+        <div style="background-color: #FFEBEE; padding: 15px; border-radius: 4px; margin-top: 20px; border-left: 4px solid #f44336;">
+            <p style="margin: 0; font-size: 14px; color: #c62828;">
+                <strong>⚠️ Atenção:</strong> O prazo está próximo. Se não for possível concluir
+                a ação no prazo, atualize o status e justifique a necessidade de extensão.
+            </p>
+        </div>
+        {% endif %}
+
+        <div style="background-color: #E3F2FD; padding: 15px; border-radius: 4px; margin-top: 20px;">
+            <p style="margin: 0; font-size: 14px;">
+                <strong>💡 Dica:</strong> Mantenha o plano de ação atualizado regularmente para
+                facilitar o acompanhamento e garantir o cumprimento dos prazos.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p><strong>{{ empresa.nome }}</strong></p>
+            <p>Plano de Ação #{{ plano_acao.id }}</p>
+            <p>Data do prazo: {{ plano_acao.prazo|date:"d/m/Y" }}</p>
+            <p style="margin-top: 20px;">
+                Este é um email automático. Por favor, não responda.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
