@@ -40,6 +40,8 @@
                     <td>
                         <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                         <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary">Convites</a>
+                        <a href="{{ url('actions:checklist', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-success" title="Checklist"><i class="bi bi-list-check"></i></a>
+                        <a href="{{ url('actions:planos', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-info" title="Planos de Ação"><i class="bi bi-clipboard-check"></i></a>
                     </td>
                 </tr>
                 {% endfor %}
