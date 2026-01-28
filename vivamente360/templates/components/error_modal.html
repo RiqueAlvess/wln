@@ -1,0 +1,96 @@
+{# Modal de erro genérico que pode ser incluído em qualquer página #}
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Erro
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start">
+                    <div class="me-3">
+                        <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-2" id="errorModalTitle">Ops! Algo deu errado</h6>
+                        <p class="mb-0 text-muted" id="errorModalMessage">
+                            Ocorreu um erro inesperado. Por favor, tente novamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Tentar Novamente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * Função global para exibir modal de erro
+ * @param {string} title - Título do erro (opcional)
+ * @param {string} message - Mensagem do erro
+ */
+window.showErrorModal = function(title, message) {
+    const modal = document.getElementById('errorModal');
+    const titleElement = document.getElementById('errorModalTitle');
+    const messageElement = document.getElementById('errorModalMessage');
+
+    if (title) {
+        titleElement.textContent = title;
+    }
+
+    if (message) {
+        messageElement.textContent = message;
+    }
+
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+};
+
+/**
+ * Handler global para erros de requisições fetch/ajax
+ */
+window.handleAjaxError = function(error) {
+    console.error('Erro na requisição:', error);
+
+    let errorMessage = 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.';
+
+    if (error.message) {
+        errorMessage = error.message;
+    }
+
+    window.showErrorModal('Erro na Requisição', errorMessage);
+};
+
+/**
+ * Intercepta erros não tratados na página
+ */
+window.addEventListener('error', function(event) {
+    // Só mostra o modal para erros de script, não de recursos (images, css)
+    if (event.filename && event.lineno && event.colno) {
+        console.error('Erro capturado:', event.error);
+        window.showErrorModal(
+            'Erro Inesperado',
+            'Um erro inesperado ocorreu. A página pode não funcionar corretamente. Por favor, recarregue a página.'
+        );
+    }
+});
+
+/**
+ * Intercepta rejeições de promises não tratadas
+ */
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Promise rejeitada:', event.reason);
+    window.showErrorModal(
+        'Erro de Processamento',
+        'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.'
+    );
+});
+</script>

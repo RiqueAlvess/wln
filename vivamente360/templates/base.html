@@ -93,6 +93,10 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {# Incluir modal de erro genérico em todas as páginas #}
+    {% include 'components/error_modal.html' %}
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
