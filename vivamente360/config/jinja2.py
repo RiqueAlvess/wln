@@ -20,3 +20,8 @@ def environment(**options):
     })
 
     return env
+
+
+def jinja2_context_processor(request):
+    from apps.core.context_processors import branding
+    return branding(request)

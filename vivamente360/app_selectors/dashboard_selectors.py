@@ -2,6 +2,7 @@ from django.db.models import Count, Avg
 from apps.responses.models import SurveyResponse
 from apps.invitations.models import SurveyInvitation
 from services.score_service import ScoreService
+from collections import defaultdict
 
 
 class DashboardSelectors:
@@ -40,9 +41,6 @@ class DashboardSelectors:
 
     @staticmethod
     def get_top_setores_criticos(campaign, limit=5):
-        from django.db.models import Count
-        from collections import defaultdict
-
         responses = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
 
         setor_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})
@@ -67,3 +65,59 @@ class DashboardSelectors:
 
         top_setores.sort(key=lambda x: x['nivel_risco'], reverse=True)
         return top_setores[:limit]
+
+    @staticmethod
+    def get_demografico_genero(campaign):
+        responses = SurveyResponse.objects.filter(campaign=campaign)
+        genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
+
+        genero_count = defaultdict(int)
+        for response in responses:
+            genero = genero_map.get(response.genero, 'Não informado')
+            genero_count[genero] += 1
+
+        labels = list(genero_count.keys())
+        values = list(genero_count.values())
+
+        return {'labels': labels, 'values': values}
+
+    @staticmethod
+    def get_demografico_faixa_etaria(campaign):
+        responses = SurveyResponse.objects.filter(campaign=campaign)
+
+        faixa_count = defaultdict(int)
+        for response in responses:
+            faixa_count[response.faixa_etaria] += 1
+
+        faixas_ordem = ['18-24', '25-34', '35-49', '50-59', '60+']
+        labels = [f for f in faixas_ordem if f in faixa_count]
+        values = [faixa_count[f] for f in labels]
+
+        return {'labels': labels, 'values': values}
+
+    @staticmethod
+    def get_heatmap_data(campaign):
+        responses = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+
+        setor_dimensoes = defaultdict(lambda: defaultdict(list))
+
+        for response in responses:
+            setor_nome = response.setor.nome
+            for dimensao in ScoreService.DIMENSOES.keys():
+                score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
+                setor_dimensoes[setor_nome][dimensao].append(score)
+
+        heatmap_data = []
+        for setor, dimensoes_scores in setor_dimensoes.items():
+            scores = []
+            for dimensao in ScoreService.DIMENSOES.keys():
+                if dimensoes_scores[dimensao]:
+                    avg_score = round(sum(dimensoes_scores[dimensao]) / len(dimensoes_scores[dimensao]), 2)
+                else:
+                    avg_score = 0.0
+                scores.append(avg_score)
+
+            heatmap_data.append({'setor': setor, 'scores': scores})
+
+        heatmap_data.sort(key=lambda x: sum(x['scores']), reverse=False)
+        return heatmap_data[:10]

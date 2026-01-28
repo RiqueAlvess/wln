@@ -29,6 +29,9 @@ class DashboardView(DashboardAccessMixin, TemplateView):
         top_setores = DashboardSelectors.get_top_setores_criticos(campaign)
         distribuicao = RiskService.get_distribuicao_riscos(campaign)
         igrp = RiskService.calcular_igrp(campaign)
+        demografico_genero = DashboardSelectors.get_demografico_genero(campaign)
+        demografico_faixa = DashboardSelectors.get_demografico_faixa_etaria(campaign)
+        heatmap_data = DashboardSelectors.get_heatmap_data(campaign)
 
         context.update({
             'campaigns': campaigns,
@@ -42,6 +45,17 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             'dimensoes_scores': list(dimensoes_scores.values()),
             'dimensoes_cores': ['#dc3545' if v < 2 else '#ffc107' if v < 3 else '#28a745' for v in dimensoes_scores.values()],
             'top5_setores': top_setores,
+            'distribuicao_values': [
+                distribuicao.get('aceitavel', 0),
+                distribuicao.get('moderado', 0),
+                distribuicao.get('importante', 0),
+                distribuicao.get('critico', 0)
+            ],
+            'genero_labels': demografico_genero['labels'],
+            'genero_values': demografico_genero['values'],
+            'faixa_etaria_labels': demografico_faixa['labels'],
+            'faixa_etaria_values': demografico_faixa['values'],
+            'heatmap_data': heatmap_data,
         })
 
         return context
