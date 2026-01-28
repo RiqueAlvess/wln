@@ -32,6 +32,9 @@ class DashboardView(DashboardAccessMixin, TemplateView):
         demografico_genero = DashboardSelectors.get_demografico_genero(campaign)
         demografico_faixa = DashboardSelectors.get_demografico_faixa_etaria(campaign)
         heatmap_data = DashboardSelectors.get_heatmap_data(campaign)
+        scores_por_genero = DashboardSelectors.get_scores_por_genero(campaign)
+        scores_por_faixa_etaria = DashboardSelectors.get_scores_por_faixa_etaria(campaign)
+        top_grupos_criticos = DashboardSelectors.get_top_grupos_demograficos_criticos(campaign)
 
         context.update({
             'campaigns': campaigns,
@@ -56,6 +59,9 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             'faixa_etaria_labels': demografico_faixa['labels'],
             'faixa_etaria_values': demografico_faixa['values'],
             'heatmap_data': heatmap_data,
+            'scores_por_genero': scores_por_genero,
+            'scores_por_faixa_etaria': scores_por_faixa_etaria,
+            'top_grupos_criticos': top_grupos_criticos,
         })
 
         return context
