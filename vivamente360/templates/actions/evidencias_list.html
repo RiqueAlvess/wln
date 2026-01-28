@@ -97,7 +97,7 @@
                         <i class="bi bi-download"></i> Download
                     </a>
                     <form method="post" action="{{ url('actions:evidencia_delete', pk=evidencia.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta evidência?');">
-                        {% csrf_token %}
+                        {{ csrf_input | safe }}
                         <button type="submit" class="btn btn-sm btn-outline-danger">
                             <i class="bi bi-trash"></i> Excluir
                         </button>
