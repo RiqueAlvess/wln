@@ -1,0 +1,526 @@
+{% extends 'base.html' %}
+
+{% block title %}Checklist Compliance NR-1{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress-bar-animated {
+        animation: progress-bar-stripes 1s linear infinite;
+    }
+
+    .checklist-item {
+        transition: all 0.3s ease;
+    }
+
+    .checklist-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .evidencia-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #fff;
+    }
+
+    .evidencia-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #0d6efd;
+        background-color: #f8f9fa;
+    }
+
+    .upload-area.dragover {
+        border-color: #0d6efd;
+        background-color: #e7f1ff;
+    }
+
+    .etapa-card {
+        border-left: 4px solid #dee2e6;
+        margin-bottom: 20px;
+    }
+
+    .etapa-card.collapsed {
+        opacity: 0.8;
+    }
+
+    .checkbox-large {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .badge-automatico {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-clipboard2-check text-primary"></i> Checklist Compliance NR-1
+        </h1>
+        <p class="text-muted mb-0">
+            Campanha: <strong>{{ campaign.nome }}</strong>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+        <button onclick="exportarPDF()" class="btn btn-outline-primary">
+            <i class="bi bi-file-pdf"></i> Exportar PDF
+        </button>
+        <button onclick="gerarRelatorio()" class="btn btn-success">
+            <i class="bi bi-file-earmark-text"></i> Gerar Relatório Completo
+        </button>
+    </div>
+</div>
+
+<!-- Barra de Progresso Geral -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">
+                <i class="bi bi-bar-chart-fill text-primary"></i> Progresso Geral
+            </h5>
+            <span class="badge bg-primary fs-6">{{ "%.0f"|format(progresso_geral) }}%</span>
+        </div>
+        <div class="progress" style="height: 30px;">
+            <div class="progress-bar progress-bar-striped {% if progresso_geral < 100 %}progress-bar-animated{% endif %} bg-primary"
+                 role="progressbar"
+                 style="width: {{ progresso_geral }}%"
+                 aria-valuenow="{{ progresso_geral }}"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+                {{ total_concluidos }} de {{ total_itens }} itens concluídos
+            </div>
+        </div>
+        <div class="mt-2 text-muted text-end">
+            <small>
+                <i class="bi bi-calendar-event"></i>
+                Última atualização: <span id="ultima-atualizacao">agora</span>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Checklist por Etapas -->
+{% for etapa_num, etapa_data in itens_por_etapa.items() %}
+<div class="card etapa-card border-0 shadow-sm" id="etapa-{{ etapa_num }}">
+    <div class="card-header bg-white" style="cursor: pointer;" onclick="toggleEtapa({{ etapa_num }})">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-circle-fill text-primary" style="font-size: 0.5rem;"></i>
+                    ETAPA {{ etapa_num }}: {{ etapa_data.nome|upper }}
+                </h5>
+                <span class="badge bg-light text-dark">
+                    {{ etapa_data.concluidos }}/{{ etapa_data.total }}
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 150px;">
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar {% if etapa_data.progresso == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                             role="progressbar"
+                             style="width: {{ etapa_data.progresso }}%">
+                            {{ "%.0f"|format(etapa_data.progresso) }}%
+                        </div>
+                    </div>
+                </div>
+                <i class="bi bi-chevron-down toggle-icon" id="toggle-icon-{{ etapa_num }}"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body etapa-content" id="etapa-content-{{ etapa_num }}">
+        {% for item in etapa_data.itens %}
+        <div class="checklist-item border-bottom py-3" id="item-{{ item.id }}">
+            <div class="row align-items-start">
+                <!-- Checkbox e Título -->
+                <div class="col-md-6">
+                    <div class="d-flex align-items-start gap-3">
+                        <input type="checkbox"
+                               class="checkbox-large form-check-input mt-1"
+                               id="check-{{ item.id }}"
+                               {% if item.concluido %}checked{% endif %}
+                               {% if item.automatico %}disabled{% endif %}
+                               onchange="toggleItem({{ item.id }}, this.checked)">
+                        <div class="flex-grow-1">
+                            <label for="check-{{ item.id }}" class="form-check-label mb-1" style="cursor: pointer;">
+                                <strong>{{ item.item_texto }}</strong>
+                                {% if item.automatico %}
+                                <span class="badge badge-automatico bg-success ms-2">
+                                    <i class="bi bi-check-circle"></i> Automático
+                                </span>
+                                {% endif %}
+                            </label>
+
+                            {% if item.concluido and item.data_conclusao %}
+                            <div class="text-muted small">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                Concluído: {{ item.data_conclusao|dateformat }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Responsável e Prazo -->
+                <div class="col-md-3">
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-1">Responsável</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               placeholder="Nome do responsável"
+                               value="{{ item.responsavel }}"
+                               onblur="atualizarResponsavel({{ item.id }}, this.value)"
+                               {% if item.automatico %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="form-label small text-muted mb-1">Prazo</label>
+                        <input type="date"
+                               class="form-control form-control-sm"
+                               value="{{ item.prazo }}"
+                               onchange="atualizarPrazo({{ item.id }}, this.value)"
+                               {% if item.automatico %}disabled{% endif %}>
+                    </div>
+                </div>
+
+                <!-- Evidências -->
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">
+                        <i class="bi bi-paperclip"></i> Evidências
+                        <span class="badge bg-secondary">{{ item.evidencias.count }}</span>
+                    </label>
+                    <button class="btn btn-sm btn-outline-primary w-100"
+                            onclick="abrirModalEvidencia({{ item.id }})"
+                            {% if item.automatico %}disabled{% endif %}>
+                        <i class="bi bi-plus-circle"></i> Adicionar
+                    </button>
+
+                    {% if item.evidencias.count > 0 %}
+                    <div class="mt-2">
+                        {% for evidencia in item.evidencias.all %}
+                        <div class="d-flex align-items-center justify-content-between text-muted small mb-1">
+                            <a href="{{ evidencia.arquivo.url }}" target="_blank" class="text-truncate" style="max-width: 150px;">
+                                <i class="bi bi-file-earmark"></i> {{ evidencia.nome_original }}
+                            </a>
+                            <button class="btn btn-sm btn-link text-danger p-0"
+                                    onclick="deletarEvidencia({{ evidencia.id }}, {{ item.id }})"
+                                    title="Remover">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Observações (Expansível) -->
+            {% if not item.automatico %}
+            <div class="mt-2">
+                <button class="btn btn-sm btn-link text-muted p-0"
+                        onclick="toggleObservacoes({{ item.id }})">
+                    <i class="bi bi-chat-left-text"></i> Observações
+                    <i class="bi bi-chevron-down" id="obs-icon-{{ item.id }}"></i>
+                </button>
+                <div class="mt-2 d-none" id="observacoes-{{ item.id }}">
+                    <textarea class="form-control form-control-sm"
+                              rows="2"
+                              placeholder="Adicione observações sobre este item..."
+                              onblur="atualizarObservacoes({{ item.id }}, this.value)">{{ item.observacoes }}</textarea>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal para Upload de Evidências -->
+<div class="modal fade" id="evidenciaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-paperclip"></i> Adicionar Evidência
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="item_id" name="item_id">
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Evidência</label>
+                        <select class="form-select" name="tipo" required>
+                            <option value="documento">Documento (PDF, DOC, DOCX)</option>
+                            <option value="imagem">Imagem (JPG, PNG)</option>
+                            <option value="planilha">Planilha (XLS, XLSX, CSV)</option>
+                            <option value="apresentacao">Apresentação (PPT, PPTX)</option>
+                            <option value="email">E-mail/Comunicado</option>
+                            <option value="ata">Ata de Reunião</option>
+                            <option value="certificado">Certificado/Treinamento</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descrição (Opcional)</label>
+                        <textarea class="form-control" name="descricao" rows="2" placeholder="Descreva o conteúdo da evidência..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Arquivo</label>
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" class="d-none" id="fileInput" name="arquivo" required>
+                            <div id="uploadPrompt">
+                                <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+                                <p class="mb-0 mt-2">Clique ou arraste um arquivo aqui</p>
+                                <small class="text-muted">Máximo: 10MB</small>
+                            </div>
+                            <div id="filePreview" class="d-none">
+                                <i class="bi bi-file-earmark-check fs-1 text-success"></i>
+                                <p class="mb-0 mt-2" id="fileName"></p>
+                                <small class="text-muted" id="fileSize"></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger d-none" id="uploadError"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="enviarEvidencia()">
+                    <i class="bi bi-upload"></i> Enviar Evidência
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let evidenciaModal;
+    let currentItemId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        evidenciaModal = new bootstrap.Modal(document.getElementById('evidenciaModal'));
+
+        // Setup drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            mostrarPreviewArquivo();
+        });
+
+        fileInput.addEventListener('change', mostrarPreviewArquivo);
+    });
+
+    function toggleEtapa(etapaNum) {
+        const content = document.getElementById(`etapa-content-${etapaNum}`);
+        const icon = document.getElementById(`toggle-icon-${etapaNum}`);
+
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.classList.remove('bi-chevron-right');
+            icon.classList.add('bi-chevron-down');
+        } else {
+            content.style.display = 'none';
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-right');
+        }
+    }
+
+    function toggleObservacoes(itemId) {
+        const obs = document.getElementById(`observacoes-${itemId}`);
+        const icon = document.getElementById(`obs-icon-${itemId}`);
+
+        if (obs.classList.contains('d-none')) {
+            obs.classList.remove('d-none');
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-up');
+        } else {
+            obs.classList.add('d-none');
+            icon.classList.remove('bi-chevron-up');
+            icon.classList.add('bi-chevron-down');
+        }
+    }
+
+    function toggleItem(itemId, concluido) {
+        fetch(`/actions/checklist-nr1/item/${itemId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `concluido=${concluido}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+
+    function atualizarResponsavel(itemId, responsavel) {
+        atualizarCampo(itemId, 'responsavel', responsavel);
+    }
+
+    function atualizarPrazo(itemId, prazo) {
+        atualizarCampo(itemId, 'prazo', prazo);
+    }
+
+    function atualizarObservacoes(itemId, observacoes) {
+        atualizarCampo(itemId, 'observacoes', observacoes);
+    }
+
+    function atualizarCampo(itemId, campo, valor) {
+        fetch(`/actions/checklist-nr1/item/${itemId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `${campo}=${encodeURIComponent(valor)}`
+        });
+    }
+
+    function abrirModalEvidencia(itemId) {
+        currentItemId = itemId;
+        document.getElementById('item_id').value = itemId;
+        document.getElementById('uploadForm').reset();
+        document.getElementById('uploadPrompt').classList.remove('d-none');
+        document.getElementById('filePreview').classList.add('d-none');
+        document.getElementById('uploadError').classList.add('d-none');
+        evidenciaModal.show();
+    }
+
+    function mostrarPreviewArquivo() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (file) {
+            document.getElementById('uploadPrompt').classList.add('d-none');
+            document.getElementById('filePreview').classList.remove('d-none');
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatBytes(file.size);
+        }
+    }
+
+    function enviarEvidencia() {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+        const itemId = document.getElementById('item_id').value;
+
+        fetch(`/actions/checklist-nr1/item/${itemId}/upload-evidencia/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                evidenciaModal.hide();
+                location.reload();
+            } else {
+                document.getElementById('uploadError').textContent = data.error;
+                document.getElementById('uploadError').classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            document.getElementById('uploadError').textContent = 'Erro ao enviar evidência';
+            document.getElementById('uploadError').classList.remove('d-none');
+        });
+    }
+
+    function deletarEvidencia(evidenciaId, itemId) {
+        if (!confirm('Deseja realmente remover esta evidência?')) return;
+
+        fetch(`/actions/evidencia-nr1/${evidenciaId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+
+    function exportarPDF() {
+        window.location.href = `/actions/{{ campaign.id }}/checklist-nr1/export-pdf/`;
+    }
+
+    function gerarRelatorio() {
+        alert('Funcionalidade de relatório completo em desenvolvimento');
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
