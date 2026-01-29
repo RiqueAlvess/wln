@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}{{ artigo.titulo }} - {{ branding.nome_app }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .artigo-header {
+        background: linear-gradient(135deg, {{ branding.cor_primaria }} 0%, {{ branding.cor_secundaria }} 100%);
+        color: white;
+        padding: 3rem 0;
+        margin: -2rem -1.5rem 2rem;
+        border-radius: 8px;
+    }
+
+    .artigo-imagem-capa {
+        width: 100%;
+        max-height: 500px;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .artigo-categoria {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .categoria-nr1 { background-color: #0d6efd; color: white; }
+    .categoria-saude { background-color: #198754; color: white; }
+    .categoria-gestao { background-color: #0dcaf0; color: white; }
+    .categoria-dicas { background-color: #ffc107; color: #212529; }
+    .categoria-casos { background-color: #6c757d; color: white; }
+    .categoria-novidades { background-color: #dc3545; color: white; }
+
+    .artigo-meta {
+        font-size: 1rem;
+        color: rgba(255,255,255,0.9);
+    }
+
+    .artigo-conteudo {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #333;
+    }
+
+    .artigo-conteudo h1,
+    .artigo-conteudo h2,
+    .artigo-conteudo h3 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: {{ branding.cor_primaria }};
+    }
+
+    .artigo-conteudo h1 { font-size: 2rem; }
+    .artigo-conteudo h2 { font-size: 1.75rem; }
+    .artigo-conteudo h3 { font-size: 1.5rem; }
+
+    .artigo-conteudo p {
+        margin-bottom: 1.5rem;
+    }
+
+    .artigo-conteudo ul,
+    .artigo-conteudo ol {
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+    }
+
+    .artigo-conteudo li {
+        margin-bottom: 0.5rem;
+    }
+
+    .artigo-conteudo blockquote {
+        border-left: 4px solid {{ branding.cor_primaria }};
+        padding-left: 1.5rem;
+        margin: 2rem 0;
+        font-style: italic;
+        color: #6c757d;
+    }
+
+    .artigo-conteudo code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .artigo-conteudo pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+
+    .artigo-conteudo img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+
+    .autor-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        border-left: 4px solid {{ branding.cor_primaria }};
+    }
+
+    .relacionados-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .relacionados-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+
+    .relacionados-imagem {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .share-buttons a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        color: white;
+        transition: all 0.2s ease;
+    }
+
+    .share-buttons a:hover {
+        transform: scale(1.1);
+    }
+
+    .btn-voltar {
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.5);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-voltar:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: white;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="artigo-header">
+    <div class="container">
+        <a href="{{ url('articles:list') }}" class="btn-voltar mb-4">
+            <i class="bi bi-arrow-left"></i>
+            Voltar para artigos
+        </a>
+        <div class="mb-3">
+            <span class="artigo-categoria categoria-{{ artigo.categoria }}">
+                {{ artigo.get_categoria_display() }}
+            </span>
+        </div>
+        <h1 class="display-4 mb-3">{{ artigo.titulo }}</h1>
+        <div class="artigo-meta">
+            <i class="bi bi-person-circle me-2"></i>
+            {{ artigo.autor.get_full_name() or artigo.autor.username }}
+            <span class="mx-3">•</span>
+            <i class="bi bi-calendar3 me-2"></i>
+            {{ artigo.publicado_em.strftime('%d de %B de %Y') }}
+            <span class="mx-3">•</span>
+            <i class="bi bi-eye me-2"></i>
+            {{ artigo.visualizacoes }} visualizações
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            {% if artigo.imagem_capa %}
+            <img src="{{ artigo.imagem_capa.url }}" alt="{{ artigo.titulo }}" class="artigo-imagem-capa">
+            {% endif %}
+
+            <div class="artigo-conteudo">
+                <p class="lead">{{ artigo.resumo }}</p>
+
+                <hr class="my-4">
+
+                {{ artigo.conteudo|safe }}
+            </div>
+
+            <div class="autor-card">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="bi bi-person-circle" style="font-size: 3rem; color: {{ branding.cor_primaria }};"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">{{ artigo.autor.get_full_name() or artigo.autor.username }}</h5>
+                        <p class="text-muted mb-0">Autor do artigo</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center my-4 py-3 border-top border-bottom">
+                <div>
+                    <strong class="me-3">Compartilhar:</strong>
+                    <div class="share-buttons d-inline-block">
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri() }}"
+                           target="_blank"
+                           style="background-color: #0077b5;"
+                           title="Compartilhar no LinkedIn">
+                            <i class="bi bi-linkedin"></i>
+                        </a>
+                        <a href="https://twitter.com/intent/tweet?text={{ artigo.titulo }}&url={{ request.build_absolute_uri() }}"
+                           target="_blank"
+                           style="background-color: #1da1f2;"
+                           title="Compartilhar no Twitter">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri() }}"
+                           target="_blank"
+                           style="background-color: #1877f2;"
+                           title="Compartilhar no Facebook">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="mailto:?subject={{ artigo.titulo }}&body={{ request.build_absolute_uri() }}"
+                           style="background-color: #6c757d;"
+                           title="Compartilhar por e-mail">
+                            <i class="bi bi-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if artigos_relacionados %}
+            <div class="mt-5">
+                <h3 class="mb-4">
+                    <i class="bi bi-bookmarks me-2"></i>
+                    Artigos Relacionados
+                </h3>
+                <div class="row g-4">
+                    {% for relacionado in artigos_relacionados %}
+                    <div class="col-md-4">
+                        <a href="{{ url('articles:detail', slug=relacionado.slug) }}" class="text-decoration-none text-dark">
+                            <div class="relacionados-card">
+                                {% if relacionado.imagem_capa %}
+                                <img src="{{ relacionado.imagem_capa.url }}" class="relacionados-imagem" alt="{{ relacionado.titulo }}">
+                                {% else %}
+                                <div class="relacionados-imagem d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-file-text" style="font-size: 2.5rem; opacity: 0.3; color: white;"></i>
+                                </div>
+                                {% endif %}
+                                <div class="p-3">
+                                    <div class="mb-2">
+                                        <span class="artigo-categoria categoria-{{ relacionado.categoria }}" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">
+                                            {{ relacionado.get_categoria_display() }}
+                                        </span>
+                                    </div>
+                                    <h6 class="mb-2">{{ relacionado.titulo }}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>
+                                        {{ relacionado.publicado_em.strftime('%d/%m/%Y') }}
+                                    </small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-5 pt-4 border-top">
+                <a href="{{ url('articles:list') }}" class="btn btn-lg btn-primary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Voltar para todos os artigos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Processar conteúdo markdown (se necessário)
+    // Adicione aqui scripts para highlight de código, etc.
+</script>
+{% endblock %}
