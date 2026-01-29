@@ -11,10 +11,18 @@ class ScoreService:
 
     DIMENSOES_NEGATIVAS = ["demandas", "relacionamentos"]
 
+    @staticmethod
+    def _to_int(value):
+        """Converte valor para int de forma segura"""
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 0
+
     @classmethod
     def calcular_score_dimensao(cls, respostas: dict, dimensao: str) -> float:
         itens = cls.DIMENSOES[dimensao]
-        soma = sum(respostas.get(str(i), 0) for i in itens)
+        soma = sum(cls._to_int(respostas.get(str(i), 0)) for i in itens)
         return round(soma / len(itens), 2)
 
     @classmethod
