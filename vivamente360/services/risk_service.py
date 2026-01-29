@@ -5,8 +5,27 @@ from services.score_service import ScoreService
 
 class RiskService:
     @staticmethod
-    def calcular_igrp(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+    def _apply_filters(queryset, filters=None):
+        """
+        Aplica filtros de unidade e setor ao queryset.
+        """
+        if not filters:
+            return queryset
+
+        if filters.get('unidade_id'):
+            queryset = queryset.filter(unidade_id=filters['unidade_id'])
+
+        if filters.get('setor_id'):
+            queryset = queryset.filter(setor_id=filters['setor_id'])
+
+        return queryset
+
+    @staticmethod
+    def calcular_igrp(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = RiskService._apply_filters(responses_qs, filters)
+        responses = responses_qs
+
         if not responses.exists():
             return 0.0
 
@@ -25,8 +44,10 @@ class RiskService:
         return round(total_score / total_dimensoes, 2)
 
     @staticmethod
-    def get_distribuicao_riscos(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+    def get_distribuicao_riscos(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = RiskService._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         critico = 0
         importante = 0
