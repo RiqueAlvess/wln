@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}{{ branding.nome_app }} - Central de Conhecimento{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, {{ branding.cor_primaria }} 0%, {{ branding.cor_secundaria }} 100%);
+        color: white;
+        padding: 3rem 0;
+        margin: -2rem -1.5rem 2rem;
+        border-radius: 8px;
+    }
+
+    .destaque-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .destaque-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .destaque-imagem {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .artigo-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .artigo-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+
+    .artigo-imagem {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .artigo-categoria {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .categoria-nr1 { background-color: #0d6efd; color: white; }
+    .categoria-saude { background-color: #198754; color: white; }
+    .categoria-gestao { background-color: #0dcaf0; color: white; }
+    .categoria-dicas { background-color: #ffc107; color: #212529; }
+    .categoria-casos { background-color: #6c757d; color: white; }
+    .categoria-novidades { background-color: #dc3545; color: white; }
+
+    .btn-categoria {
+        border: 2px solid #dee2e6;
+        border-radius: 20px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .btn-categoria:hover,
+    .btn-categoria.active {
+        background-color: {{ branding.cor_primaria }};
+        border-color: {{ branding.cor_primaria }};
+        color: white;
+    }
+
+    .artigo-meta {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .sidebar-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+
+    .popular-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .popular-item:last-child {
+        border-bottom: none;
+    }
+
+    .popular-item:hover {
+        background-color: #f8f9fa;
+        margin: 0 -0.5rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="mb-3">
+                <i class="bi bi-newspaper me-2"></i>
+                VIVAMENTE 360º - Central de Conhecimento
+            </h1>
+            <p class="lead mb-0">
+                Artigos, guias e dicas sobre NR-1, saúde mental e gestão de pessoas
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-9">
+            {% if artigo_destaque %}
+            <div class="mb-5">
+                <h2 class="mb-4">
+                    <i class="bi bi-fire text-danger me-2"></i>
+                    Em Destaque
+                </h2>
+                <a href="{{ url('articles:detail', slug=artigo_destaque.slug) }}" class="text-decoration-none text-dark">
+                    <div class="destaque-card">
+                        <div class="row g-0">
+                            <div class="col-md-6">
+                                {% if artigo_destaque.imagem_capa %}
+                                <img src="{{ artigo_destaque.imagem_capa.url }}" class="destaque-imagem" alt="{{ artigo_destaque.titulo }}">
+                                {% else %}
+                                <div class="destaque-imagem d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-newspaper" style="font-size: 6rem; opacity: 0.3; color: white;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-4 d-flex flex-column h-100">
+                                    <div class="mb-3">
+                                        <span class="artigo-categoria categoria-{{ artigo_destaque.categoria }}">
+                                            {{ artigo_destaque.get_categoria_display() }}
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-3">{{ artigo_destaque.titulo }}</h3>
+                                    <p class="text-muted mb-4 flex-grow-1">{{ artigo_destaque.resumo }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="artigo-meta">
+                                            <i class="bi bi-person-circle me-1"></i>
+                                            {{ artigo_destaque.autor.get_full_name() or artigo_destaque.autor.username }}
+                                            <span class="mx-2">•</span>
+                                            <i class="bi bi-calendar3 me-1"></i>
+                                            {{ artigo_destaque.publicado_em.strftime('%d/%m/%Y') }}
+                                        </div>
+                                        <span class="btn btn-primary">
+                                            Ler artigo completo
+                                            <i class="bi bi-arrow-right ms-2"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+
+            {% if categorias_disponiveis %}
+            <div class="mb-4">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="fw-semibold me-2">Categorias:</span>
+                    <a href="{{ url('articles:list') }}" class="btn btn-categoria {% if not categoria_selecionada %}active{% endif %}">
+                        Todas
+                    </a>
+                    {% for cat_codigo, cat_nome in categorias_disponiveis %}
+                    <a href="{{ url('articles:list') }}?categoria={{ cat_codigo }}"
+                       class="btn btn-categoria {% if categoria_selecionada == cat_codigo %}active{% endif %}">
+                        {{ cat_nome }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <h2 class="mb-4">
+                    <i class="bi bi-book me-2"></i>
+                    {% if categoria_selecionada %}
+                        {{ dict(categorias_disponiveis)[categoria_selecionada] }}
+                    {% elif termo_busca %}
+                        Resultados da busca: "{{ termo_busca }}"
+                    {% else %}
+                        Artigos Recentes
+                    {% endif %}
+                </h2>
+
+                {% if artigos %}
+                <div class="row g-4">
+                    {% for artigo in artigos %}
+                    <div class="col-md-6 col-lg-4">
+                        <a href="{{ url('articles:detail', slug=artigo.slug) }}" class="text-decoration-none text-dark">
+                            <div class="artigo-card">
+                                {% if artigo.imagem_capa %}
+                                <img src="{{ artigo.imagem_capa.url }}" class="artigo-imagem" alt="{{ artigo.titulo }}">
+                                {% else %}
+                                <div class="artigo-imagem d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-file-text" style="font-size: 3rem; opacity: 0.3; color: white;"></i>
+                                </div>
+                                {% endif %}
+                                <div class="p-3 flex-grow-1 d-flex flex-column">
+                                    <div class="mb-2">
+                                        <span class="artigo-categoria categoria-{{ artigo.categoria }}">
+                                            {{ artigo.get_categoria_display() }}
+                                        </span>
+                                    </div>
+                                    <h5 class="mb-2 flex-grow-1">{{ artigo.titulo }}</h5>
+                                    <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                        {{ artigo.resumo }}
+                                    </p>
+                                    <div class="artigo-meta d-flex justify-content-between align-items-center">
+                                        <small>
+                                            <i class="bi bi-calendar3 me-1"></i>
+                                            {{ artigo.publicado_em.strftime('%d/%m/%Y') }}
+                                        </small>
+                                        <small>
+                                            <i class="bi bi-eye me-1"></i>
+                                            {{ artigo.visualizacoes }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if page_obj and page_obj.paginator.num_pages > 1 %}
+                <nav aria-label="Navegação de artigos" class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous() %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number() }}{% if categoria_selecionada %}&categoria={{ categoria_selecionada }}{% endif %}{% if termo_busca %}&q={{ termo_busca }}{% endif %}">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                        {% if num >= page_obj.number - 2 and num <= page_obj.number + 2 %}
+                        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if categoria_selecionada %}&categoria={{ categoria_selecionada }}{% endif %}{% if termo_busca %}&q={{ termo_busca }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next() %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number() }}{% if categoria_selecionada %}&categoria={{ categoria_selecionada }}{% endif %}{% if termo_busca %}&q={{ termo_busca }}{% endif %}">
+                                Próximo <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <p class="text-muted mt-3">Nenhum artigo encontrado.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="sidebar-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-search me-2"></i>
+                    Buscar
+                </h5>
+                <form method="get" action="{{ url('articles:list') }}">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Buscar artigos..." value="{{ termo_busca }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {% if artigos_populares %}
+            <div class="sidebar-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-trophy me-2"></i>
+                    Mais Lidos
+                </h5>
+                {% for artigo in artigos_populares %}
+                <a href="{{ url('articles:detail', slug=artigo.slug) }}" class="text-decoration-none text-dark">
+                    <div class="popular-item">
+                        <h6 class="mb-1" style="font-size: 0.9rem;">{{ artigo.titulo }}</h6>
+                        <small class="text-muted">
+                            <i class="bi bi-eye me-1"></i>
+                            {{ artigo.visualizacoes }} visualizações
+                        </small>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,6 +11,7 @@ urlpatterns = [
     path('invitations/', include('apps.invitations.urls')),
     path('survey/', include('apps.responses.urls')),
     path('actions/', include('apps.actions.urls')),
+    path('artigos/', include('apps.articles.urls')),
     path('', include('apps.core.urls')),
 ]
 
