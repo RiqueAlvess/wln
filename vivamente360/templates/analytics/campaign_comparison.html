@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Comparação entre Campanhas - {{ branding.nome_app }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .metric-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+    .metric-variation {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+    .variation-positive {
+        color: #28a745;
+    }
+    .variation-negative {
+        color: #dc3545;
+    }
+    .variation-neutral {
+        color: #6c757d;
+    }
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .section-header i {
+        font-size: 1.75rem;
+    }
+    .dimension-bar {
+        background: #e9ecef;
+        height: 30px;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+        margin: 0.5rem 0;
+    }
+    .dimension-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+    .dimension-label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .sector-item {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 6px;
+        background: #f8f9fa;
+        border-left: 4px solid;
+    }
+    .sector-item.improved {
+        border-left-color: #28a745;
+        background: #d4edda;
+    }
+    .sector-item.worsened {
+        border-left-color: #dc3545;
+        background: #f8d7da;
+    }
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto;
+        gap: 1rem;
+        align-items: center;
+    }
+    .ai-analysis-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1400px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url('analytics:dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Comparação entre Campanhas</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="section-header">
+        <i class="bi bi-graph-up-arrow text-primary"></i>
+        <div>
+            <h1 class="mb-0">Evolução da Empresa{% if campaign1 and campaign2 %} - {{ campaign1.empresa.nome }}{% endif %}</h1>
+            <p class="text-muted mb-0">Dashboard comparativo entre campanhas</p>
+        </div>
+    </div>
+
+    <!-- Seletor de Campanhas -->
+    <div class="metric-card">
+        <div class="row">
+            <div class="col-md-5">
+                <label class="form-label fw-bold">Comparar:</label>
+                <select class="form-select" id="campaign1-select">
+                    <option value="">Selecione a primeira campanha</option>
+                    {% for c in campaigns %}
+                    <option value="{{ c.id }}" {% if campaign1 and c.id == campaign1.id %}selected{% endif %}>
+                        {{ c.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 text-center d-flex align-items-end justify-content-center">
+                <h3 class="mb-2 text-muted">vs</h3>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-bold">&nbsp;</label>
+                <select class="form-select" id="campaign2-select">
+                    <option value="">Selecione a segunda campanha</option>
+                    {% for c in campaigns %}
+                    <option value="{{ c.id }}" {% if campaign2 and c.id == campaign2.id %}selected{% endif %}>
+                        {{ c.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning">
+        <h5><i class="bi bi-exclamation-triangle"></i> Atenção</h5>
+        <p class="mb-0">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    {% if campaign1 and campaign2 and summary %}
+    <!-- Resumo da Evolução -->
+    <div class="section-header mt-4">
+        <i class="bi bi-clipboard-data text-success"></i>
+        <h2 class="mb-0">Resumo da Evolução</h2>
+    </div>
+
+    <div class="row">
+        <!-- Taxa de Adesão -->
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Taxa de Adesão</div>
+                <div class="comparison-grid" style="grid-template-columns: 1fr auto 1fr;">
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign1.adesao }}%</div>
+                        <small class="text-muted">{{ summary.campaign1.nome|truncate(20) }}</small>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign2.adesao }}%</div>
+                        <small class="text-muted">{{ summary.campaign2.nome|truncate(20) }}</small>
+                    </div>
+                </div>
+                <div class="metric-variation {% if summary.variacao.adesao > 0 %}variation-positive{% elif summary.variacao.adesao < 0 %}variation-negative{% else %}variation-neutral{% endif %}">
+                    {% if summary.variacao.adesao > 0 %}+{% endif %}{{ summary.variacao.adesao }}%
+                    {% if summary.variacao.adesao > 0 %}↑ 🟢{% elif summary.variacao.adesao < 0 %}↓ 🔴{% else %}→{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- IGRP -->
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">IGRP</div>
+                <div class="comparison-grid" style="grid-template-columns: 1fr auto 1fr;">
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign1.igrp }}</div>
+                        <small class="text-muted">{{ summary.campaign1.nome|truncate(20) }}</small>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign2.igrp }}</div>
+                        <small class="text-muted">{{ summary.campaign2.nome|truncate(20) }}</small>
+                    </div>
+                </div>
+                <div class="metric-variation {% if summary.variacao.igrp < 0 %}variation-positive{% elif summary.variacao.igrp > 0 %}variation-negative{% else %}variation-neutral{% endif %}">
+                    {% if summary.variacao.igrp > 0 %}+{% endif %}{{ summary.variacao.igrp }}
+                    {% if summary.variacao.igrp < 0 %}↓ 🟢{% elif summary.variacao.igrp > 0 %}↑ 🔴{% else %}→{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- % Risco Alto -->
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">% Risco Alto/Crítico</div>
+                <div class="comparison-grid" style="grid-template-columns: 1fr auto 1fr;">
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign1.pct_risco_alto }}%</div>
+                        <small class="text-muted">{{ summary.campaign1.nome|truncate(20) }}</small>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign2.pct_risco_alto }}%</div>
+                        <small class="text-muted">{{ summary.campaign2.nome|truncate(20) }}</small>
+                    </div>
+                </div>
+                <div class="metric-variation {% if summary.variacao.pct_risco_alto < 0 %}variation-positive{% elif summary.variacao.pct_risco_alto > 0 %}variation-negative{% else %}variation-neutral{% endif %}">
+                    {% if summary.variacao.pct_risco_alto > 0 %}+{% endif %}{{ summary.variacao.pct_risco_alto }}%
+                    {% if summary.variacao.pct_risco_alto < 0 %}↓ 🟢{% elif summary.variacao.pct_risco_alto > 0 %}↑ 🔴{% else %}→{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Total de Respostas -->
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Respostas</div>
+                <div class="comparison-grid" style="grid-template-columns: 1fr auto 1fr;">
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign1.total_respostas }}</div>
+                        <small class="text-muted">{{ summary.campaign1.nome|truncate(20) }}</small>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="metric-value" style="font-size: 1.5rem;">{{ summary.campaign2.total_respostas }}</div>
+                        <small class="text-muted">{{ summary.campaign2.nome|truncate(20) }}</small>
+                    </div>
+                </div>
+                <div class="metric-variation {% if summary.variacao.total_respostas > 0 %}variation-positive{% elif summary.variacao.total_respostas < 0 %}variation-negative{% else %}variation-neutral{% endif %}">
+                    {% if summary.variacao.total_respostas > 0 %}+{% endif %}{{ summary.variacao.total_respostas }}
+                    {% if summary.variacao.total_respostas > 0 %}↑{% elif summary.variacao.total_respostas < 0 %}↓{% else %}→{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evolução por Dimensão -->
+    <div class="section-header mt-4">
+        <i class="bi bi-bar-chart-line text-info"></i>
+        <h2 class="mb-0">Evolução por Dimensão</h2>
+    </div>
+
+    <div class="metric-card">
+        <div class="row">
+            <div class="col-md-8">
+                <canvas id="dimensionsChart" height="300"></canvas>
+            </div>
+            <div class="col-md-4">
+                <h5 class="mb-3">Variações</h5>
+                {% for dim in dimensions %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="dimension-label">{{ dim.dimensao }}</span>
+                        <span class="badge {% if dim.tendencia == 'melhora' %}bg-success{% elif dim.tendencia == 'piora' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {% if dim.variacao > 0 %}+{% endif %}{{ dim.variacao }}
+                            {% if dim.tendencia == 'melhora' %}↑{% elif dim.tendencia == 'piora' %}↓{% else %}→{% endif %}
+                        </span>
+                    </div>
+                    <small class="text-muted">{{ dim.score_c1 }} → {{ dim.score_c2 }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Setores que Mais Melhoraram -->
+    {% if sectors.melhoraram %}
+    <div class="section-header mt-4">
+        <i class="bi bi-trophy-fill text-warning"></i>
+        <h2 class="mb-0">Setores que Mais Melhoraram</h2>
+    </div>
+
+    <div class="row">
+        {% for sector in sectors.melhoraram %}
+        <div class="col-md-6 col-lg-4">
+            <div class="sector-item improved">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">
+                            {% if loop.index == 1 %}🏅{% endif %}
+                            {{ sector.setor }}
+                        </h5>
+                        <small class="text-muted">IGRP: {{ sector.igrp_c1 }} → {{ sector.igrp_c2 }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success">{{ sector.variacao }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Setores que Precisam Atenção -->
+    {% if sectors.pioraram %}
+    <div class="section-header mt-4">
+        <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+        <h2 class="mb-0">Setores que Precisam Atenção</h2>
+    </div>
+
+    <div class="row">
+        {% for sector in sectors.pioraram %}
+        <div class="col-md-6 col-lg-4">
+            <div class="sector-item worsened">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">
+                            {% if loop.index == 1 %}⚠️{% endif %}
+                            {{ sector.setor }}
+                        </h5>
+                        <small class="text-muted">IGRP: {{ sector.igrp_c1 }} → {{ sector.igrp_c2 }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-danger">+{{ sector.variacao }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Análise de Evolução (IA) -->
+    {% if ai_analysis %}
+    <div class="ai-analysis-box">
+        <h3 class="mb-3"><i class="bi bi-robot"></i> Análise de Evolução (IA)</h3>
+        <p class="mb-0" style="font-size: 1.05rem; line-height: 1.6;">{{ ai_analysis }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Botão Exportar -->
+    <div class="text-center mt-4">
+        <a href="{{ url('analytics:export_campaign_comparison') }}?campaign1={{ campaign1.id }}&campaign2={{ campaign2.id }}"
+           class="btn btn-primary btn-lg">
+            <i class="bi bi-file-earmark-word"></i> Exportar Relatório de Evolução (Word)
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Seleção de campanhas
+    document.getElementById('campaign1-select').addEventListener('change', function() {
+        updateComparison();
+    });
+
+    document.getElementById('campaign2-select').addEventListener('change', function() {
+        updateComparison();
+    });
+
+    function updateComparison() {
+        const campaign1 = document.getElementById('campaign1-select').value;
+        const campaign2 = document.getElementById('campaign2-select').value;
+
+        if (campaign1 && campaign2) {
+            window.location.href = `?campaign1=${campaign1}&campaign2=${campaign2}`;
+        }
+    }
+
+    {% if dimensions %}
+    // Gráfico de dimensões
+    const ctx = document.getElementById('dimensionsChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [{% for dim in dimensions %}'{{ dim.dimensao }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                datasets: [
+                    {
+                        label: '{{ summary.campaign1.nome }}',
+                        data: [{% for dim in dimensions %}{{ dim.score_c1 }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '{{ summary.campaign2.nome }}',
+                        data: [{% for dim in dimensions %}{{ dim.score_c2 }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 4
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Comparação de Scores por Dimensão'
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+</script>
+{% endblock %}

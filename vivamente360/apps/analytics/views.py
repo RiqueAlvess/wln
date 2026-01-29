@@ -5,8 +5,10 @@ from django.contrib import messages
 from apps.core.mixins import DashboardAccessMixin
 from app_selectors.campaign_selectors import CampaignSelectors
 from app_selectors.dashboard_selectors import DashboardSelectors
+from app_selectors.comparison_selectors import ComparisonSelectors
 from services.risk_service import RiskService, CLASSIFICACAO_RISCOS
 from services.sector_analysis_service import SectorAnalysisService
+from services.export_service import ExportService
 from apps.structure.models import Unidade, Setor
 from apps.responses.models import SurveyResponse
 from apps.analytics.models import SectorAnalysis
@@ -214,3 +216,159 @@ class SectorAnalysisListView(DashboardAccessMixin, TemplateView):
         })
 
         return context
+
+
+class CampaignComparisonView(DashboardAccessMixin, TemplateView):
+    """
+    View para comparação entre duas campanhas da mesma empresa
+    """
+    template_name = 'analytics/campaign_comparison.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
+
+        # Obter campanhas selecionadas para comparação
+        campaign1_id = self.request.GET.get('campaign1')
+        campaign2_id = self.request.GET.get('campaign2')
+
+        # Verificar se há campanhas suficientes
+        if campaigns.count() < 2:
+            context.update({
+                'campaigns': campaigns,
+                'error': 'É necessário ter pelo menos 2 campanhas para realizar a comparação.',
+                'campaign1': None,
+                'campaign2': None,
+            })
+            return context
+
+        # Se não houver seleção, usar as duas campanhas mais recentes
+        if not campaign1_id or not campaign2_id:
+            recent_campaigns = campaigns.order_by('-created_at')[:2]
+            if recent_campaigns.count() >= 2:
+                campaign1 = recent_campaigns[1]  # Mais antiga
+                campaign2 = recent_campaigns[0]  # Mais recente
+            else:
+                context.update({
+                    'campaigns': campaigns,
+                    'campaign1': None,
+                    'campaign2': None,
+                })
+                return context
+        else:
+            campaign1 = campaigns.filter(id=campaign1_id).first()
+            campaign2 = campaigns.filter(id=campaign2_id).first()
+
+            if not campaign1 or not campaign2:
+                context.update({
+                    'campaigns': campaigns,
+                    'error': 'Campanhas inválidas selecionadas.',
+                    'campaign1': None,
+                    'campaign2': None,
+                })
+                return context
+
+        # Verificar se as campanhas são da mesma empresa
+        if campaign1.empresa != campaign2.empresa:
+            context.update({
+                'campaigns': campaigns,
+                'error': 'Só é possível comparar campanhas da mesma empresa.',
+                'campaign1': campaign1,
+                'campaign2': campaign2,
+            })
+            return context
+
+        # Buscar dados de comparação
+        try:
+            summary = ComparisonSelectors.get_evolution_summary(campaign1, campaign2)
+            dimensions = ComparisonSelectors.get_evolution_by_dimension(campaign1, campaign2)
+            sectors = ComparisonSelectors.get_top_sectors_evolution(campaign1, campaign2)
+            sentiment = ComparisonSelectors.get_sentiment_evolution(campaign1, campaign2)
+
+            # Gerar análise de IA
+            evolution_data = {
+                'summary': summary,
+                'dimensions': dimensions,
+                'sectors': sectors,
+            }
+            ai_analysis = ComparisonSelectors.generate_ai_analysis(campaign1, campaign2, evolution_data)
+
+            context.update({
+                'campaigns': campaigns,
+                'campaign1': campaign1,
+                'campaign2': campaign2,
+                'summary': summary,
+                'dimensions': dimensions,
+                'sectors': sectors,
+                'sentiment': sentiment,
+                'ai_analysis': ai_analysis,
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao gerar comparação: {e}")
+            context.update({
+                'campaigns': campaigns,
+                'campaign1': campaign1,
+                'campaign2': campaign2,
+                'error': f'Erro ao gerar comparação: {str(e)}',
+            })
+
+        return context
+
+
+class ExportCampaignComparisonView(DashboardAccessMixin, TemplateView):
+    """
+    View para exportar comparação entre campanhas em Word
+    """
+
+    def get(self, request, *args, **kwargs):
+        campaign1_id = request.GET.get('campaign1')
+        campaign2_id = request.GET.get('campaign2')
+
+        if not campaign1_id or not campaign2_id:
+            messages.error(request, 'Selecione duas campanhas para comparar.')
+            return redirect('analytics:campaign_comparison')
+
+        campaigns = CampaignSelectors.get_user_campaigns(request.user)
+        campaign1 = campaigns.filter(id=campaign1_id).first()
+        campaign2 = campaigns.filter(id=campaign2_id).first()
+
+        if not campaign1 or not campaign2:
+            messages.error(request, 'Campanhas inválidas.')
+            return redirect('analytics:campaign_comparison')
+
+        try:
+            # Buscar dados de comparação
+            summary = ComparisonSelectors.get_evolution_summary(campaign1, campaign2)
+            dimensions = ComparisonSelectors.get_evolution_by_dimension(campaign1, campaign2)
+            sectors = ComparisonSelectors.get_top_sectors_evolution(campaign1, campaign2)
+
+            # Gerar análise de IA
+            evolution_data = {
+                'summary': summary,
+                'dimensions': dimensions,
+                'sectors': sectors,
+            }
+            ai_analysis = ComparisonSelectors.generate_ai_analysis(campaign1, campaign2, evolution_data)
+
+            # Gerar documento Word
+            doc = ExportService.export_campaign_comparison_word(
+                campaign1, campaign2, summary, dimensions, sectors, ai_analysis
+            )
+
+            # Preparar resposta HTTP
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+            response['Content-Disposition'] = f'attachment; filename="Relatorio_Evolucao_{campaign1.empresa.nome.replace(" ", "_")}.docx"'
+
+            # Salvar documento no response
+            doc.save(response)
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Erro ao exportar comparação: {e}")
+            messages.error(request, f'Erro ao exportar relatório: {str(e)}')
+            return redirect('analytics:campaign_comparison')
