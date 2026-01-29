@@ -2,20 +2,42 @@
 
 {% block title %}Gerenciar Convites{% endblock %}
 
+{% block extra_head %}
+<style>
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+    .table-icon {
+        font-size: 1rem;
+        margin-right: 0.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h2 mb-1">
-            <i class="bi bi-envelope-paper text-primary"></i> Gerenciar Convites
-        </h1>
-        <p class="text-muted mb-0">Campanha: <strong>{{ campaign.nome }}</strong></p>
+    <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+            <i class="bi bi-envelope-paper-fill" style="font-size: 2.5rem;"></i>
+        </div>
+        <div>
+            <h1 class="h2 mb-1 fw-bold">Gerenciar Convites</h1>
+            <p class="text-muted mb-0">
+                <i class="bi bi-folder2-open"></i> Campanha: <strong>{{ campaign.nome }}</strong>
+            </p>
+        </div>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Voltar
         </a>
         <a href="{{ url('invitations:import', campaign_id=campaign.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-cloud-upload"></i> Importar CSV
+            <i class="bi bi-cloud-upload-fill"></i> Importar CSV
         </a>
         {% if pending_count > 0 %}
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDisparo">
@@ -29,13 +51,13 @@
     <div class="col-lg-3 col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted mb-1 small">Total de Convites</p>
-                        <h3 class="mb-0">{{ total_count }}</h3>
+                        <p class="text-muted mb-1 small fw-semibold">Total de Convites</p>
+                        <h2 class="mb-0 fw-bold">{{ total_count }}</h2>
                     </div>
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2">
-                        <i class="bi bi-envelope fs-5"></i>
+                    <div class="metric-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-envelope-fill" style="font-size: 1.75rem;"></i>
                     </div>
                 </div>
             </div>
@@ -43,15 +65,15 @@
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-warning border-3">
+        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted mb-1 small">Pendentes</p>
-                        <h3 class="mb-0 text-warning">{{ pending_count }}</h3>
+                        <p class="text-muted mb-1 small fw-semibold">Pendentes</p>
+                        <h2 class="mb-0 text-warning fw-bold">{{ pending_count }}</h2>
                     </div>
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2">
-                        <i class="bi bi-hourglass-split fs-5"></i>
+                    <div class="metric-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-hourglass-split" style="font-size: 1.75rem;"></i>
                     </div>
                 </div>
             </div>
@@ -59,15 +81,15 @@
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-info border-3">
+        <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted mb-1 small">Enviados</p>
-                        <h3 class="mb-0 text-info">{{ sent_count }}</h3>
+                        <p class="text-muted mb-1 small fw-semibold">Enviados</p>
+                        <h2 class="mb-0 text-info fw-bold">{{ sent_count }}</h2>
                     </div>
-                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-2">
-                        <i class="bi bi-send-check fs-5"></i>
+                    <div class="metric-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-send-check-fill" style="font-size: 1.75rem;"></i>
                     </div>
                 </div>
             </div>
@@ -75,15 +97,15 @@
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-success border-3">
+        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-muted mb-1 small">Respondidos</p>
-                        <h3 class="mb-0 text-success">{{ used_count }}</h3>
+                        <p class="text-muted mb-1 small fw-semibold">Respondidos</p>
+                        <h2 class="mb-0 text-success fw-bold">{{ used_count }}</h2>
                     </div>
-                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-2">
-                        <i class="bi bi-check-circle fs-5"></i>
+                    <div class="metric-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check-circle-fill" style="font-size: 1.75rem;"></i>
                     </div>
                 </div>
             </div>
