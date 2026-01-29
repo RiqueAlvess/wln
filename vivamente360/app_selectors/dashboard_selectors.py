@@ -7,9 +7,37 @@ from collections import defaultdict
 
 class DashboardSelectors:
     @staticmethod
-    def get_campaign_metrics(campaign):
-        total_convidados = SurveyInvitation.objects.filter(campaign=campaign).count()
-        total_respondidos = SurveyResponse.objects.filter(campaign=campaign).count()
+    def _apply_filters(queryset, filters=None):
+        """
+        Aplica filtros de unidade e setor ao queryset de respostas.
+
+        Args:
+            queryset: QuerySet de SurveyResponse ou SurveyInvitation
+            filters: dict com 'unidade_id' e/ou 'setor_id'
+
+        Returns:
+            QuerySet filtrado
+        """
+        if not filters:
+            return queryset
+
+        if filters.get('unidade_id'):
+            queryset = queryset.filter(unidade_id=filters['unidade_id'])
+
+        if filters.get('setor_id'):
+            queryset = queryset.filter(setor_id=filters['setor_id'])
+
+        return queryset
+    @staticmethod
+    def get_campaign_metrics(campaign, filters=None):
+        invitations_qs = SurveyInvitation.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+
+        invitations_qs = DashboardSelectors._apply_filters(invitations_qs, filters)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+
+        total_convidados = invitations_qs.count()
+        total_respondidos = responses_qs.count()
 
         adesao = round((total_respondidos / total_convidados * 100), 2) if total_convidados > 0 else 0
 
@@ -20,8 +48,10 @@ class DashboardSelectors:
         }
 
     @staticmethod
-    def get_dimensoes_scores(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+    def get_dimensoes_scores(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         dimensoes_data = {dim: [] for dim in ScoreService.DIMENSOES.keys()}
 
@@ -40,8 +70,10 @@ class DashboardSelectors:
         return result
 
     @staticmethod
-    def get_top_setores_criticos(campaign, limit=5):
-        responses = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+    def get_top_setores_criticos(campaign, limit=5, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         setor_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})
 
@@ -67,8 +99,10 @@ class DashboardSelectors:
         return top_setores[:limit]
 
     @staticmethod
-    def get_demografico_genero(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+    def get_demografico_genero(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         genero_count = defaultdict(int)
@@ -82,8 +116,10 @@ class DashboardSelectors:
         return {'labels': labels, 'values': values}
 
     @staticmethod
-    def get_demografico_faixa_etaria(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+    def get_demografico_faixa_etaria(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         faixa_count = defaultdict(int)
         for response in responses:
@@ -96,8 +132,10 @@ class DashboardSelectors:
         return {'labels': labels, 'values': values}
 
     @staticmethod
-    def get_heatmap_data(campaign):
-        responses = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+    def get_heatmap_data(campaign, filters=None):
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         setor_dimensoes = defaultdict(lambda: defaultdict(list))
 
@@ -123,11 +161,13 @@ class DashboardSelectors:
         return heatmap_data[:10]
 
     @staticmethod
-    def get_scores_por_genero(campaign):
+    def get_scores_por_genero(campaign, filters=None):
         """
         Retorna dict com {genero: {dimensao: score_medio}}
         """
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         genero_dimensoes = defaultdict(lambda: defaultdict(list))
@@ -151,11 +191,13 @@ class DashboardSelectors:
         return result
 
     @staticmethod
-    def get_scores_por_faixa_etaria(campaign):
+    def get_scores_por_faixa_etaria(campaign, filters=None):
         """
         Retorna dict com {faixa: {dimensao: score_medio}}
         """
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
 
         faixa_dimensoes = defaultdict(lambda: defaultdict(list))
 
@@ -178,12 +220,14 @@ class DashboardSelectors:
         return result
 
     @staticmethod
-    def get_top_grupos_demograficos_criticos(campaign, limit=3):
+    def get_top_grupos_demograficos_criticos(campaign, limit=3, filters=None):
         """
         Retorna TOP N grupos demográficos com maior percentual de respostas em risco crítico.
         Grupos incluem combinações de gênero e faixa etária.
         """
-        responses = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
+        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         grupos_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})

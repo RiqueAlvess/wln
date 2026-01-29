@@ -3,6 +3,8 @@ from apps.core.mixins import DashboardAccessMixin
 from app_selectors.campaign_selectors import CampaignSelectors
 from app_selectors.dashboard_selectors import DashboardSelectors
 from services.risk_service import RiskService
+from apps.structure.models import Unidade, Setor
+from apps.responses.models import SurveyResponse
 
 
 class DashboardView(DashboardAccessMixin, TemplateView):
@@ -24,21 +26,53 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             context['campaign'] = None
             return context
 
-        metrics = DashboardSelectors.get_campaign_metrics(campaign)
-        dimensoes_scores = DashboardSelectors.get_dimensoes_scores(campaign)
-        top_setores = DashboardSelectors.get_top_setores_criticos(campaign)
-        distribuicao = RiskService.get_distribuicao_riscos(campaign)
-        igrp = RiskService.calcular_igrp(campaign)
-        demografico_genero = DashboardSelectors.get_demografico_genero(campaign)
-        demografico_faixa = DashboardSelectors.get_demografico_faixa_etaria(campaign)
-        heatmap_data = DashboardSelectors.get_heatmap_data(campaign)
-        scores_por_genero = DashboardSelectors.get_scores_por_genero(campaign)
-        scores_por_faixa_etaria = DashboardSelectors.get_scores_por_faixa_etaria(campaign)
-        top_grupos_criticos = DashboardSelectors.get_top_grupos_demograficos_criticos(campaign)
+        # Obter parâmetros de filtro
+        unidade_id = self.request.GET.get('unidade')
+        setor_id = self.request.GET.get('setor')
+
+        # Construir dict de filtros
+        filters = {}
+        if unidade_id:
+            filters['unidade_id'] = unidade_id
+        if setor_id:
+            filters['setor_id'] = setor_id
+
+        # Buscar unidades e setores disponíveis para esta campanha
+        unidades_disponiveis = Unidade.objects.filter(
+            id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('unidade_id', flat=True).distinct()
+        ).order_by('nome')
+
+        # Se uma unidade foi selecionada, filtrar setores por ela
+        if unidade_id:
+            setores_disponiveis = Setor.objects.filter(
+                unidade_id=unidade_id,
+                id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
+            ).order_by('nome')
+        else:
+            setores_disponiveis = Setor.objects.filter(
+                id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
+            ).order_by('nome')
+
+        # Buscar dados com filtros aplicados
+        metrics = DashboardSelectors.get_campaign_metrics(campaign, filters)
+        dimensoes_scores = DashboardSelectors.get_dimensoes_scores(campaign, filters)
+        top_setores = DashboardSelectors.get_top_setores_criticos(campaign, filters=filters)
+        distribuicao = RiskService.get_distribuicao_riscos(campaign, filters)
+        igrp = RiskService.calcular_igrp(campaign, filters)
+        demografico_genero = DashboardSelectors.get_demografico_genero(campaign, filters)
+        demografico_faixa = DashboardSelectors.get_demografico_faixa_etaria(campaign, filters)
+        heatmap_data = DashboardSelectors.get_heatmap_data(campaign, filters)
+        scores_por_genero = DashboardSelectors.get_scores_por_genero(campaign, filters)
+        scores_por_faixa_etaria = DashboardSelectors.get_scores_por_faixa_etaria(campaign, filters)
+        top_grupos_criticos = DashboardSelectors.get_top_grupos_demograficos_criticos(campaign, filters=filters)
 
         context.update({
             'campaigns': campaigns,
             'campaign': campaign,
+            'unidades_disponiveis': unidades_disponiveis,
+            'setores_disponiveis': setores_disponiveis,
+            'unidade_selecionada': unidade_id,
+            'setor_selecionado': setor_id,
             'total_convidados': metrics['total_convidados'],
             'respondidos': metrics['total_respondidos'],
             'adesao': metrics['adesao'],

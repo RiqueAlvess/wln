@@ -81,6 +81,49 @@
 </div>
 {% else %}
 
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">
+            <i class="bi bi-funnel-fill text-primary"></i> Filtros de Análise
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small text-muted fw-semibold">
+                    <i class="bi bi-building"></i> Unidade
+                </label>
+                <select class="form-select" id="filtro-unidade">
+                    <option value="">Todas as Unidades</option>
+                    {% for unidade in unidades_disponiveis %}
+                    <option value="{{ unidade.id }}" {% if unidade_selecionada and unidade.id|string == unidade_selecionada %}selected{% endif %}>
+                        {{ unidade.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-muted fw-semibold">
+                    <i class="bi bi-diagram-3"></i> Setor
+                </label>
+                <select class="form-select" id="filtro-setor">
+                    <option value="">Todos os Setores</option>
+                    {% for setor in setores_disponiveis %}
+                    <option value="{{ setor.id }}" {% if setor_selecionado and setor.id|string == setor_selecionado %}selected{% endif %}>
+                        {{ setor.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-outline-secondary w-100" id="btn-limpar-filtros">
+                    <i class="bi bi-x-circle"></i> Limpar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="card metric-card {% if adesao >= 70 %}success{% elif adesao >= 50 %}warning{% else %}danger{% endif %} border-0 shadow-sm h-100">
@@ -400,6 +443,48 @@
 {% block scripts %}
 {% if campaign %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// JavaScript para filtros interativos
+document.addEventListener('DOMContentLoaded', function() {
+    const filtroUnidade = document.getElementById('filtro-unidade');
+    const filtroSetor = document.getElementById('filtro-setor');
+    const btnLimparFiltros = document.getElementById('btn-limpar-filtros');
+    const campaignId = '{{ campaign.id }}';
+
+    // Função para construir URL com filtros
+    function buildFilterUrl() {
+        const params = new URLSearchParams();
+        params.append('campaign', campaignId);
+
+        const unidade = filtroUnidade.value;
+        const setor = filtroSetor.value;
+
+        if (unidade) {
+            params.append('unidade', unidade);
+        }
+        if (setor) {
+            params.append('setor', setor);
+        }
+
+        return '?' + params.toString();
+    }
+
+    // Event listener para mudança de unidade
+    filtroUnidade.addEventListener('change', function() {
+        window.location.href = buildFilterUrl();
+    });
+
+    // Event listener para mudança de setor
+    filtroSetor.addEventListener('change', function() {
+        window.location.href = buildFilterUrl();
+    });
+
+    // Event listener para limpar filtros
+    btnLimparFiltros.addEventListener('click', function() {
+        window.location.href = '?campaign=' + campaignId;
+    });
+});
+</script>
 <script>
 // Gráfico de Dimensões
 const ctxDimensoes = document.getElementById('chartDimensoes').getContext('2d');
