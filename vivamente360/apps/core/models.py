@@ -37,23 +37,3 @@ class TaskQueue(models.Model):
 
     def __str__(self):
         return f"{self.task_type} - {self.status}"
-
-
-class LGPDComplianceItem(models.Model):
-    empresa = models.ForeignKey('tenants.Empresa', on_delete=models.CASCADE)
-    item = models.CharField(max_length=255)
-    descricao = models.TextField()
-    concluido = models.BooleanField(default=False)
-    data_conclusao = models.DateTimeField(null=True, blank=True)
-    observacoes = models.TextField(blank=True)
-    ordem = models.IntegerField(default=0)
-
-    class Meta:
-        ordering = ['ordem']
-        unique_together = ['empresa', 'ordem']
-        db_table = 'core_lgpd_compliance_item'
-        verbose_name = 'Item de Conformidade LGPD'
-        verbose_name_plural = 'Itens de Conformidade LGPD'
-
-    def __str__(self):
-        return f"{self.empresa.nome} - {self.item}"
