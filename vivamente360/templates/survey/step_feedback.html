@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Compartilhe Sua Experiência{% endblock %}
+
+{% block extra_head %}
+<style>
+    .feedback-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .feedback-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .char-counter {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .char-counter.warning {
+        color: #ffc107;
+    }
+    .char-counter.danger {
+        color: #dc3545;
+    }
+    .feedback-textarea {
+        resize: vertical;
+        min-height: 150px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container feedback-container">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-9 col-lg-8">
+            <div class="card feedback-card shadow-lg">
+                <div class="card-header bg-primary text-white text-center p-4">
+                    <i class="bi bi-chat-heart" style="font-size: 3rem;"></i>
+                    <h3 class="mb-2 mt-3">💬 Espaço para sua voz</h3>
+                    <p class="mb-0" style="opacity: 0.9;">Queremos ouvir você com suas próprias palavras</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Suas respostas anteriores nos ajudam a entender o cenário geral.</strong>
+                        <br>
+                        Agora, gostaríamos de ouvir você com suas próprias palavras.
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="bi bi-question-circle text-primary"></i>
+                            Como você se sente trabalhando aqui? O que poderia melhorar no seu ambiente de trabalho?
+                        </h5>
+                    </div>
+
+                    <form method="post" id="feedbackForm">
+                        {{ csrf_input }}
+                        <input type="hidden" name="step" value="feedback">
+
+                        <div class="mb-3">
+                            <textarea
+                                class="form-control feedback-textarea"
+                                id="comentario_livre"
+                                name="comentario_livre"
+                                maxlength="500"
+                                placeholder="Compartilhe seus pensamentos, sugestões ou preocupações..."
+                                oninput="updateCharCounter()"
+                            ></textarea>
+                            <div class="d-flex justify-content-end mt-2">
+                                <span id="charCounter" class="char-counter">0 / 500 caracteres</span>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-shield-lock"></i>
+                            <strong>⚠️ Este campo é OPCIONAL e ANÔNIMO.</strong>
+                            <br>
+                            Não inclua seu nome ou informações que possam identificá-lo.
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <button type="submit" name="skip" value="true" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-skip-forward"></i> Pular
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send-check"></i> Enviar e Finalizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center text-muted py-3">
+                    <small>
+                        <i class="bi bi-lock"></i> Sua privacidade é nossa prioridade. Este comentário será analisado de forma anônima.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateCharCounter() {
+    const textarea = document.getElementById('comentario_livre');
+    const counter = document.getElementById('charCounter');
+    const currentLength = textarea.value.length;
+    const maxLength = 500;
+
+    counter.textContent = `${currentLength} / ${maxLength} caracteres`;
+
+    // Atualizar cor conforme proximidade do limite
+    counter.classList.remove('warning', 'danger');
+    if (currentLength > 450) {
+        counter.classList.add('danger');
+    } else if (currentLength > 400) {
+        counter.classList.add('warning');
+    }
+}
+
+// Prevenir envio acidental do formulário com Enter
+document.getElementById('comentario_livre').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}
