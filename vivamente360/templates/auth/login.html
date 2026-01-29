@@ -2,24 +2,100 @@
 
 {% block title %}Login - VIVAMENTE 360º{% endblock %}
 
+{% block extra_head %}
+<style>
+    .login-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .login-header {
+        background: linear-gradient(135deg, {{ branding.cor_primaria }} 0%, {{ branding.cor_secundaria }} 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    .login-header i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+    .input-group-text {
+        background-color: transparent;
+        border-right: none;
+    }
+    .form-control {
+        border-left: none;
+    }
+    .form-control:focus {
+        border-color: #dee2e6;
+        box-shadow: none;
+    }
+    .input-group:focus-within .input-group-text {
+        border-color: {{ branding.cor_primaria }};
+    }
+    .input-group:focus-within .form-control {
+        border-color: {{ branding.cor_primaria }};
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">VIVAMENTE 360º</h3>
-                <form method="post">
-                    {{ csrf_input }}
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Usuário</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Senha</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                </form>
+<div class="container">
+    <div class="login-container">
+        <div class="col-md-5 col-lg-4">
+            <div class="card login-card shadow-lg">
+                <div class="login-header">
+                    <i class="bi bi-shield-lock"></i>
+                    <h3 class="mb-0">VIVAMENTE 360º</h3>
+                    <p class="mb-0 mt-2" style="opacity: 0.9;">Sistema de Gestão de Riscos Psicossociais</p>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="text-center mb-4 text-muted">
+                        <i class="bi bi-door-open"></i> Acesse sua conta
+                    </h5>
+                    <form method="post">
+                        {{ csrf_input }}
+                        <div class="mb-4">
+                            <label for="username" class="form-label">
+                                <i class="bi bi-person-circle text-primary"></i> Usuário
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" class="form-control" id="username" name="username"
+                                       placeholder="Digite seu usuário" required autofocus>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="form-label">
+                                <i class="bi bi-key text-primary"></i> Senha
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="password" name="password"
+                                       placeholder="Digite sua senha" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Entrar
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center text-muted py-3">
+                    <small>
+                        <i class="bi bi-shield-check"></i> Acesso seguro e protegido
+                    </small>
+                </div>
             </div>
         </div>
     </div>

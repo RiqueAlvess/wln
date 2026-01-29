@@ -4,48 +4,92 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Campanhas</h1>
-    <a href="{{ url('surveys:create') }}" class="btn btn-primary">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-clipboard-data text-primary"></i> Campanhas de Avaliação
+        </h1>
+        <p class="text-muted mb-0">Gerencie todas as suas campanhas de pesquisa psicossocial</p>
+    </div>
+    <a href="{{ url('surveys:create') }}" class="btn btn-primary btn-lg shadow-sm">
         <i class="bi bi-plus-circle"></i> Nova Campanha
     </a>
 </div>
 
-<div class="card">
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-list-ul text-primary me-2"></i>
+            <h5 class="mb-0">Lista de Campanhas</h5>
+        </div>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Nome</th>
-                    <th>Empresa</th>
-                    <th>Período</th>
-                    <th>Status</th>
-                    <th>Ações</th>
+                    <th>
+                        <i class="bi bi-tag"></i> Nome
+                    </th>
+                    <th>
+                        <i class="bi bi-building"></i> Empresa
+                    </th>
+                    <th>
+                        <i class="bi bi-calendar-range"></i> Período
+                    </th>
+                    <th>
+                        <i class="bi bi-info-circle"></i> Status
+                    </th>
+                    <th class="text-center">
+                        <i class="bi bi-gear"></i> Ações
+                    </th>
                 </tr>
             </thead>
             <tbody>
                 {% for campaign in campaigns %}
                 <tr>
-                    <td>{{ campaign.nome }}</td>
-                    <td>{{ campaign.empresa.nome }}</td>
-                    <td>{{ campaign.data_inicio | dateformat }} a {{ campaign.data_fim | dateformat }}</td>
                     <td>
-                        {% if campaign.status == 'active' %}
-                        <span class="badge bg-success">Ativa</span>
-                        {% elif campaign.status == 'draft' %}
-                        <span class="badge bg-secondary">Rascunho</span>
-                        {% else %}
-                        <span class="badge bg-danger">Encerrada</span>
-                        {% endif %}
+                        <strong>{{ campaign.nome }}</strong>
                     </td>
                     <td>
+                        <i class="bi bi-building text-muted"></i> {{ campaign.empresa.nome }}
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-event"></i> {{ campaign.data_inicio | dateformat }} a {{ campaign.data_fim | dateformat }}
+                        </small>
+                    </td>
+                    <td>
+                        {% if campaign.status == 'active' %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Ativa
+                        </span>
+                        {% elif campaign.status == 'draft' %}
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-pencil"></i> Rascunho
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="bi bi-x-circle"></i> Encerrada
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
                         <div class="btn-group" role="group">
-                            <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
+                            <a href="{{ url('surveys:detail', campaign.id) }}"
+                               class="btn btn-sm btn-outline-primary"
+                               title="Ver Detalhes"
+                               data-bs-toggle="tooltip">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary" title="Gerenciar Convites / Importar CSV">
+                            <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}"
+                               class="btn btn-sm btn-outline-secondary"
+                               title="Gerenciar Convites"
+                               data-bs-toggle="tooltip">
                                 <i class="bi bi-envelope"></i>
                             </a>
-                            <a href="{{ url('actions:planos', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-info" title="Planos de Ação">
+                            <a href="{{ url('actions:planos', campaign_id=campaign.id) }}"
+                               class="btn btn-sm btn-outline-info"
+                               title="Planos de Ação"
+                               data-bs-toggle="tooltip">
                                 <i class="bi bi-clipboard-check"></i>
                             </a>
                         </div>
@@ -55,5 +99,23 @@
             </tbody>
         </table>
     </div>
+    {% if not campaigns %}
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+        <h5 class="mt-3 text-muted">Nenhuma campanha cadastrada</h5>
+        <p class="text-muted">Crie sua primeira campanha para começar a avaliar riscos psicossociais.</p>
+        <a href="{{ url('surveys:create') }}" class="btn btn-primary mt-2">
+            <i class="bi bi-plus-circle"></i> Criar Primeira Campanha
+        </a>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    // Inicializar tooltips do Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
 {% endblock %}

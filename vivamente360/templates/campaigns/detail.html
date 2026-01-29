@@ -3,38 +3,143 @@
 {% block title %}{{ campaign.nome }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h4 class="mb-0">{{ campaign.nome }}</h4>
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-clipboard-data text-primary"></i> {{ campaign.nome }}
+            </h1>
+            <p class="text-muted mb-0">Detalhes e gerenciamento da campanha</p>
+        </div>
+        <a href="{{ url('surveys:list') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar para Campanhas
+        </a>
     </div>
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Empresa:</dt>
-            <dd class="col-sm-9">{{ campaign.empresa.nome }}</dd>
+</div>
 
-            <dt class="col-sm-3">Período:</dt>
-            <dd class="col-sm-9">{{ campaign.data_inicio | dateformat }} a {{ campaign.data_fim | dateformat }}</dd>
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle text-primary"></i> Informações da Campanha
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-tag text-muted"></i> Nome:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        <strong>{{ campaign.nome }}</strong>
+                    </dd>
 
-            <dt class="col-sm-3">Status:</dt>
-            <dd class="col-sm-9">
-                {% if campaign.status == 'active' %}
-                <span class="badge bg-success">Ativa</span>
-                {% elif campaign.status == 'draft' %}
-                <span class="badge bg-secondary">Rascunho</span>
-                {% else %}
-                <span class="badge bg-danger">Encerrada</span>
-                {% endif %}
-            </dd>
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-building text-muted"></i> Empresa:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        {{ campaign.empresa.nome }}
+                    </dd>
 
-            <dt class="col-sm-3">Descrição:</dt>
-            <dd class="col-sm-9">{{ campaign.descricao or '-' }}</dd>
-        </dl>
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-calendar-range text-muted"></i> Período:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        <i class="bi bi-calendar-event"></i> {{ campaign.data_inicio | dateformat }}
+                        <span class="mx-2">até</span>
+                        <i class="bi bi-calendar-check"></i> {{ campaign.data_fim | dateformat }}
+                    </dd>
 
-        <div class="mt-4">
-            <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-primary">Gerenciar Convites</a>
-            <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}" class="btn btn-outline-primary">Ver Dashboard</a>
-            <a href="{{ url('actions:planos', campaign_id=campaign.id) }}" class="btn btn-outline-primary"><i class="bi bi-clipboard-check"></i> Planos de Ação</a>
-            <a href="{{ url('surveys:list') }}" class="btn btn-secondary">Voltar</a>
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-info-square text-muted"></i> Status:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        {% if campaign.status == 'active' %}
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="bi bi-check-circle"></i> Campanha Ativa
+                        </span>
+                        {% elif campaign.status == 'draft' %}
+                        <span class="badge bg-secondary px-3 py-2">
+                            <i class="bi bi-pencil"></i> Rascunho
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger px-3 py-2">
+                            <i class="bi bi-x-circle"></i> Encerrada
+                        </span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="bi bi-file-text text-muted"></i> Descrição:
+                    </dt>
+                    <dd class="col-sm-8">
+                        {{ campaign.descricao or '<em class="text-muted">Nenhuma descrição fornecida</em>' | safe }}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning-charge"></i> Ações Rápidas
+                </h5>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-grid gap-2">
+                    <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}"
+                       class="btn btn-outline-primary btn-lg text-start">
+                        <i class="bi bi-envelope-paper"></i> Gerenciar Convites
+                    </a>
+                    <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}"
+                       class="btn btn-outline-success btn-lg text-start">
+                        <i class="bi bi-graph-up-arrow"></i> Ver Dashboard
+                    </a>
+                    <a href="{{ url('actions:planos', campaign_id=campaign.id) }}"
+                       class="btn btn-outline-info btn-lg text-start">
+                        <i class="bi bi-clipboard-check"></i> Planos de Ação
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="mb-3">
+                            <i class="bi bi-lightbulb text-warning"></i> Fluxo de Trabalho da Campanha
+                        </h5>
+                        <ol class="mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-cloud-upload text-primary"></i>
+                                <strong>Importar Convites:</strong> Faça o upload do CSV com os dados dos colaboradores
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-send text-primary"></i>
+                                <strong>Enviar E-mails:</strong> Dispare os convites com magic links únicos
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-graph-up text-primary"></i>
+                                <strong>Acompanhar:</strong> Monitore a taxa de adesão e respostas no dashboard
+                            </li>
+                            <li class="mb-0">
+                                <i class="bi bi-clipboard-check text-primary"></i>
+                                <strong>Agir:</strong> Analise os resultados e crie planos de ação baseados nos dados
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="bi bi-diagram-3 text-primary" style="font-size: 6rem; opacity: 0.15;"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
