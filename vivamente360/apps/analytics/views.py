@@ -1,10 +1,19 @@
 from django.views.generic import TemplateView
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
 from apps.core.mixins import DashboardAccessMixin
 from app_selectors.campaign_selectors import CampaignSelectors
 from app_selectors.dashboard_selectors import DashboardSelectors
 from services.risk_service import RiskService
+from services.sector_analysis_service import SectorAnalysisService
 from apps.structure.models import Unidade, Setor
 from apps.responses.models import SurveyResponse
+from apps.analytics.models import SectorAnalysis
+from apps.surveys.models import Campaign
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DashboardView(DashboardAccessMixin, TemplateView):
@@ -96,6 +105,111 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             'scores_por_genero': scores_por_genero,
             'scores_por_faixa_etaria': scores_por_faixa_etaria,
             'top_grupos_criticos': top_grupos_criticos,
+        })
+
+        return context
+
+
+class SectorAnalysisView(DashboardAccessMixin, TemplateView):
+    """
+    View para exibir análise detalhada de um setor
+    """
+    template_name = 'analytics/sector_analysis.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        setor_id = self.kwargs.get('setor_id')
+        campaign_id = self.kwargs.get('campaign_id')
+
+        setor = get_object_or_404(Setor, id=setor_id)
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+
+        # Buscar ou gerar análise
+        analysis = SectorAnalysisService.get_analise(setor_id, campaign_id)
+
+        context.update({
+            'setor': setor,
+            'campaign': campaign,
+            'analysis': analysis,
+        })
+
+        return context
+
+
+class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
+    """
+    View para gerar análise de setor
+    """
+
+    def post(self, request, *args, **kwargs):
+        setor_id = request.POST.get('setor_id')
+        campaign_id = request.POST.get('campaign_id')
+        force_regenerate = request.POST.get('force_regenerate') == 'true'
+
+        if not setor_id or not campaign_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Parâmetros inválidos'
+            }, status=400)
+
+        try:
+            # Gerar análise
+            analysis = SectorAnalysisService.gerar_analise(
+                int(setor_id),
+                int(campaign_id),
+                force_regenerate=force_regenerate
+            )
+
+            if not analysis:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Não foi possível gerar a análise. Verifique se há dados suficientes.'
+                }, status=400)
+
+            return JsonResponse({
+                'success': True,
+                'analysis_id': analysis.id,
+                'redirect_url': f'/analytics/sector-analysis/{setor_id}/{campaign_id}/'
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao gerar análise: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+
+
+class SectorAnalysisListView(DashboardAccessMixin, TemplateView):
+    """
+    View para listar análises de setores
+    """
+    template_name = 'analytics/sector_analysis_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        campaign_id = self.request.GET.get('campaign')
+        campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
+
+        if campaign_id:
+            campaign = campaigns.filter(id=campaign_id).first()
+        else:
+            campaign = campaigns.filter(status='active').first()
+
+        analyses = []
+        if campaign:
+            # Buscar todas as análises desta campanha
+            analyses = SectorAnalysis.objects.filter(
+                campaign=campaign,
+                empresa=self.request.user.profile.empresas.first()
+            ).select_related('setor', 'campaign').order_by('-created_at')
+
+        context.update({
+            'campaigns': campaigns,
+            'campaign': campaign,
+            'analyses': analyses,
         })
 
         return context
