@@ -16,13 +16,25 @@
         font-size: 1rem;
         margin-right: 0.25rem;
     }
+    .header-icon-box {
+        width: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background-color: #e7f1ff;
+    }
+    .header-icon-box i {
+        color: #0d6efd;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="d-flex align-items-center gap-3">
-        <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+        <div class="header-icon-box">
             <i class="bi bi-envelope-paper-fill" style="font-size: 2.5rem;"></i>
         </div>
         <div>
@@ -56,8 +68,8 @@
                         <p class="text-muted mb-1 small fw-semibold">Total de Convites</p>
                         <h2 class="mb-0 fw-bold">{{ total_count }}</h2>
                     </div>
-                    <div class="metric-icon bg-primary bg-opacity-10 text-primary">
-                        <i class="bi bi-envelope-fill" style="font-size: 1.75rem;"></i>
+                    <div class="metric-icon" style="background-color: #e7f1ff;">
+                        <i class="bi bi-envelope-fill" style="font-size: 1.75rem; color: #0d6efd;"></i>
                     </div>
                 </div>
             </div>
@@ -70,10 +82,10 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="text-muted mb-1 small fw-semibold">Pendentes</p>
-                        <h2 class="mb-0 text-warning fw-bold">{{ pending_count }}</h2>
+                        <h2 class="mb-0 fw-bold" style="color: #ffc107;">{{ pending_count }}</h2>
                     </div>
-                    <div class="metric-icon bg-warning bg-opacity-10 text-warning">
-                        <i class="bi bi-hourglass-split" style="font-size: 1.75rem;"></i>
+                    <div class="metric-icon" style="background-color: #fff3cd;">
+                        <i class="bi bi-hourglass-split" style="font-size: 1.75rem; color: #ffc107;"></i>
                     </div>
                 </div>
             </div>
@@ -86,10 +98,10 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="text-muted mb-1 small fw-semibold">Enviados</p>
-                        <h2 class="mb-0 text-info fw-bold">{{ sent_count }}</h2>
+                        <h2 class="mb-0 fw-bold" style="color: #0dcaf0;">{{ sent_count }}</h2>
                     </div>
-                    <div class="metric-icon bg-info bg-opacity-10 text-info">
-                        <i class="bi bi-send-check-fill" style="font-size: 1.75rem;"></i>
+                    <div class="metric-icon" style="background-color: #cff4fc;">
+                        <i class="bi bi-send-check-fill" style="font-size: 1.75rem; color: #0dcaf0;"></i>
                     </div>
                 </div>
             </div>
@@ -102,10 +114,10 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="text-muted mb-1 small fw-semibold">Respondidos</p>
-                        <h2 class="mb-0 text-success fw-bold">{{ used_count }}</h2>
+                        <h2 class="mb-0 fw-bold" style="color: #198754;">{{ used_count }}</h2>
                     </div>
-                    <div class="metric-icon bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-check-circle-fill" style="font-size: 1.75rem;"></i>
+                    <div class="metric-icon" style="background-color: #d1e7dd;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 1.75rem; color: #198754;"></i>
                     </div>
                 </div>
             </div>

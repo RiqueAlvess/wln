@@ -4,6 +4,9 @@
 
 {% block extra_head %}
 <style>
+    body {
+        background-color: #f8f9fa;
+    }
     .login-container {
         min-height: 80vh;
         display: flex;
@@ -12,23 +15,36 @@
     }
     .login-card {
         border: none;
-        border-radius: 15px;
+        border-radius: 12px;
         overflow: hidden;
+        max-width: 440px;
+        width: 100%;
     }
     .login-header {
-        background: linear-gradient(135deg, {{ branding.cor_primaria }} 0%, {{ branding.cor_secundaria }} 100%);
-        color: white;
-        padding: 2rem;
+        background-color: white;
+        padding: 2.5rem 2rem 1.5rem;
         text-align: center;
+        border-bottom: 1px solid #e9ecef;
     }
     .login-header i {
-        font-size: 4rem;
+        font-size: 3.5rem;
         margin-bottom: 1rem;
-        opacity: 0.9;
+        color: #0d6efd;
+    }
+    .login-header h3 {
+        color: #212529;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .login-header p {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin: 0;
     }
     .input-group-text {
-        background-color: transparent;
+        background-color: #f8f9fa;
         border-right: none;
+        color: #6c757d;
     }
     .form-control {
         border-left: none;
@@ -38,10 +54,12 @@
         box-shadow: none;
     }
     .input-group:focus-within .input-group-text {
-        border-color: {{ branding.cor_primaria }};
+        border-color: #0d6efd;
+        background-color: #e7f1ff;
+        color: #0d6efd;
     }
     .input-group:focus-within .form-control {
-        border-color: {{ branding.cor_primaria }};
+        border-color: #0d6efd;
     }
 </style>
 {% endblock %}
@@ -53,18 +71,18 @@
             <div class="card login-card shadow-lg">
                 <div class="login-header">
                     <i class="bi bi-shield-lock"></i>
-                    <h3 class="mb-0">VIVAMENTE 360º</h3>
-                    <p class="mb-0 mt-2" style="opacity: 0.9;">Sistema de Gestão de Riscos Psicossociais</p>
+                    <h3>VIVAMENTE 360º</h3>
+                    <p>Sistema de Gestão de Riscos Psicossociais</p>
                 </div>
                 <div class="card-body p-4">
-                    <h5 class="text-center mb-4 text-muted">
-                        <i class="bi bi-door-open"></i> Acesse sua conta
+                    <h5 class="text-center mb-4 fw-semibold" style="color: #495057;">
+                        Acesse sua conta
                     </h5>
                     <form method="post">
                         {{ csrf_input }}
                         <div class="mb-4">
-                            <label for="username" class="form-label">
-                                <i class="bi bi-person-circle text-primary"></i> Usuário
+                            <label for="username" class="form-label fw-semibold">
+                                Usuário
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">
@@ -75,8 +93,8 @@
                             </div>
                         </div>
                         <div class="mb-4">
-                            <label for="password" class="form-label">
-                                <i class="bi bi-key text-primary"></i> Senha
+                            <label for="password" class="form-label fw-semibold">
+                                Senha
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">
