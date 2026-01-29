@@ -39,6 +39,26 @@ class SurveyResponse(TimeStampedModel):
 
     respostas = models.JSONField()
 
+    # Campo de feedback livre
+    comentario_livre = models.TextField(
+        blank=True,
+        help_text="Comentário opcional do colaborador"
+    )
+
+    # Análise de sentimento (preenchido pela IA)
+    sentimento_score = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="-1.0 (muito negativo) a 1.0 (muito positivo)"
+    )
+    sentimento_categorias = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Categorias e análise identificada pela IA"
+    )
+
     lgpd_aceito = models.BooleanField(default=False)
     lgpd_aceito_em = models.DateTimeField()
 

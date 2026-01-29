@@ -138,11 +138,11 @@ IMPORTANTE:
                         **nivel
                     }
 
-            # Buscar comentários (se existirem no modelo)
+            # Buscar comentários livres
             comentarios = []
             for resposta in respostas:
-                if hasattr(resposta, 'comentarios') and resposta.comentarios:
-                    comentarios.append(resposta.comentarios)
+                if resposta.comentario_livre:
+                    comentarios.append(resposta.comentario_livre)
 
             return {
                 'setor': setor,

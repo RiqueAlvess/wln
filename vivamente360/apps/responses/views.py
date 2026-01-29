@@ -8,6 +8,7 @@ from apps.responses.models import SurveyResponse
 from apps.surveys.models import Pergunta
 from services.token_service import TokenService
 from services.notification_service import NotificationService
+from services.sentiment_service import SentimentService
 
 
 class SurveyFormView(View):
@@ -38,12 +39,18 @@ class SurveyFormView(View):
                 'cargo': invitation.cargo
             })
 
+        elif step == 'feedback':
+            return render(request, 'survey/step_feedback.html', {
+                'campaign': invitation.campaign
+            })
+
         else:
             perguntas = Pergunta.objects.filter(ativo=True).order_by('numero')
             current_question = int(step) if step.isdigit() else 1
 
             if current_question > perguntas.count():
-                return render(request, 'survey/step_success.html')
+                # Após a última pergunta, redirecionar para feedback
+                return redirect(f'/survey/{token}/?step=feedback')
 
             pergunta = perguntas[current_question - 1]
             return render(request, 'survey/step_question.html', {
@@ -75,6 +82,54 @@ class SurveyFormView(View):
             }
             return redirect(f'/survey/{token}/?step=1')
 
+        elif step == 'feedback':
+            # Processar feedback do colaborador
+            demographics = request.session.get(f'survey_{token}', {})
+            respostas = request.session.get(f'respostas_{token}', {})
+            comentario_livre = request.POST.get('comentario_livre', '').strip()
+            skip = request.POST.get('skip', False)
+
+            # Se pulou, comentário fica vazio
+            if skip:
+                comentario_livre = ''
+
+            # Criar resposta do questionário
+            survey_response = SurveyResponse.objects.create(
+                campaign=invitation.campaign,
+                unidade=invitation.unidade,
+                setor=invitation.setor,
+                cargo=invitation.cargo,
+                faixa_etaria=demographics['faixa_etaria'],
+                tempo_empresa=demographics['tempo_empresa'],
+                genero=demographics['genero'],
+                respostas=respostas,
+                comentario_livre=comentario_livre,
+                lgpd_aceito=True,
+                lgpd_aceito_em=timezone.now()
+            )
+
+            # Processar análise de sentimento se houver comentário
+            if comentario_livre:
+                try:
+                    SentimentService.processar_resposta(survey_response)
+                except Exception as e:
+                    # Log do erro mas não falha o processo
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Erro ao processar sentimento: {e}")
+
+            # Enviar notificações após salvar resposta
+            NotificationService.enviar_resultado_individual(survey_response)
+            NotificationService.alerta_risco_critico(survey_response)
+
+            TokenService.invalidate_token(invitation)
+
+            # Limpar sessão
+            del request.session[f'survey_{token}']
+            del request.session[f'respostas_{token}']
+
+            return render(request, 'survey/step_success.html')
+
         elif step.isdigit():
             current = int(step)
             if f'respostas_{token}' not in request.session:
@@ -85,32 +140,8 @@ class SurveyFormView(View):
 
             perguntas = Pergunta.objects.filter(ativo=True).count()
             if current >= perguntas:
-                demographics = request.session.get(f'survey_{token}', {})
-                respostas = request.session.get(f'respostas_{token}', {})
-
-                survey_response = SurveyResponse.objects.create(
-                    campaign=invitation.campaign,
-                    unidade=invitation.unidade,
-                    setor=invitation.setor,
-                    cargo=invitation.cargo,
-                    faixa_etaria=demographics['faixa_etaria'],
-                    tempo_empresa=demographics['tempo_empresa'],
-                    genero=demographics['genero'],
-                    respostas=respostas,
-                    lgpd_aceito=True,
-                    lgpd_aceito_em=timezone.now()
-                )
-
-                # Enviar notificações após salvar resposta
-                NotificationService.enviar_resultado_individual(survey_response)
-                NotificationService.alerta_risco_critico(survey_response)
-
-                TokenService.invalidate_token(invitation)
-
-                del request.session[f'survey_{token}']
-                del request.session[f'respostas_{token}']
-
-                return render(request, 'survey/step_success.html')
+                # Após a última pergunta, redirecionar para feedback
+                return redirect(f'/survey/{token}/?step=feedback')
 
             return redirect(f'/survey/{token}/?step={current + 1}')
 
