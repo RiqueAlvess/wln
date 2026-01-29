@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Análises de Setores - {{ branding.nome_app }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1400px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url('analytics:dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Análises de Setores</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-robot"></i> Análises de Setores com IA</h1>
+            <p class="text-muted mb-0">Análises detalhadas geradas por Inteligência Artificial</p>
+        </div>
+        <div>
+            <select class="form-select" onchange="window.location.href='?campaign='+this.value">
+                <option value="">Selecione a Campanha</option>
+                {% for c in campaigns %}
+                <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>
+                    {{ c.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if not campaign %}
+    <div class="alert alert-info">
+        <h4><i class="bi bi-info-circle"></i> Selecione uma campanha</h4>
+        <p class="mb-0">Selecione uma campanha acima para visualizar as análises de setores.</p>
+    </div>
+    {% elif not analyses %}
+    <div class="alert alert-warning">
+        <h4><i class="bi bi-exclamation-triangle"></i> Nenhuma análise encontrada</h4>
+        <p class="mb-0">Não há análises de setores para esta campanha. Acesse o dashboard e gere análises para os setores desejados.</p>
+    </div>
+    {% else %}
+    <div class="row">
+        {% for analysis in analyses %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'processing' %}warning{% else %}danger{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building"></i> {{ analysis.setor.nome }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if analysis.status == 'completed' %}
+                    <p class="card-text">{{ analysis.diagnostico|truncate(150) }}</p>
+
+                    <div class="mb-3">
+                        <h6>Scores principais:</h6>
+                        {% set top_scores = analysis.scores.items()|list|sort(attribute='1.score')|list[:3] %}
+                        {% for dimensao, data in top_scores %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>{{ dimensao.replace('_', ' ').title() }}</small>
+                            <small class="fw-bold">{{ "%.2f"|format(data.score) }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{{ url('analytics:sector_analysis', setor_id=analysis.setor.id, campaign_id=analysis.campaign.id) }}"
+                           class="btn btn-primary">
+                            <i class="bi bi-eye"></i> Ver Análise Completa
+                        </a>
+                    </div>
+
+                    {% elif analysis.status == 'processing' %}
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Processando...</span>
+                        </div>
+                        <p class="mt-2">Processando análise...</p>
+                    </div>
+
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <h6>Erro ao gerar análise</h6>
+                        <p class="small mb-0">{{ analysis.error_message }}</p>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url('analytics:sector_analysis', setor_id=analysis.setor.id, campaign_id=analysis.campaign.id) }}"
+                           class="btn btn-danger">
+                            <i class="bi bi-arrow-clockwise"></i> Tentar Novamente
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-muted small">
+                    <i class="bi bi-calendar3"></i> {{ analysis.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    <span class="float-end">
+                        <i class="bi bi-people"></i> {{ analysis.total_respostas }} respostas
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
