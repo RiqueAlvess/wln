@@ -222,3 +222,173 @@ class ExportService:
         buffer.close()
 
         return pdf
+
+    @staticmethod
+    def export_campaign_comparison_word(campaign1, campaign2, summary, dimensions, sectors, ai_analysis):
+        """
+        Exporta relatório de comparação entre campanhas em formato Word.
+        """
+        doc = Document()
+
+        # Cabeçalho
+        heading = doc.add_heading(f'Relatório de Evolução - {campaign1.empresa.nome}', 0)
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Informações gerais
+        doc.add_paragraph(f'Data de geração: {datetime.now().strftime("%d/%m/%Y %H:%M")}')
+        doc.add_paragraph('')
+
+        # Campanhas comparadas
+        doc.add_heading('Campanhas Comparadas', level=1)
+        doc.add_paragraph(f'Campanha Base: {campaign1.nome}')
+        doc.add_paragraph(f'Período: {campaign1.data_inicio} a {campaign1.data_fim}')
+        doc.add_paragraph('')
+        doc.add_paragraph(f'Campanha Nova: {campaign2.nome}')
+        doc.add_paragraph(f'Período: {campaign2.data_inicio} a {campaign2.data_fim}')
+        doc.add_paragraph('')
+
+        # Resumo da Evolução
+        doc.add_heading('Resumo da Evolução', level=1)
+
+        table = doc.add_table(rows=5, cols=4)
+        table.style = 'Light Grid Accent 1'
+
+        # Cabeçalho da tabela
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Métrica'
+        hdr_cells[1].text = campaign1.nome[:20]
+        hdr_cells[2].text = campaign2.nome[:20]
+        hdr_cells[3].text = 'Variação'
+
+        # Dados
+        table.rows[1].cells[0].text = 'Taxa de Adesão (%)'
+        table.rows[1].cells[1].text = str(summary['campaign1']['adesao'])
+        table.rows[1].cells[2].text = str(summary['campaign2']['adesao'])
+        variacao_adesao = summary['variacao']['adesao']
+        table.rows[1].cells[3].text = f"{'+' if variacao_adesao > 0 else ''}{variacao_adesao}%"
+
+        table.rows[2].cells[0].text = 'IGRP'
+        table.rows[2].cells[1].text = str(summary['campaign1']['igrp'])
+        table.rows[2].cells[2].text = str(summary['campaign2']['igrp'])
+        variacao_igrp = summary['variacao']['igrp']
+        table.rows[2].cells[3].text = f"{'+' if variacao_igrp > 0 else ''}{variacao_igrp}"
+
+        table.rows[3].cells[0].text = '% Risco Alto/Crítico'
+        table.rows[3].cells[1].text = str(summary['campaign1']['pct_risco_alto'])
+        table.rows[3].cells[2].text = str(summary['campaign2']['pct_risco_alto'])
+        variacao_risco = summary['variacao']['pct_risco_alto']
+        table.rows[3].cells[3].text = f"{'+' if variacao_risco > 0 else ''}{variacao_risco}%"
+
+        table.rows[4].cells[0].text = 'Total de Respostas'
+        table.rows[4].cells[1].text = str(summary['campaign1']['total_respostas'])
+        table.rows[4].cells[2].text = str(summary['campaign2']['total_respostas'])
+        variacao_respostas = summary['variacao']['total_respostas']
+        table.rows[4].cells[3].text = f"{'+' if variacao_respostas > 0 else ''}{variacao_respostas}"
+
+        doc.add_paragraph('')
+
+        # Evolução por Dimensão
+        doc.add_heading('Evolução por Dimensão HSE-IT', level=1)
+
+        dim_table = doc.add_table(rows=len(dimensions) + 1, cols=5)
+        dim_table.style = 'Light Grid Accent 1'
+
+        # Cabeçalho
+        hdr_cells = dim_table.rows[0].cells
+        hdr_cells[0].text = 'Dimensão'
+        hdr_cells[1].text = campaign1.nome[:15]
+        hdr_cells[2].text = campaign2.nome[:15]
+        hdr_cells[3].text = 'Variação'
+        hdr_cells[4].text = 'Tendência'
+
+        # Dados
+        for i, dim in enumerate(dimensions, 1):
+            row_cells = dim_table.rows[i].cells
+            row_cells[0].text = dim['dimensao']
+            row_cells[1].text = str(dim['score_c1'])
+            row_cells[2].text = str(dim['score_c2'])
+            row_cells[3].text = f"{'+' if dim['variacao'] > 0 else ''}{dim['variacao']}"
+
+            if dim['tendencia'] == 'melhora':
+                row_cells[4].text = '↑ Melhora'
+            elif dim['tendencia'] == 'piora':
+                row_cells[4].text = '↓ Piora'
+            else:
+                row_cells[4].text = '→ Estável'
+
+        doc.add_paragraph('')
+
+        # Setores que Mais Melhoraram
+        if sectors.get('melhoraram'):
+            doc.add_heading('Setores que Mais Melhoraram', level=1)
+
+            for i, sector in enumerate(sectors['melhoraram'], 1):
+                doc.add_paragraph(
+                    f"{i}. {sector['setor']}: IGRP {sector['igrp_c1']} → {sector['igrp_c2']} "
+                    f"({sector['variacao']} pontos)",
+                    style='List Bullet'
+                )
+
+            doc.add_paragraph('')
+
+        # Setores que Precisam Atenção
+        if sectors.get('pioraram'):
+            doc.add_heading('Setores que Precisam Atenção', level=1)
+
+            for i, sector in enumerate(sectors['pioraram'], 1):
+                doc.add_paragraph(
+                    f"{i}. {sector['setor']}: IGRP {sector['igrp_c1']} → {sector['igrp_c2']} "
+                    f"(+{sector['variacao']} pontos)",
+                    style='List Bullet'
+                )
+
+            doc.add_paragraph('')
+
+        # Análise de Evolução (IA)
+        if ai_analysis:
+            doc.add_heading('Análise de Evolução (IA)', level=1)
+            doc.add_paragraph(ai_analysis)
+            doc.add_paragraph('')
+
+        # Recomendações
+        doc.add_page_break()
+        doc.add_heading('Recomendações', level=1)
+
+        if summary['variacao']['igrp'] < 0:
+            doc.add_paragraph(
+                'Manutenção: Continue implementando as ações que demonstraram eficácia na redução de riscos.',
+                style='List Bullet'
+            )
+        else:
+            doc.add_paragraph(
+                'Atenção: Revise as ações implementadas e identifique oportunidades de melhoria.',
+                style='List Bullet'
+            )
+
+        if sectors.get('melhoraram'):
+            doc.add_paragraph(
+                f'Boas práticas: Documente e replique as estratégias bem-sucedidas '
+                f'implementadas no setor "{sectors["melhoraram"][0]["setor"]}".',
+                style='List Bullet'
+            )
+
+        if sectors.get('pioraram'):
+            doc.add_paragraph(
+                f'Prioridade: Desenvolva plano de ação emergencial para o setor '
+                f'"{sectors["pioraram"][0]["setor"]}".',
+                style='List Bullet'
+            )
+
+        # Assinaturas
+        doc.add_page_break()
+        doc.add_heading('Aprovações', level=1)
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Responsável pela Área de SST')
+        doc.add_paragraph('')
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Gerente de RH')
+        doc.add_paragraph('')
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Diretor/Presidente')
+
+        return doc
