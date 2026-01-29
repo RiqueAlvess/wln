@@ -47,66 +47,53 @@
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h2 mb-1">
-                    <i class="bi bi-cloud-upload text-primary"></i> Importar Convites em Lote
-                </h1>
-                <p class="text-muted mb-0">Campanha: <strong>{{ campaign.nome }}</strong></p>
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                    <i class="bi bi-cloud-upload-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <div>
+                    <h1 class="h2 mb-1 fw-bold">Importar Convites em Lote</h1>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-folder2-open"></i> Campanha: <strong>{{ campaign.nome }}</strong>
+                    </p>
+                </div>
             </div>
             <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Voltar
             </a>
         </div>
 
-        <div class="row mb-4">
+        <div class="row mb-4 g-3">
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
-                                    <i class="bi bi-file-earmark-spreadsheet fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="mb-0">Passo 1</h6>
-                                <small class="text-muted">Preparar arquivo</small>
-                            </div>
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center py-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex p-3 mb-3" style="width: 70px; height: 70px; align-items: center; justify-content: center;">
+                            <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size: 2rem;"></i>
                         </div>
+                        <h5 class="mb-1 fw-bold">Passo 1</h5>
+                        <p class="text-muted mb-0 small">Preparar arquivo CSV</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
-                                    <i class="bi bi-upload fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="mb-0">Passo 2</h6>
-                                <small class="text-muted">Fazer upload</small>
-                            </div>
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center py-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex p-3 mb-3" style="width: 70px; height: 70px; align-items: center; justify-content: center;">
+                            <i class="bi bi-cloud-upload-fill" style="font-size: 2rem;"></i>
                         </div>
+                        <h5 class="mb-1 fw-bold">Passo 2</h5>
+                        <p class="text-muted mb-0 small">Fazer upload</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
-                                    <i class="bi bi-check-circle fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="mb-0">Passo 3</h6>
-                                <small class="text-muted">Confirmar importação</small>
-                            </div>
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center py-4">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex p-3 mb-3" style="width: 70px; height: 70px; align-items: center; justify-content: center;">
+                            <i class="bi bi-check-circle-fill" style="font-size: 2rem;"></i>
                         </div>
+                        <h5 class="mb-1 fw-bold">Passo 3</h5>
+                        <p class="text-muted mb-0 small">Confirmar importação</p>
                     </div>
                 </div>
             </div>
