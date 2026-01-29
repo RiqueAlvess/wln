@@ -1,8 +1,129 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="text-center mt-5">
-    <h1>VIVAMENTE 360º</h1>
-    <p class="lead">Sistema de Gestão de Riscos Psicossociais</p>
+<div class="container-fluid">
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-10">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">
+                    <i class="bi bi-shield-check"></i> VIVAMENTE 360º
+                </h1>
+                <p class="lead text-muted">Sistema Completo de Gestão de Riscos Psicossociais</p>
+                <p class="text-muted">Monitoramento, análise e ação para promover ambientes de trabalho mais saudáveis</p>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <div class="col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 hover-lift">
+                        <div class="card-body text-center p-4">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="bi bi-clipboard-data text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Campanhas de Avaliação</h4>
+                            <p class="card-text text-muted">
+                                Crie e gerencie campanhas de pesquisa para avaliar riscos psicossociais na sua organização.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 hover-lift">
+                        <div class="card-body text-center p-4">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="bi bi-graph-up-arrow text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Dashboard Analítico</h4>
+                            <p class="card-text text-muted">
+                                Visualize indicadores detalhados e análises por dimensões HSE-IT, setores e demografia.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 hover-lift">
+                        <div class="card-body text-center p-4">
+                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="bi bi-clipboard-check text-info" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Planos de Ação</h4>
+                            <p class="card-text text-muted">
+                                Desenvolva e acompanhe planos de ação estruturados para mitigar riscos identificados.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5 class="card-title mb-3">
+                                        <i class="bi bi-lightbulb text-warning"></i> Principais Recursos
+                                    </h5>
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <strong>Gestão Completa de Convites</strong> - Importação em lote via CSV e disparo automático de e-mails
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <strong>Análise Multi-dimensional</strong> - Avaliação baseada nas 9 dimensões HSE-IT
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <strong>Insights Demográficos</strong> - Análises segmentadas por gênero, faixa etária e tempo de empresa
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <strong>Relatórios e Exportação</strong> - Gere relatórios em Word para documentação e apresentações
+                                        </li>
+                                        <li class="mb-0">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <strong>100% Anônimo e Seguro</strong> - Magic links únicos garantem privacidade total dos respondentes
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <i class="bi bi-shield-fill-check text-primary" style="font-size: 8rem; opacity: 0.1;"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if request.user.is_authenticated %}
+            <div class="text-center mb-5">
+                <a href="{{ url('analytics:dashboard') }}" class="btn btn-primary btn-lg px-5 py-3">
+                    <i class="bi bi-speedometer2"></i> Acessar Dashboard
+                </a>
+                <a href="{{ url('surveys:list') }}" class="btn btn-outline-primary btn-lg px-5 py-3 ms-2">
+                    <i class="bi bi-clipboard-data"></i> Ver Campanhas
+                </a>
+            </div>
+            {% else %}
+            <div class="text-center mb-5">
+                <a href="{{ url('accounts:login') }}" class="btn btn-primary btn-lg px-5 py-3">
+                    <i class="bi bi-box-arrow-in-right"></i> Fazer Login
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
 {% endblock %}

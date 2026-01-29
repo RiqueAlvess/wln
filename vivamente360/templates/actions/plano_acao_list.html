@@ -4,42 +4,106 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Planos de Ação - {{ campaign.nome }}</h1>
-    <a href="{{ url('actions:export_plano_word', campaign_id=campaign.id) }}" class="btn btn-success">
-        <i class="bi bi-file-earmark-word"></i> Exportar Word
-    </a>
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-clipboard-check text-primary"></i> Planos de Ação
+        </h1>
+        <p class="text-muted mb-0">
+            Campanha: <strong>{{ campaign.nome }}</strong>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+        <a href="{{ url('actions:export_plano_word', campaign_id=campaign.id) }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-word"></i> Exportar Word
+        </a>
+    </div>
 </div>
 
-<div class="card">
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h5 class="mb-0">
+                    <i class="bi bi-list-check text-primary"></i> Planos de Ação Cadastrados
+                </h5>
+            </div>
+            <div>
+                <span class="badge bg-light text-dark border">
+                    <i class="bi bi-bar-chart"></i> Total: {{ planos|length }} plano(s)
+                </span>
+            </div>
+        </div>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Dimensão</th>
-                    <th>Nível de Risco</th>
-                    <th>Ação Proposta</th>
-                    <th>Responsável</th>
-                    <th>Prazo</th>
-                    <th>Status</th>
+                    <th>
+                        <i class="bi bi-diagram-3"></i> Dimensão
+                    </th>
+                    <th class="text-center">
+                        <i class="bi bi-exclamation-triangle"></i> Nível de Risco
+                    </th>
+                    <th>
+                        <i class="bi bi-card-text"></i> Ação Proposta
+                    </th>
+                    <th>
+                        <i class="bi bi-person-badge"></i> Responsável
+                    </th>
+                    <th>
+                        <i class="bi bi-calendar-check"></i> Prazo
+                    </th>
+                    <th class="text-center">
+                        <i class="bi bi-hourglass-split"></i> Status
+                    </th>
                 </tr>
             </thead>
             <tbody>
                 {% for plano in planos %}
                 <tr>
-                    <td>{{ plano.dimensao.nome }}</td>
-                    <td><span class="badge bg-danger">{{ plano.nivel_risco }}</span></td>
-                    <td>{{ plano.acao_proposta | truncate(50) }}</td>
-                    <td>{{ plano.responsavel }}</td>
-                    <td>{{ plano.prazo | dateformat }}</td>
                     <td>
+                        <strong class="text-primary">
+                            <i class="bi bi-arrow-right-circle"></i> {{ plano.dimensao.nome }}
+                        </strong>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger px-3">
+                            <i class="bi bi-exclamation-circle"></i> {{ plano.nivel_risco }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="max-width: 300px;">
+                            {{ plano.acao_proposta | truncate(80) }}
+                        </div>
+                    </td>
+                    <td>
+                        <i class="bi bi-person text-muted"></i> {{ plano.responsavel }}
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-event"></i> {{ plano.prazo | dateformat }}
+                        </small>
+                    </td>
+                    <td class="text-center">
                         {% if plano.status == 'pendente' %}
-                        <span class="badge bg-secondary">Pendente</span>
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-hourglass"></i> Pendente
+                        </span>
                         {% elif plano.status == 'andamento' %}
-                        <span class="badge bg-primary">Em Andamento</span>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-arrow-repeat"></i> Em Andamento
+                        </span>
                         {% elif plano.status == 'concluido' %}
-                        <span class="badge bg-success">Concluído</span>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle-fill"></i> Concluído
+                        </span>
                         {% else %}
-                        <span class="badge bg-danger">Cancelado</span>
+                        <span class="badge bg-danger">
+                            <i class="bi bi-x-circle"></i> Cancelado
+                        </span>
                         {% endif %}
                     </td>
                 </tr>
@@ -47,5 +111,75 @@
             </tbody>
         </table>
     </div>
+    {% if not planos %}
+    <div class="card-body text-center py-5">
+        <i class="bi bi-clipboard-x text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+        <h5 class="mt-3 text-muted">Nenhum plano de ação cadastrado</h5>
+        <p class="text-muted">
+            Os planos de ação são gerados automaticamente com base nos riscos identificados na campanha.
+        </p>
+        <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}" class="btn btn-primary mt-2">
+            <i class="bi bi-graph-up-arrow"></i> Ver Dashboard de Riscos
+        </a>
+    </div>
+    {% endif %}
 </div>
+
+{% if planos %}
+<div class="row g-4 mt-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-secondary border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Pendentes</h6>
+                        <h2 class="mb-0 text-secondary">
+                            {{ planos|selectattr('status', 'equalto', 'pendente')|list|length }}
+                        </h2>
+                    </div>
+                    <div class="bg-secondary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-hourglass text-secondary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-primary border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Em Andamento</h6>
+                        <h2 class="mb-0 text-primary">
+                            {{ planos|selectattr('status', 'equalto', 'andamento')|list|length }}
+                        </h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-arrow-repeat text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-success border-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Concluídos</h6>
+                        <h2 class="mb-0 text-success">
+                            {{ planos|selectattr('status', 'equalto', 'concluido')|list|length }}
+                        </h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

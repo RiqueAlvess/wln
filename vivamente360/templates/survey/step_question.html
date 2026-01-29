@@ -2,34 +2,74 @@
 
 {% block title %}Questão {{ current }}{% endblock %}
 
+{% block extra_head %}
+<style>
+    .question-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .answer-btn {
+        transition: all 0.2s ease;
+        border-width: 2px;
+    }
+    .answer-btn:hover {
+        transform: translateX(10px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between">
-                    <span>{{ dimensao.nome }}</span>
-                    <span>Pergunta {{ current }} de {{ total }}</span>
-                </div>
-                <div class="progress mt-2" style="height: 5px;">
-                    <div class="progress-bar" style="width: {{ (current / total) * 100 }}%"></div>
-                </div>
-            </div>
-            <div class="card-body p-4">
-                <h5 class="card-title mb-4">{{ pergunta.texto }}</h5>
-
-                <form method="post">
-                    {{ csrf_input }}
-                    <input type="hidden" name="step" value="{{ current }}">
-
-                    <div class="d-grid gap-2">
-                        {% for valor, label in escala %}
-                        <button type="submit" name="valor" value="{{ valor }}" class="btn btn-outline-primary btn-lg text-start">
-                            <span class="badge bg-secondary me-2">{{ valor }}</span> {{ label }}
-                        </button>
-                        {% endfor %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+            <div class="card question-card shadow-lg">
+                <div class="card-header bg-primary text-white p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="bi bi-diagram-3"></i> {{ dimensao.nome }}
+                            </h5>
+                        </div>
+                        <div>
+                            <span class="badge bg-white text-primary px-3 py-2">
+                                <i class="bi bi-question-circle"></i> {{ current }} de {{ total }}
+                            </span>
+                        </div>
                     </div>
-                </form>
+                    <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.3);">
+                        <div class="progress-bar bg-success" style="width: {{ (current / total) * 100 }}%"></div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h4 class="mb-3">
+                            <i class="bi bi-chat-left-quote text-primary"></i>
+                            {{ pergunta.texto }}
+                        </h4>
+                    </div>
+
+                    <form method="post">
+                        {{ csrf_input }}
+                        <input type="hidden" name="step" value="{{ current }}">
+
+                        <div class="d-grid gap-3">
+                            {% for valor, label in escala %}
+                            <button type="submit" name="valor" value="{{ valor }}"
+                                    class="btn btn-outline-primary btn-lg text-start answer-btn">
+                                <span class="badge bg-primary me-3" style="min-width: 35px;">{{ valor }}</span>
+                                <span>{{ label }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-muted text-center py-3">
+                    <small>
+                        <i class="bi bi-info-circle"></i> Escolha a opção que melhor representa sua situação
+                    </small>
+                </div>
             </div>
         </div>
     </div>

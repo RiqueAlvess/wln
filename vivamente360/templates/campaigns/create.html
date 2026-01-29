@@ -5,40 +5,107 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">Nova Campanha</h4>
+        <div class="mb-4">
+            <h1 class="h2 mb-1">
+                <i class="bi bi-plus-circle text-primary"></i> Nova Campanha de Avaliação
+            </h1>
+            <p class="text-muted mb-0">Preencha os dados para criar uma nova campanha de pesquisa psicossocial</p>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-clipboard-plus fs-4 me-2"></i>
+                    <h4 class="mb-0">Dados da Campanha</h4>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="post">
                     {{ csrf_input }}
-                    <div class="mb-3">
-                        <label class="form-label">Nome</label>
-                        <input type="text" class="form-control" name="nome" required>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-tag text-primary"></i> Nome da Campanha
+                        </label>
+                        <input type="text" class="form-control form-control-lg" name="nome"
+                               placeholder="Ex: Avaliação Anual 2024"
+                               required>
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> Escolha um nome descritivo para identificar facilmente esta campanha
+                        </small>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descrição</label>
-                        <textarea class="form-control" name="descricao" rows="3"></textarea>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-file-text text-primary"></i> Descrição
+                        </label>
+                        <textarea class="form-control" name="descricao" rows="4"
+                                  placeholder="Descreva os objetivos e contexto desta campanha..."></textarea>
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> Opcional - Adicione informações que ajudem a contextualizar esta avaliação
+                        </small>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Empresa</label>
-                        <select class="form-select" name="empresa" required>
-                            <option value="">Selecione...</option>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-building text-primary"></i> Empresa
+                        </label>
+                        <select class="form-select form-select-lg" name="empresa" required>
+                            <option value="">Selecione a empresa...</option>
                         </select>
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> Selecione a empresa que será avaliada nesta campanha
+                        </small>
                     </div>
+
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Data Início</label>
-                            <input type="date" class="form-control" name="data_inicio" required>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-calendar-event text-primary"></i> Data de Início
+                            </label>
+                            <input type="date" class="form-control form-control-lg" name="data_inicio" required>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Quando a campanha começa
+                            </small>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Data Fim</label>
-                            <input type="date" class="form-control" name="data_fim" required>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-calendar-check text-primary"></i> Data de Término
+                            </label>
+                            <input type="date" class="form-control form-control-lg" name="data_fim" required>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Quando a campanha termina
+                            </small>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Criar</button>
-                    <a href="{{ url('surveys:list') }}" class="btn btn-secondary">Cancelar</a>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Criar Campanha
+                        </button>
+                        <a href="{{ url('surveys:list') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
                 </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4 bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-lightbulb text-warning"></i> Dica
+                </h6>
+                <p class="mb-2">
+                    <strong>Próximos passos após criar a campanha:</strong>
+                </p>
+                <ol class="mb-0 small text-muted">
+                    <li>Importe os convites em lote via CSV com os dados dos colaboradores</li>
+                    <li>Envie os e-mails com os magic links para participação</li>
+                    <li>Acompanhe a taxa de adesão no dashboard</li>
+                    <li>Analise os resultados e crie planos de ação</li>
+                </ol>
             </div>
         </div>
     </div>
