@@ -33,9 +33,7 @@
         <div class="mt-4">
             <a href="{{ url('invitations:manage', campaign_id=campaign.id) }}" class="btn btn-primary">Gerenciar Convites</a>
             <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}" class="btn btn-outline-primary">Ver Dashboard</a>
-            <a href="{{ url('actions:checklist', campaign_id=campaign.id) }}" class="btn btn-outline-primary"><i class="bi bi-list-check"></i> Checklist</a>
             <a href="{{ url('actions:planos', campaign_id=campaign.id) }}" class="btn btn-outline-primary"><i class="bi bi-clipboard-check"></i> Planos de Ação</a>
-            <a href="{{ url('actions:evidencias', campaign_id=campaign.id) }}" class="btn btn-outline-primary"><i class="bi bi-file-earmark-check"></i> Evidências</a>
             <a href="{{ url('surveys:list') }}" class="btn btn-secondary">Voltar</a>
         </div>
     </div>
