@@ -5,7 +5,7 @@ from django.contrib import messages
 from apps.core.mixins import DashboardAccessMixin
 from app_selectors.campaign_selectors import CampaignSelectors
 from app_selectors.dashboard_selectors import DashboardSelectors
-from services.risk_service import RiskService
+from services.risk_service import RiskService, CLASSIFICACAO_RISCOS
 from services.sector_analysis_service import SectorAnalysisService
 from apps.structure.models import Unidade, Setor
 from apps.responses.models import SurveyResponse
@@ -105,6 +105,7 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             'scores_por_genero': scores_por_genero,
             'scores_por_faixa_etaria': scores_por_faixa_etaria,
             'top_grupos_criticos': top_grupos_criticos,
+            'classificacao_riscos': CLASSIFICACAO_RISCOS,
         })
 
         return context

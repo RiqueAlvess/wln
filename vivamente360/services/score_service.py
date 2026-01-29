@@ -50,6 +50,14 @@ class ScoreService:
 
     @classmethod
     def calcular_nivel_risco(cls, probabilidade: int, severidade: int) -> dict:
+        """
+        Calcula o nível de risco baseado na metodologia de matriz de risco.
+        Classificação conforme NR-1 (Norma Regulamentadora 1):
+        - Crítico (13-16): Risco Intolerável - Intervenção IMEDIATA
+        - Importante (9-12): Risco Substancial - Ação prioritária
+        - Moderado (5-8): Risco Tolerável com Controle - Monitoramento
+        - Aceitável (1-4): Risco Trivial - Manter controles
+        """
         nr = probabilidade * severidade
 
         if nr <= 4:

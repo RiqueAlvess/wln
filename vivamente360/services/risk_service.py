@@ -3,7 +3,86 @@ from apps.responses.models import SurveyResponse
 from services.score_service import ScoreService
 
 
+# Classificação de Riscos conforme NR-1
+CLASSIFICACAO_RISCOS = {
+    'critico': {
+        'nome': 'CRÍTICO',
+        'nome_nr1': 'Risco Intolerável',
+        'cor_hex': '#dc3545',
+        'cor_nome': 'Vermelho',
+        'acao': 'Intervenção IMEDIATA obrigatória',
+        'prazo_max': '30 dias',
+        'icone': '🔴',
+        'badge_class': 'bg-danger'
+    },
+    'importante': {
+        'nome': 'IMPORTANTE',
+        'nome_nr1': 'Risco Substancial',
+        'cor_hex': '#fd7e14',
+        'cor_nome': 'Laranja',
+        'acao': 'Ação prioritária necessária',
+        'prazo_max': '60 dias',
+        'icone': '🟠',
+        'badge_class': 'bg-warning text-dark'
+    },
+    'moderado': {
+        'nome': 'MODERADO',
+        'nome_nr1': 'Risco Tolerável com Controle',
+        'cor_hex': '#ffc107',
+        'cor_nome': 'Amarelo',
+        'acao': 'Monitoramento e ações preventivas',
+        'prazo_max': '90 dias',
+        'icone': '🟡',
+        'badge_class': 'bg-warning'
+    },
+    'aceitavel': {
+        'nome': 'ACEITÁVEL',
+        'nome_nr1': 'Risco Trivial',
+        'cor_hex': '#28a745',
+        'cor_nome': 'Verde',
+        'acao': 'Manter controles existentes',
+        'prazo_max': 'Revisão anual',
+        'icone': '🟢',
+        'badge_class': 'bg-success'
+    }
+}
+
+
 class RiskService:
+    @staticmethod
+    def get_classificacao_por_nivel(nivel_risco: int) -> str:
+        """
+        Retorna a classificação baseada no nível de risco (1-16).
+
+        Args:
+            nivel_risco: Nível de risco calculado (probabilidade × severidade)
+
+        Returns:
+            Chave da classificação: 'critico', 'importante', 'moderado', 'aceitavel'
+        """
+        if nivel_risco >= 13:
+            return 'critico'
+        elif nivel_risco >= 9:
+            return 'importante'
+        elif nivel_risco >= 5:
+            return 'moderado'
+        else:
+            return 'aceitavel'
+
+    @staticmethod
+    def get_info_classificacao(nivel_risco: int) -> dict:
+        """
+        Retorna informações completas da classificação NR-1 para um nível de risco.
+
+        Args:
+            nivel_risco: Nível de risco calculado (1-16)
+
+        Returns:
+            Dicionário com informações completas da classificação
+        """
+        chave = RiskService.get_classificacao_por_nivel(nivel_risco)
+        return CLASSIFICACAO_RISCOS[chave]
+
     @staticmethod
     def _apply_filters(queryset, filters=None):
         """
