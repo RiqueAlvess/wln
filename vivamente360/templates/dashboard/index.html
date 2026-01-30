@@ -56,7 +56,7 @@
             {% endfor %}
         </select>
         {% if campaign %}
-        <a href="{% url 'analytics:psychosocial_risk_matrix' %}?campaign={{ campaign.id }}" class="btn btn-danger">
+        <a href="{{ url('analytics:psychosocial_risk_matrix') }}?campaign={{ campaign.id }}" class="btn btn-danger">
             <i class="bi bi-shield-exclamation"></i> Matriz de Risco NR-1
         </a>
         <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary">
