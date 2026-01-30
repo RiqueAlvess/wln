@@ -372,3 +372,200 @@ class ExportCampaignComparisonView(DashboardAccessMixin, TemplateView):
             logger.error(f"Erro ao exportar comparação: {e}")
             messages.error(request, f'Erro ao exportar relatório: {str(e)}')
             return redirect('analytics:campaign_comparison')
+
+
+# ============================================================================
+# VIEWS - MATRIZ DE RISCO PSICOSSOCIAL NR-1
+# ============================================================================
+
+class PsychosocialRiskMatrixView(DashboardAccessMixin, TemplateView):
+    """View principal da Matriz de Risco Psicossocial (NR-1)"""
+    template_name = 'analytics/psychosocial_risk_matrix.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
+        campaign_id = self.request.GET.get('campaign') or kwargs.get('campaign_id')
+
+        if campaign_id:
+            campaign = campaigns.filter(id=campaign_id).first()
+        else:
+            campaign = campaigns.filter(status='active').first()
+
+        if not campaign:
+            context['campaigns'] = campaigns
+            context['campaign'] = None
+            context['error'] = 'Nenhuma campanha disponível'
+            return context
+
+        # Importar serviços de risco
+        from services.risk_assessment_service import RiskAssessmentService
+
+        try:
+            # Executar avaliação completa
+            processar_ia = self.request.GET.get('processar_ia', 'true').lower() == 'true'
+            avaliacao = RiskAssessmentService.avaliar_campanha_completa(
+                campaign,
+                processar_ia=processar_ia
+            )
+
+            # Preparar dados para visualização
+            matriz = avaliacao['matriz_ajustada'] if avaliacao.get('processou_ia') else avaliacao['matriz_base']
+
+            context.update({
+                'campaigns': campaigns,
+                'campaign': campaign,
+                'avaliacao': avaliacao,
+                'matriz': matriz,
+                'resumo': avaliacao['resumo'],
+                'alertas_criticos': avaliacao.get('alertas_criticos', []),
+                'processou_ia': avaliacao.get('processou_ia', False),
+                'total_fatores': matriz['resumo']['total_fatores'],
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao gerar matriz de risco: {e}", exc_info=True)
+            context['error'] = f'Erro ao processar matriz de risco: {str(e)}'
+            context['campaigns'] = campaigns
+            context['campaign'] = campaign
+
+        return context
+
+
+class SectorRiskDetailView(DashboardAccessMixin, TemplateView):
+    """View detalhada de risco de um setor específico"""
+    template_name = 'analytics/sector_risk_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        campaign_id = kwargs.get('campaign_id')
+        setor_id = kwargs.get('setor_id')
+
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        setor = get_object_or_404(Setor, id=setor_id)
+
+        # Verificar permissão
+        campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
+        if campaign not in campaigns:
+            messages.error(self.request, 'Você não tem permissão para acessar esta campanha.')
+            return redirect('analytics:dashboard')
+
+        from services.risk_assessment_service import RiskAssessmentService
+
+        try:
+            # Avaliar setor
+            processar_ia = self.request.GET.get('processar_ia', 'true').lower() == 'true'
+            avaliacao_setor = RiskAssessmentService.avaliar_setor_especifico(
+                campaign,
+                setor,
+                processar_ia=processar_ia
+            )
+
+            context.update({
+                'campaign': campaign,
+                'setor': setor,
+                'avaliacao': avaliacao_setor,
+                'fatores': avaliacao_setor['fatores'],
+                'fatores_criticos': avaliacao_setor['fatores_criticos'],
+                'resumo': avaliacao_setor['resumo'],
+                'analise_ia': avaliacao_setor.get('analise_ia'),
+                'processou_ia': avaliacao_setor.get('processou_ia', False),
+            })
+
+        except Exception as e:
+            logger.error(f"Erro ao avaliar setor: {e}", exc_info=True)
+            context['error'] = f'Erro ao processar análise do setor: {str(e)}'
+            context['campaign'] = campaign
+            context['setor'] = setor
+
+        return context
+
+
+class ExportRiskMatrixExcelView(DashboardAccessMixin, TemplateView):
+    """View para exportar matriz de risco em Excel"""
+
+    def get(self, request, *args, **kwargs):
+        campaign_id = kwargs.get('campaign_id')
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+
+        # Verificar permissão
+        campaigns = CampaignSelectors.get_user_campaigns(request.user)
+        if campaign not in campaigns:
+            messages.error(request, 'Você não tem permissão para acessar esta campanha.')
+            return redirect('analytics:dashboard')
+
+        from services.risk_assessment_service import RiskAssessmentService
+        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+
+        try:
+            # Gerar avaliação
+            avaliacao = RiskAssessmentService.avaliar_campanha_completa(
+                campaign,
+                processar_ia=True
+            )
+
+            # Gerar Excel
+            excel_file = PsychosocialRiskExportService.export_to_excel(avaliacao)
+
+            # Preparar resposta
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            filename = f"Matriz_Risco_Psicossocial_{campaign.empresa.nome.replace(' ', '_')}_{campaign.nome.replace(' ', '_')}.xlsx"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            # Salvar no response
+            excel_file.save(response)
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Erro ao exportar matriz para Excel: {e}", exc_info=True)
+            messages.error(request, f'Erro ao exportar para Excel: {str(e)}')
+            return redirect('analytics:psychosocial_risk_matrix')
+
+
+class ExportRiskMatrixPGRView(DashboardAccessMixin, TemplateView):
+    """View para exportar relatório PGR (Programa de Gerenciamento de Riscos)"""
+
+    def get(self, request, *args, **kwargs):
+        campaign_id = kwargs.get('campaign_id')
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+
+        # Verificar permissão
+        campaigns = CampaignSelectors.get_user_campaigns(request.user)
+        if campaign not in campaigns:
+            messages.error(request, 'Você não tem permissão para acessar esta campanha.')
+            return redirect('analytics:dashboard')
+
+        from services.risk_assessment_service import RiskAssessmentService
+        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+
+        try:
+            # Gerar avaliação
+            avaliacao = RiskAssessmentService.avaliar_campanha_completa(
+                campaign,
+                processar_ia=True
+            )
+
+            # Gerar documento PGR
+            doc = PsychosocialRiskExportService.export_pgr_document(avaliacao)
+
+            # Preparar resposta
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+            filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.docx"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            # Salvar no response
+            doc.save(response)
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Erro ao exportar PGR: {e}", exc_info=True)
+            messages.error(request, f'Erro ao exportar relatório PGR: {str(e)}')
+            return redirect('analytics:psychosocial_risk_matrix')

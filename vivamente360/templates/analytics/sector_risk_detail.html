@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Análise de Risco - {{ setor.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-building"></i> Análise de Risco: {{ setor.nome }}
+            </h1>
+            <p class="text-muted mb-0">Campanha: <strong>{{ campaign.nome }}</strong></p>
+        </div>
+        <a href="{% url 'analytics:psychosocial_risk_matrix' %}?campaign={{ campaign.id }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar à Matriz
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <!-- Resumo do Setor -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3>{{ resumo.total_fatores }}</h3>
+                    <small>Total Fatores</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ resumo.intoleraveis }}</h3>
+                    <small>Intoleráveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ resumo.substanciais }}</h3>
+                    <small>Substanciais</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h3 class="text-info">{{ resumo.moderados }}</h3>
+                    <small>Moderados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            {% if analise_ia %}
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-robot"></i> Análise de IA</h6>
+                    <p class="mb-0">
+                        <strong>Sentimento:</strong> {{ analise_ia.resumo_geral.sentimento_predominante }}<br>
+                        <strong>Nível:</strong> {{ analise_ia.resumo_geral.nivel_preocupacao }}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Fatores Críticos -->
+    {% if fatores_criticos %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Fatores Críticos ({{ fatores_criticos|length }})</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fator</th>
+                        <th class="text-center">P</th>
+                        <th class="text-center">S</th>
+                        <th class="text-center">NR</th>
+                        <th>Classificação</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fator in fatores_criticos %}
+                    <tr>
+                        <td>{{ fator.fator.nome }}</td>
+                        <td class="text-center">{{ fator.probabilidade }}</td>
+                        <td class="text-center">{{ fator.severidade }}</td>
+                        <td class="text-center"><strong>{{ fator.nr }}</strong></td>
+                        <td><span class="badge bg-danger">{{ fator.classificacao }}</span></td>
+                        <td class="small">{{ fator.acao }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Análise de IA -->
+    {% if analise_ia and analise_ia.alertas_criticos %}
+    <div class="card shadow-sm mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Alertas Críticos da IA</h5>
+        </div>
+        <div class="card-body">
+            {% for alerta in analise_ia.alertas_criticos %}
+            <div class="alert alert-danger">
+                <h6>{{ alerta.tipo }} - {{ alerta.gravidade }}</h6>
+                <p><strong>Evidência:</strong> {{ alerta.evidencia }}</p>
+                <p><strong>Recomendação:</strong> {{ alerta.recomendacao_imediata }}</p>
+                <p class="mb-0"><span class="badge bg-danger">{{ alerta.encaminhamento }}</span></p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Todos os Fatores -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Todos os Fatores Avaliados</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Fator de Risco</th>
+                        <th>Categoria</th>
+                        <th class="text-center">P</th>
+                        <th class="text-center">S</th>
+                        <th class="text-center">NR</th>
+                        <th>Classificação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fator in fatores %}
+                    <tr>
+                        <td><code>{{ fator.fator.codigo }}</code></td>
+                        <td>{{ fator.fator.nome }}</td>
+                        <td>{{ fator.fator.categoria.nome }}</td>
+                        <td class="text-center">{{ fator.probabilidade }}</td>
+                        <td class="text-center">{{ fator.severidade }}</td>
+                        <td class="text-center"><strong>{{ fator.nr }}</strong></td>
+                        <td>
+                            <span class="badge {% if fator.classificacao == 'INTOLERÁVEL' %}bg-danger{% elif fator.classificacao == 'SUBSTANCIAL' %}bg-warning{% elif fator.classificacao == 'MODERADO' %}bg-info{% else %}bg-success{% endif %}">
+                                {{ fator.classificacao }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
