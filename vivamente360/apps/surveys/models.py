@@ -69,3 +69,75 @@ class Campaign(TimeStampedModel):
 
     def __str__(self):
         return f"{self.empresa.nome} - {self.nome}"
+
+    def encerrar(self):
+        """
+        Encerra a campanha e invalida todos os convites pendentes ou enviados.
+
+        Returns:
+            dict: Dicionário com informações sobre a operação:
+                - success (bool): Se a operação foi bem-sucedida
+                - invalidated_count (int): Quantidade de convites invalidados
+                - message (str): Mensagem descritiva
+        """
+        from apps.invitations.models import SurveyInvitation
+        from django.utils import timezone
+
+        # Verifica se a campanha já está encerrada
+        if self.status == 'closed':
+            return {
+                'success': False,
+                'invalidated_count': 0,
+                'message': 'Campanha já está encerrada.'
+            }
+
+        # Contar convites que serão invalidados
+        convites_para_invalidar = SurveyInvitation.objects.filter(
+            campaign=self,
+            status__in=['pending', 'sent']
+        )
+        count = convites_para_invalidar.count()
+
+        # Atualizar status da campanha
+        self.status = 'closed'
+        self.save()
+
+        # Invalidar todos os convites pendentes ou enviados
+        convites_para_invalidar.update(
+            status='expired',
+            updated_at=timezone.now()
+        )
+
+        return {
+            'success': True,
+            'invalidated_count': count,
+            'message': f'Campanha encerrada com sucesso. {count} convite(s) invalidado(s).'
+        }
+
+    def contar_convites_ativos(self):
+        """
+        Retorna a contagem de convites ativos (pendentes + enviados).
+
+        Returns:
+            dict: Dicionário com contagens:
+                - pendentes (int): Convites com status 'pending'
+                - enviados (int): Convites com status 'sent'
+                - total_ativos (int): Total de convites ativos
+        """
+        from apps.invitations.models import SurveyInvitation
+
+        pendentes = SurveyInvitation.objects.filter(
+            campaign=self,
+            status='pending'
+        ).count()
+
+        enviados = SurveyInvitation.objects.filter(
+            campaign=self,
+            status='sent'
+        ).count()
+
+        return {
+            'pendentes': pendentes,
+            'enviados': enviados,
+            'total_ativos': pendentes + enviados
+        }

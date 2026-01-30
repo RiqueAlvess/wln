@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Status - {{ campaign.nome }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-gear text-primary"></i> Gerenciar Status
+            </h1>
+            <p class="text-muted mb-0">{{ campaign.nome }}</p>
+        </div>
+        <a href="{{ url('surveys:detail', pk=campaign.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle text-primary"></i> Informações da Campanha
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-tag text-muted"></i> Nome:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        <strong>{{ campaign.nome }}</strong>
+                    </dd>
+
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-building text-muted"></i> Empresa:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        {{ campaign.empresa.nome }}
+                    </dd>
+
+                    <dt class="col-sm-4 mb-3">
+                        <i class="bi bi-calendar-range text-muted"></i> Período:
+                    </dt>
+                    <dd class="col-sm-8 mb-3">
+                        {{ campaign.data_inicio | dateformat }} até {{ campaign.data_fim | dateformat }}
+                    </dd>
+
+                    <dt class="col-sm-4 mb-0">
+                        <i class="bi bi-info-square text-muted"></i> Status Atual:
+                    </dt>
+                    <dd class="col-sm-8 mb-0">
+                        {% if campaign.status == 'active' %}
+                        <span class="badge bg-success px-3 py-2 fs-6">
+                            <i class="bi bi-check-circle"></i> ATIVA
+                        </span>
+                        {% elif campaign.status == 'draft' %}
+                        <span class="badge bg-secondary px-3 py-2 fs-6">
+                            <i class="bi bi-pencil"></i> RASCUNHO
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger px-3 py-2 fs-6">
+                            <i class="bi bi-x-circle"></i> ENCERRADA
+                        </span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-repeat"></i> Alterar Status
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="statusForm">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Selecione o novo status:</label>
+
+                        <div class="form-check p-3 mb-3 border rounded {{ 'bg-light' if campaign.status == 'draft' else '' }}">
+                            <input class="form-check-input" type="radio" name="status" value="draft" id="status_draft"
+                                   {{ 'checked' if campaign.status == 'draft' else '' }}
+                                   {{ 'disabled' if campaign.status == 'closed' else '' }}>
+                            <label class="form-check-label w-100" for="status_draft">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-secondary me-2">
+                                        <i class="bi bi-pencil"></i>
+                                    </span>
+                                    <div>
+                                        <strong>Rascunho</strong>
+                                        <p class="text-muted mb-0 small">Campanha em preparação, não aceita respostas</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="form-check p-3 mb-3 border rounded {{ 'bg-light' if campaign.status == 'active' else '' }}">
+                            <input class="form-check-input" type="radio" name="status" value="active" id="status_active"
+                                   {{ 'checked' if campaign.status == 'active' else '' }}
+                                   {{ 'disabled' if campaign.status == 'closed' else '' }}>
+                            <label class="form-check-label w-100" for="status_active">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-success me-2">
+                                        <i class="bi bi-check-circle"></i>
+                                    </span>
+                                    <div>
+                                        <strong>Ativa</strong>
+                                        <p class="text-muted mb-0 small">Campanha em andamento, aceitando respostas</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="form-check p-3 mb-0 border rounded border-danger {{ 'bg-light' if campaign.status == 'closed' else '' }}">
+                            <input class="form-check-input" type="radio" name="status" value="closed" id="status_closed"
+                                   {{ 'checked' if campaign.status == 'closed' else '' }}
+                                   {{ 'disabled' if campaign.status == 'closed' else '' }}>
+                            <label class="form-check-label w-100" for="status_closed">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-danger me-2">
+                                        <i class="bi bi-x-circle"></i>
+                                    </span>
+                                    <div>
+                                        <strong>Encerrada</strong>
+                                        <p class="text-muted mb-0 small">Finalizar campanha e invalidar todos os links pendentes</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    {% if campaign.status != 'closed' %}
+                    <div class="alert alert-warning border-warning" role="alert" id="warningBox" style="display: none;">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle-fill"></i> ATENÇÃO: Ao encerrar a campanha
+                        </h6>
+                        <ul class="mb-2">
+                            <li><strong>{{ convites_pendentes }}</strong> link(s) pendente(s) serão INVALIDADOS</li>
+                            <li><strong>{{ convites_enviados }}</strong> link(s) enviado(s) serão INVALIDADOS</li>
+                            <li>Colaboradores <strong>não poderão mais responder</strong></li>
+                            <li>Esta ação <strong class="text-danger">NÃO pode ser desfeita</strong></li>
+                        </ul>
+                        <hr>
+                        <p class="mb-0 small">
+                            <i class="bi bi-info-circle"></i>
+                            Total de <strong>{{ total_convites_ativos }}</strong> convite(s) ativo(s) será(ão) invalidado(s)
+                        </p>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <a href="{{ url('surveys:detail', pk=campaign.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-check-lg"></i> Confirmar Alteração
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info border-info">
+                        <i class="bi bi-info-circle"></i>
+                        Esta campanha já está encerrada e não pode mais ser alterada.
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url('surveys:detail', pk=campaign.id) }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        {% if campaign.status == 'closed' %}
+        <div class="alert alert-light border mt-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-lightbulb text-warning fs-3 me-3"></i>
+                <div>
+                    <strong>Campanha Encerrada</strong>
+                    <p class="mb-0 small text-muted">
+                        Você ainda pode visualizar os resultados, acessar o dashboard e gerenciar planos de ação.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Mostrar aviso quando selecionar "Encerrada"
+document.addEventListener('DOMContentLoaded', function() {
+    const closedRadio = document.getElementById('status_closed');
+    const warningBox = document.getElementById('warningBox');
+    const submitBtn = document.getElementById('submitBtn');
+    const allRadios = document.querySelectorAll('input[name="status"]');
+
+    if (closedRadio && warningBox && submitBtn) {
+        allRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (closedRadio.checked) {
+                    warningBox.style.display = 'block';
+                    submitBtn.classList.remove('btn-primary');
+                    submitBtn.classList.add('btn-danger');
+                    submitBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Confirmar Encerramento';
+                } else {
+                    warningBox.style.display = 'none';
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.classList.add('btn-primary');
+                    submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Confirmar Alteração';
+                }
+            });
+        });
+
+        // Trigger on load se já estiver marcado
+        if (closedRadio.checked) {
+            warningBox.style.display = 'block';
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-danger');
+            submitBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Confirmar Encerramento';
+        }
+    }
+});
+</script>
+{% endblock %}
