@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}Matriz de Risco Psicossocial NR-1{% endblock %}
+
+{% block extra_head %}
+<style>
+    .risk-badge {
+        padding: 0.35em 0.65em;
+        font-size: 0.9em;
+        font-weight: 600;
+        border-radius: 0.25rem;
+        display: inline-block;
+    }
+    .risk-trivial { background-color: #28a745; color: white; }
+    .risk-toleravel { background-color: #ffc107; color: #000; }
+    .risk-moderado { background-color: #fd7e14; color: white; }
+    .risk-substancial { background-color: #dc3545; color: white; }
+    .risk-intoleravel { background-color: #6f42c1; color: white; }
+
+    .matrix-cell {
+        border: 2px solid #dee2e6;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: transform 0.2s;
+    }
+    .matrix-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .factor-card {
+        border-left: 4px solid;
+        transition: all 0.2s;
+    }
+    .factor-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .alert-critical {
+        border-left: 5px solid #dc3545;
+        background-color: #f8d7da;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-shield-exclamation text-danger"></i> Matriz de Risco Psicossocial NR-1
+            </h1>
+            {% if campaign %}
+            <p class="text-muted mb-0">Campanha: <strong>{{ campaign.nome }}</strong></p>
+            {% endif %}
+        </div>
+
+        {% if campaign %}
+        <div class="d-flex gap-2">
+            <a href="{% url 'analytics:export_risk_matrix_excel' campaign.id %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+            <a href="{% url 'analytics:export_risk_matrix_pgr' campaign.id %}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-word"></i> Relatório PGR
+            </a>
+            <a href="{% url 'analytics:dashboard' %}?campaign={{ campaign.id }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if not campaign %}
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle"></i> Nenhuma campanha disponível. Por favor, crie uma campanha primeiro.
+    </div>
+    {% else %}
+
+    <!-- Alertas Críticos -->
+    {% if alertas_criticos %}
+    <div class="alert alert-critical mb-4">
+        <h5 class="alert-heading">
+            <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ {{ alertas_criticos|length }} ALERTA(S) CRÍTICO(S) IDENTIFICADO(S)
+        </h5>
+        <hr>
+        <div class="row">
+            {% for alerta in alertas_criticos|slice:":3" %}
+            <div class="col-md-4">
+                <div class="card border-danger mb-2">
+                    <div class="card-body p-3">
+                        <h6 class="card-title text-danger">{{ alerta.tipo }}</h6>
+                        <p class="card-text small mb-1"><strong>Gravidade:</strong> {{ alerta.gravidade }}</p>
+                        <p class="card-text small mb-1"><strong>Setor:</strong> {{ alerta.setor.nome }}</p>
+                        <p class="card-text small text-muted">{{ alerta.evidencia|truncatewords:15 }}</p>
+                        <span class="badge bg-danger">{{ alerta.encaminhamento }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Resumo Executivo -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="display-6 text-secondary">{{ total_fatores }}</div>
+                    <small class="text-muted">Fatores Avaliados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #6f42c1 !important;">
+                <div class="card-body text-center">
+                    <div class="display-6 text-purple">{{ resumo.intoleraveis }}</div>
+                    <small>🟣 Intoleráveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #dc3545 !important;">
+                <div class="card-body text-center">
+                    <div class="display-6 text-danger">{{ resumo.substanciais }}</div>
+                    <small>🔴 Substanciais</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #fd7e14 !important;">
+                <div class="card-body text-center">
+                    <div class="display-6 text-warning">{{ resumo.moderados }}</div>
+                    <small>🟠 Moderados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #ffc107 !important;">
+                <div class="card-body text-center">
+                    <div class="display-6" style="color: #ffc107;">{{ resumo.toleraveis }}</div>
+                    <small>🟡 Toleráveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #28a745 !important;">
+                <div class="card-body text-center">
+                    <div class="display-6 text-success">{{ resumo.triviais }}</div>
+                    <small>🟢 Triviais</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matriz 5x5 Visual -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-grid-3x3"></i> Matriz 5×5 (Probabilidade × Severidade)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
+                    <thead>
+                        <tr>
+                            <th>P \ S</th>
+                            <th>S=1<br><small>Insignif.</small></th>
+                            <th>S=2<br><small>Menor</small></th>
+                            <th>S=3<br><small>Moderada</small></th>
+                            <th>S=4<br><small>Signific.</small></th>
+                            <th>S=5<br><small>Catastróf.</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in "54321" %}
+                        <tr>
+                            <th>P={{ p }}<br><small>{% if p == "5" %}Q. Certo{% elif p == "4" %}Provável{% elif p == "3" %}Possível{% elif p == "2" %}Improvável{% else %}Raro{% endif %}</small></th>
+                            {% for s in "12345" %}
+                            {% with nr=p|add:0|mul:s|add:0 %}
+                            <td class="matrix-cell {% if nr >= 20 %}risk-intoleravel{% elif nr >= 15 %}risk-substancial{% elif nr >= 10 %}risk-moderado{% elif nr >= 5 %}risk-toleravel{% else %}risk-trivial{% endif %}" style="font-size: 1.2em;">
+                                {{ nr }}
+                            </td>
+                            {% endwith %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <strong>Legenda:</strong>
+                <span class="risk-badge risk-trivial ms-2">Trivial (1-4)</span>
+                <span class="risk-badge risk-toleravel ms-1">Tolerável (5-9)</span>
+                <span class="risk-badge risk-moderado ms-1">Moderado (10-14)</span>
+                <span class="risk-badge risk-substancial ms-1">Substancial (15-19)</span>
+                <span class="risk-badge risk-intoleravel ms-1">Intolerável (20-25)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fatores Críticos por Categoria -->
+    {% if matriz.fatores_criticos %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Fatores Críticos ({{ matriz.fatores_criticos|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for fator_data in matriz.fatores_criticos %}
+                <div class="col-md-6 mb-3">
+                    <div class="factor-card card" style="border-color: {% if fator_data.classificacao == 'INTOLERÁVEL' %}#6f42c1{% else %}#dc3545{% endif %};">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="card-title mb-1">
+                                        <code>{{ fator_data.fator.codigo }}</code> {{ fator_data.fator.nome }}
+                                    </h6>
+                                    <p class="text-muted small mb-0">{{ fator_data.fator.categoria.nome }}</p>
+                                </div>
+                                <span class="risk-badge risk-{{ fator_data.classificacao|lower }}">
+                                    NR={{ fator_data.nr }}
+                                </span>
+                            </div>
+
+                            <div class="row text-center mt-3">
+                                <div class="col-4">
+                                    <strong class="d-block">P</strong>
+                                    <span class="badge bg-secondary">{{ fator_data.probabilidade }}</span>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="d-block">S</strong>
+                                    <span class="badge bg-secondary">{{ fator_data.severidade }}</span>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="d-block">Prazo</strong>
+                                    <span class="badge bg-warning text-dark">{{ fator_data.prazo }}</span>
+                                </div>
+                            </div>
+
+                            <hr>
+                            <p class="small mb-0"><strong>Ação:</strong> {{ fator_data.acao }}</p>
+
+                            {% if fator_data.ajuste_ia %}
+                            <div class="alert alert-info mt-2 mb-0 p-2">
+                                <small><i class="bi bi-robot"></i> <strong>IA:</strong> Probabilidade ajustada ({{ fator_data.probabilidade_original }} → {{ fator_data.probabilidade }})</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Todos os Fatores por Dimensão -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-check"></i> Todos os Fatores por Dimensão HSE-IT</h5>
+        </div>
+        <div class="card-body">
+            {% for dimensao_data in matriz.dimensoes %}
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    {{ dimensao_data.dimensao.nome }}
+                    <span class="badge bg-info">Score: {{ dimensao_data.score|floatformat:2 }}</span>
+                    <span class="badge bg-secondary">{{ dimensao_data.fatores|length }} fatores</span>
+                </h6>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Fator de Risco</th>
+                                <th class="text-center">P</th>
+                                <th class="text-center">S</th>
+                                <th class="text-center">NR</th>
+                                <th>Classificação</th>
+                                <th>Prazo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fator_data in dimensao_data.fatores %}
+                            <tr>
+                                <td><code>{{ fator_data.fator.codigo }}</code></td>
+                                <td>{{ fator_data.fator.nome }}</td>
+                                <td class="text-center">{{ fator_data.probabilidade }}</td>
+                                <td class="text-center">{{ fator_data.severidade }}</td>
+                                <td class="text-center"><strong>{{ fator_data.nr }}</strong></td>
+                                <td>
+                                    <span class="risk-badge risk-{{ fator_data.classificacao|lower }}">
+                                        {{ fator_data.classificacao }}
+                                    </span>
+                                </td>
+                                <td>{{ fator_data.prazo|default:"N/A" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
