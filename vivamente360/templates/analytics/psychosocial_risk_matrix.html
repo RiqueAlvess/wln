@@ -96,7 +96,7 @@
         </h5>
         <hr>
         <div class="row">
-            {% for alerta in alertas_criticos|slice:":3" %}
+            {% for alerta in alertas_criticos[:3] %}
             <div class="col-md-4">
                 <div class="card border-danger mb-2">
                     <div class="card-body p-3">
