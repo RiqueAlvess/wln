@@ -1,4 +1,4 @@
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
@@ -140,7 +140,7 @@ class SectorAnalysisView(DashboardAccessMixin, TemplateView):
         return context
 
 
-class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
+class GenerateSectorAnalysisView(DashboardAccessMixin, View):
     """
     View para gerar análise de setor
     """
