@@ -2,7 +2,6 @@
 Views para gerenciamento e visualização de artigos.
 """
 from django.views.generic import ListView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.db.models import QuerySet
 
@@ -11,7 +10,7 @@ from apps.articles.models import Artigo
 from app_selectors.article_selectors import ArticleSelectors
 
 
-class ArtigoListView(LoginRequiredMixin, DashboardAccessMixin, ListView):
+class ArtigoListView(DashboardAccessMixin, ListView):
     """
     View para listagem de artigos publicados.
     Exibe artigo em destaque e lista de artigos recentes.
@@ -60,7 +59,7 @@ class ArtigoListView(LoginRequiredMixin, DashboardAccessMixin, ListView):
         return context
 
 
-class ArtigoDetailView(LoginRequiredMixin, DashboardAccessMixin, DetailView):
+class ArtigoDetailView(DashboardAccessMixin, DetailView):
     """
     View para visualização detalhada de um artigo.
     """
