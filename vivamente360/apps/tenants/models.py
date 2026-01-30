@@ -7,6 +7,18 @@ class Empresa(TimeStampedModel):
     cnpj = models.CharField(max_length=18, unique=True)
     total_funcionarios = models.IntegerField(default=0)
 
+    # CNAE para análise de riscos específicos por setor econômico
+    cnae = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="Código CNAE principal da empresa (ex: 62.01-5)"
+    )
+    cnae_descricao = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Descrição da atividade CNAE"
+    )
+
     logo_url = models.URLField(blank=True)
     favicon_url = models.URLField(blank=True)
     cor_primaria = models.CharField(max_length=7, default='#0d6efd')

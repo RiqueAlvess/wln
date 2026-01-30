@@ -383,3 +383,124 @@ IMPORTANTE:
 - Destaque o que requer decisão imediata
 - Seja conciso mas completo
 """
+
+# ============================================================================
+# ANÁLISE DE COMENTÁRIOS PARA FATORES DE RISCO PSICOSSOCIAL (NR-1)
+# ============================================================================
+
+PROMPT_ANALISE_COMENTARIOS_RISCO = """
+Você é um especialista em Saúde Ocupacional e Psicologia do Trabalho.
+Analise os comentários de colaboradores de uma empresa para identificar
+riscos psicossociais conforme a NR-1.
+
+## COMENTÁRIOS PARA ANÁLISE
+{comentarios_formatados}
+
+## CONTEXTO
+- Empresa: {empresa_nome}
+- CNAE: {cnae} ({cnae_descricao})
+- Setor: {setor_nome}
+- Total de comentários: {total_comentarios}
+- Score médio HSE-IT do setor: {score_medio}
+
+## FATORES DE RISCO NR-1 (REFERÊNCIA)
+### Organização do Trabalho
+- ORG_001: Sobrecarga de Trabalho
+- ORG_002: Ritmo de Trabalho Intenso
+- ORG_003: Prazos Excessivamente Curtos
+- ORG_004: Jornadas Longas ou Imprevisíveis
+- ORG_005: Falta de Clareza de Papéis
+
+### Conteúdo do Trabalho
+- CON_001: Tarefas Monótonas ou Repetitivas
+- CON_002: Fragmentação Excessiva
+- CON_003: Subutilização de Habilidades
+- CON_004: Alta Demanda Emocional
+
+### Relações Interpessoais
+- REL_001: Assédio Moral
+- REL_002: Assédio Sexual
+- REL_003: Falta de Apoio
+- REL_004: Isolamento Social
+- REL_005: Gestão Autoritária
+
+### Fatores Individuais/Contextuais
+- IND_001: Insegurança no Emprego
+- IND_002: Desequilíbrio Vida-Trabalho
+- IND_003: Exposição a Violência
+- IND_004: Traumas Ocupacionais
+
+## RESPONDA EM JSON ESTRUTURADO
+
+```json
+{{
+  "resumo_geral": {{
+    "sentimento_predominante": "Positivo|Neutro|Negativo|Misto",
+    "score_sentimento": 0.0,
+    "nivel_preocupacao": "Baixo|Médio|Alto|Crítico"
+  }},
+
+  "fatores_identificados": [
+    {{
+      "codigo_fator": "ORG_001",
+      "nome_fator": "Sobrecarga de Trabalho",
+      "frequencia_mencoes": 5,
+      "evidencias": [
+        "Trecho relevante do comentário 1",
+        "Trecho relevante do comentário 2"
+      ],
+      "ajuste_probabilidade": 1,
+      "justificativa_ajuste": "Múltiplas menções explícitas a excesso de trabalho"
+    }}
+  ],
+
+  "alertas_criticos": [
+    {{
+      "tipo": "Assédio Moral|Assédio Sexual|Burnout|Ideação Suicida|Violência|Discriminação",
+      "gravidade": "Alta|Crítica",
+      "evidencia": "Trecho exato do comentário",
+      "recomendacao_imediata": "Ação específica recomendada",
+      "encaminhamento": "RH|Jurídico|SESMT|Psicólogo|Ouvidoria"
+    }}
+  ],
+
+  "temas_recorrentes": [
+    {{
+      "tema": "Nome do tema",
+      "frequencia": 10,
+      "sentimento": "Positivo|Negativo|Neutro",
+      "palavras_chave": ["palavra1", "palavra2"]
+    }}
+  ],
+
+  "pontos_positivos": [
+    {{
+      "aspecto": "O que está funcionando bem",
+      "frequencia": 3,
+      "impacto": "Alto|Médio|Baixo"
+    }}
+  ],
+
+  "recomendacoes_gerais": [
+    {{
+      "prioridade": 1,
+      "acao": "Descrição da ação recomendada",
+      "fator_relacionado": "ORG_001",
+      "prazo_sugerido": "Imediato|30 dias|90 dias|180 dias"
+    }}
+  ]
+}}
+```
+
+## REGRAS IMPORTANTES
+1. Mantenha TOTAL ANONIMATO - nunca identifique pessoas
+2. Seja objetivo e baseado apenas nos textos fornecidos
+3. Se identificar risco de SUICÍDIO ou VIOLÊNCIA, marque como alerta CRÍTICO
+4. O ajuste_probabilidade só pode ser -1, 0 ou +1:
+   - +1: Comentários evidenciam que o risco é MAIOR que o score sugere
+   - 0: Comentários são consistentes com o score
+   - -1: Comentários sugerem que o risco é MENOR que o score
+5. Correlacione com os códigos de fatores NR-1 quando possível
+6. Destaque tanto problemas quanto pontos positivos
+7. score_sentimento: -1.0 (muito negativo) a 1.0 (muito positivo)
+"""
