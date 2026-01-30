@@ -28,6 +28,17 @@ class PlanoAcao(TimeStampedModel):
     indicadores = models.TextField(blank=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pendente')
 
+    # Campos para editor de texto rico (TipTap)
+    conteudo_estruturado = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Conteúdo do editor TipTap em formato JSON"
+    )
+    conteudo_html = models.TextField(
+        blank=True,
+        help_text="HTML renderizado do plano de ação para exportação"
+    )
+
     class Meta:
         db_table = 'actions_plano_acao'
         verbose_name = 'Plano de Ação'

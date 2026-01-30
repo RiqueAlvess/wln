@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ object.pk|yesno:"Editar,Criar" }} Plano de Ação - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/editor.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'actions:plano_acao_list' campaign_id=campaign.id %}">Planos de Ação</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {{ object.pk|yesno:"Editar,Criar" }} Plano de Ação
+                    </li>
+                </ol>
+            </nav>
+
+            <!-- Título da página -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="bi bi-clipboard-check"></i>
+                        {{ object.pk|yesno:"Editar,Criar" }} Plano de Ação
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Campanha: <strong>{{ campaign.nome }}</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Formulário -->
+            <form method="post" id="plano-acao-form">
+                {% csrf_token %}
+
+                <div class="row">
+                    <!-- Informações Básicas -->
+                    <div class="col-md-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-info-circle"></i>
+                                    Informações Básicas
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.dimensao.id_for_label }}" class="form-label">
+                                            Dimensão <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.dimensao }}
+                                        {% if form.dimensao.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.dimensao.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.nivel_risco.id_for_label }}" class="form-label">
+                                            Nível de Risco <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.nivel_risco }}
+                                        {% if form.nivel_risco.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.nivel_risco.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.responsavel.id_for_label }}" class="form-label">
+                                            Responsável <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.responsavel }}
+                                        {% if form.responsavel.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.responsavel.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.prazo.id_for_label }}" class="form-label">
+                                            Prazo <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.prazo }}
+                                        {% if form.prazo.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.prazo.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.status.id_for_label }}" class="form-label">
+                                            Status <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.status }}
+                                        {% if form.status.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.status.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Editor de Conteúdo Rico -->
+                    <div class="col-md-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-pencil-square"></i>
+                                    Plano de Ação Detalhado
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Header do Editor -->
+                                <div class="editor-header">
+                                    <h3>
+                                        <i class="bi bi-file-earmark-richtext"></i>
+                                        Plano de Ação - {{ form.instance.dimensao.nome|default:"Nova Dimensão" }}
+                                    </h3>
+                                    <div class="text-muted">
+                                        Setor: {{ campaign.nome }} | Risco: {{ form.instance.nivel_risco|default:"A definir" }}
+                                    </div>
+                                </div>
+
+                                <!-- Toolbar -->
+                                <div class="editor-toolbar">
+                                    <!-- Formatação básica -->
+                                    <div class="btn-group">
+                                        <button type="button" id="btn-bold" title="Negrito (Ctrl+B)">
+                                            <i class="bi bi-type-bold"></i>
+                                        </button>
+                                        <button type="button" id="btn-italic" title="Itálico (Ctrl+I)">
+                                            <i class="bi bi-type-italic"></i>
+                                        </button>
+                                        <button type="button" id="btn-underline" title="Sublinhado (Ctrl+U)">
+                                            <i class="bi bi-type-underline"></i>
+                                        </button>
+                                        <button type="button" id="btn-strike" title="Tachado">
+                                            <i class="bi bi-type-strikethrough"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="divider"></div>
+
+                                    <!-- Cabeçalhos -->
+                                    <div class="btn-group">
+                                        <button type="button" id="btn-h1" title="Título 1">
+                                            <strong>H1</strong>
+                                        </button>
+                                        <button type="button" id="btn-h2" title="Título 2">
+                                            <strong>H2</strong>
+                                        </button>
+                                        <button type="button" id="btn-h3" title="Título 3">
+                                            <strong>H3</strong>
+                                        </button>
+                                    </div>
+
+                                    <div class="divider"></div>
+
+                                    <!-- Listas -->
+                                    <div class="btn-group">
+                                        <button type="button" id="btn-bullet-list" title="Lista com marcadores">
+                                            <i class="bi bi-list-ul"></i>
+                                        </button>
+                                        <button type="button" id="btn-ordered-list" title="Lista numerada">
+                                            <i class="bi bi-list-ol"></i>
+                                        </button>
+                                        <button type="button" id="btn-task-list" title="Lista de tarefas">
+                                            <i class="bi bi-list-check"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="divider"></div>
+
+                                    <!-- Tabela -->
+                                    <div class="btn-group">
+                                        <button type="button" id="btn-table" title="Inserir tabela">
+                                            <i class="bi bi-table"></i>
+                                        </button>
+                                        <button type="button" id="btn-add-row" title="Adicionar linha">
+                                            <i class="bi bi-plus-square"></i> Linha
+                                        </button>
+                                        <button type="button" id="btn-add-col" title="Adicionar coluna">
+                                            <i class="bi bi-plus-square"></i> Coluna
+                                        </button>
+                                        <button type="button" id="btn-delete-row" title="Remover linha">
+                                            <i class="bi bi-dash-square"></i> Linha
+                                        </button>
+                                        <button type="button" id="btn-delete-col" title="Remover coluna">
+                                            <i class="bi bi-dash-square"></i> Coluna
+                                        </button>
+                                        <button type="button" id="btn-delete-table" title="Remover tabela">
+                                            <i class="bi bi-trash"></i> Tabela
+                                        </button>
+                                    </div>
+
+                                    <div class="divider"></div>
+
+                                    <!-- Cor -->
+                                    <div class="btn-group">
+                                        <label for="color-picker" class="mb-0 d-flex align-items-center">
+                                            <span class="me-2">Cor:</span>
+                                            <input type="color" id="color-picker" value="#000000">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Área de Edição -->
+                                <div class="editor-content">
+                                    <div id="editor-plano-acao" data-autosave-url="{% url 'actions:plano_acao_autosave' campaign_id=campaign.id pk=object.pk|default:'0' %}"></div>
+                                </div>
+
+                                <!-- Campos Hidden -->
+                                <input type="hidden" name="conteudo_estruturado" id="id_conteudo_estruturado" value="{{ form.conteudo_estruturado.value|default:'' }}">
+                                <input type="hidden" name="conteudo_html" id="id_conteudo_html" value="{{ form.conteudo_html.value|default:'' }}">
+                                <input type="hidden" name="empresa" value="{{ request.user.empresa.id }}">
+                                <input type="hidden" name="campaign" value="{{ campaign.id }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos Legados (mantidos para compatibilidade) -->
+                    <div class="col-md-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-journal-text"></i>
+                                    Campos Adicionais (Legado)
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    Estes campos são mantidos para compatibilidade com versões anteriores. Use o editor acima para criar conteúdo formatado.
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.descricao_risco.id_for_label }}" class="form-label">
+                                            Descrição do Risco
+                                        </label>
+                                        {{ form.descricao_risco }}
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.acao_proposta.id_for_label }}" class="form-label">
+                                            Ação Proposta
+                                        </label>
+                                        {{ form.acao_proposta }}
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.recursos_necessarios.id_for_label }}" class="form-label">
+                                            Recursos Necessários
+                                        </label>
+                                        {{ form.recursos_necessarios }}
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.indicadores.id_for_label }}" class="form-label">
+                                            Indicadores
+                                        </label>
+                                        {{ form.indicadores }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de ação -->
+                <div class="editor-footer">
+                    <div>
+                        <a href="{% url 'actions:plano_acao_list' campaign_id=campaign.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="btn-preview">
+                            <i class="bi bi-eye"></i> Visualizar
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btn-export-docx">
+                            <i class="bi bi-file-earmark-word"></i> Exportar DOCX
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Salvar Plano de Ação
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">
+                    <i class="bi bi-eye"></i> Visualização do Plano de Ação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content" class="p-4"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dist/editor-plano-acao.bundle.js' %}"></script>
+<script>
+    // Preview
+    document.getElementById('btn-preview').addEventListener('click', function() {
+        const htmlContent = document.getElementById('id_conteudo_html').value;
+        document.getElementById('preview-content').innerHTML = htmlContent || '<p class="text-muted">Nenhum conteúdo para visualizar</p>';
+
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+    });
+
+    // Export DOCX
+    document.getElementById('btn-export-docx').addEventListener('click', function() {
+        // Salvar primeiro
+        const form = document.getElementById('plano-acao-form');
+        const formData = new FormData(form);
+
+        // Adicionar flag de exportação
+        formData.append('export_docx', 'true');
+
+        fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.docx_url) {
+                // Baixar DOCX
+                window.location.href = data.docx_url;
+            } else {
+                alert('Erro ao exportar DOCX');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao exportar DOCX');
+        });
+    });
+</script>
+{% endblock %}

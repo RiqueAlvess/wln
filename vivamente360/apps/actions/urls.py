@@ -2,7 +2,11 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     PlanoAcaoListView,
+    PlanoAcaoCreateView,
+    PlanoAcaoUpdateView,
+    PlanoAcaoAutoSaveView,
     ExportPlanoAcaoWordView,
+    ExportPlanoAcaoRichWordView,
     ChecklistNR1ListView,
     ChecklistNR1ItemUpdateView,
     EvidenciaNR1UploadView,
@@ -21,8 +25,12 @@ app_name = 'actions'
 
 urlpatterns = [
     # Planos de Ação
-    path('<int:campaign_id>/planos/', PlanoAcaoListView.as_view(), name='planos'),
+    path('<int:campaign_id>/planos/', PlanoAcaoListView.as_view(), name='plano_acao_list'),
+    path('<int:campaign_id>/planos/novo/', PlanoAcaoCreateView.as_view(), name='plano_acao_create'),
+    path('<int:campaign_id>/planos/<int:pk>/editar/', PlanoAcaoUpdateView.as_view(), name='plano_acao_update'),
+    path('<int:campaign_id>/planos/<str:pk>/autosave/', PlanoAcaoAutoSaveView.as_view(), name='plano_acao_autosave'),
     path('<int:campaign_id>/planos/export-word/', ExportPlanoAcaoWordView.as_view(), name='export_plano_word'),
+    path('<int:campaign_id>/planos/<int:pk>/export-docx/', ExportPlanoAcaoRichWordView.as_view(), name='export_plano_rich_word'),
 
     # Checklist NR-1
     path('<int:campaign_id>/checklist-nr1/', ChecklistNR1ListView.as_view(), name='checklist_nr1'),
