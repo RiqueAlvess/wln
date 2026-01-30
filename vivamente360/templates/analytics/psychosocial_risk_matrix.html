@@ -103,7 +103,7 @@
                         <h6 class="card-title text-danger">{{ alerta.tipo }}</h6>
                         <p class="card-text small mb-1"><strong>Gravidade:</strong> {{ alerta.gravidade }}</p>
                         <p class="card-text small mb-1"><strong>Setor:</strong> {{ alerta.setor.nome }}</p>
-                        <p class="card-text small text-muted">{{ alerta.evidencia|truncatewords:15 }}</p>
+                        <p class="card-text small text-muted">{{ alerta.evidencia|truncatewords(15) }}</p>
                         <span class="badge bg-danger">{{ alerta.encaminhamento }}</span>
                     </div>
                 </div>
@@ -188,7 +188,7 @@
                         <tr>
                             <th>P={{ p }}<br><small>{% if p == "5" %}Q. Certo{% elif p == "4" %}Provável{% elif p == "3" %}Possível{% elif p == "2" %}Improvável{% else %}Raro{% endif %}</small></th>
                             {% for s in "12345" %}
-                            {% with nr=p|add:0|mul:s|add:0 %}
+                            {% with nr=(p|int) * (s|int) %}
                             <td class="matrix-cell {% if nr >= 20 %}risk-intoleravel{% elif nr >= 15 %}risk-substancial{% elif nr >= 10 %}risk-moderado{% elif nr >= 5 %}risk-toleravel{% else %}risk-trivial{% endif %}" style="font-size: 1.2em;">
                                 {{ nr }}
                             </td>
@@ -277,7 +277,7 @@
             <div class="mb-4">
                 <h6 class="border-bottom pb-2">
                     {{ dimensao_data.dimensao.nome }}
-                    <span class="badge bg-info">Score: {{ dimensao_data.score|floatformat:2 }}</span>
+                    <span class="badge bg-info">Score: {{ dimensao_data.score|round(2) }}</span>
                     <span class="badge bg-secondary">{{ dimensao_data.fatores|length }} fatores</span>
                 </h6>
 
