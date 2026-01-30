@@ -1,5 +1,7 @@
-from django.views.generic import ListView, CreateView, DetailView
+from django.views.generic import ListView, CreateView, DetailView, View
 from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
 from apps.core.mixins import RHRequiredMixin
 from apps.surveys.models import Campaign
 from app_selectors.campaign_selectors import CampaignSelectors
@@ -33,3 +35,70 @@ class CampaignDetailView(RHRequiredMixin, DetailView):
 
     def get_queryset(self):
         return CampaignSelectors.get_user_campaigns(self.request.user)
+
+
+class CampaignManageStatusView(RHRequiredMixin, View):
+    """
+    View para gerenciar o status de uma campanha.
+    GET: Exibe formulário de confirmação
+    POST: Processa alteração de status
+    """
+    template_name = 'campaigns/manage_status.html'
+
+    def get(self, request, pk):
+        campaign = get_object_or_404(
+            CampaignSelectors.get_user_campaigns(request.user),
+            pk=pk
+        )
+
+        # Contar convites ativos
+        convites_info = campaign.contar_convites_ativos()
+
+        context = {
+            'campaign': campaign,
+            'convites_pendentes': convites_info['pendentes'],
+            'convites_enviados': convites_info['enviados'],
+            'total_convites_ativos': convites_info['total_ativos'],
+        }
+
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk):
+        campaign = get_object_or_404(
+            CampaignSelectors.get_user_campaigns(request.user),
+            pk=pk
+        )
+
+        novo_status = request.POST.get('status')
+
+        # Validar status
+        status_validos = [choice[0] for choice in Campaign.STATUS_CHOICES]
+        if novo_status not in status_validos:
+            messages.error(request, 'Status inválido.')
+            return redirect('surveys:manage_status', pk=campaign.pk)
+
+        # Se status é 'closed', usar método encerrar()
+        if novo_status == 'closed':
+            resultado = campaign.encerrar()
+
+            if resultado['success']:
+                messages.success(
+                    request,
+                    f'Campanha encerrada com sucesso! {resultado["invalidated_count"]} '
+                    f'convite(s) invalidado(s).'
+                )
+            else:
+                messages.warning(request, resultado['message'])
+
+        else:
+            # Para outros status, apenas atualizar
+            campaign.status = novo_status
+            campaign.save()
+
+            status_label = dict(Campaign.STATUS_CHOICES).get(novo_status)
+            messages.success(
+                request,
+                f'Status da campanha alterado para "{status_label}".'
+            )
+
+        return redirect('surveys:detail', pk=campaign.pk)
