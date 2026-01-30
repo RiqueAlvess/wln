@@ -307,7 +307,7 @@
                                         {{ fator_data.classificacao }}
                                     </span>
                                 </td>
-                                <td>{{ fator_data.prazo|default:"N/A" }}</td>
+                                <td>{{ fator_data.prazo|default("N/A") }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
