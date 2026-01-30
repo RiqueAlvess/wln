@@ -129,10 +129,10 @@
                                 <div class="editor-header">
                                     <h3>
                                         <i class="bi bi-file-earmark-richtext"></i>
-                                        Plano de Ação - {{ form.instance.dimensao.nome|default:"Nova Dimensão" }}
+                                        Plano de Ação - {{ form.instance.dimensao.nome|default("Nova Dimensão") }}
                                     </h3>
                                     <div class="text-muted">
-                                        Setor: {{ campaign.nome }} | Risco: {{ form.instance.nivel_risco|default:"A definir" }}
+                                        Setor: {{ campaign.nome }} | Risco: {{ form.instance.nivel_risco|default("A definir") }}
                                     </div>
                                 </div>
 
@@ -221,12 +221,12 @@
 
                                 <!-- Área de Edição -->
                                 <div class="editor-content">
-                                    <div id="editor-plano-acao" data-autosave-url="{% url 'actions:plano_acao_autosave' campaign_id=campaign.id pk=object.pk|default:'0' %}"></div>
+                                    <div id="editor-plano-acao" data-autosave-url="{% url 'actions:plano_acao_autosave' campaign_id=campaign.id pk=object.pk|default('0') %}"></div>
                                 </div>
 
                                 <!-- Campos Hidden -->
-                                <input type="hidden" name="conteudo_estruturado" id="id_conteudo_estruturado" value="{{ form.conteudo_estruturado.value|default:'' }}">
-                                <input type="hidden" name="conteudo_html" id="id_conteudo_html" value="{{ form.conteudo_html.value|default:'' }}">
+                                <input type="hidden" name="conteudo_estruturado" id="id_conteudo_estruturado" value="{{ form.conteudo_estruturado.value|default('') }}">
+                                <input type="hidden" name="conteudo_html" id="id_conteudo_html" value="{{ form.conteudo_html.value|default('') }}">
                                 <input type="hidden" name="empresa" value="{{ request.user.empresa.id }}">
                                 <input type="hidden" name="campaign" value="{{ campaign.id }}">
                             </div>
