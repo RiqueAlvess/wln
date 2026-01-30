@@ -268,7 +268,7 @@
             </div>
             <div class="modal-body">
                 <form id="uploadForm" enctype="multipart/form-data">
-                    {% csrf_token %}
+                    {{ csrf_input }}
                     <input type="hidden" id="item_id" name="item_id">
 
                     <div class="mb-3">

@@ -72,8 +72,8 @@
 
                     <div class="mb-3">
                         <h6>Scores principais:</h6>
-                        {% set top_scores = analysis.scores.items()|list|sort(attribute='1.score')|list[:3] %}
-                        {% for dimensao, data in top_scores %}
+                        {% set top_scores = analysis.scores.items()|list|sort(attribute='1.score', reverse=true) %}
+                        {% for dimensao, data in top_scores[:3] %}
                         <div class="d-flex justify-content-between mb-1">
                             <small>{{ dimensao.replace('_', ' ').title() }}</small>
                             <small class="fw-bold">{{ "%.2f"|format(data.score) }}</small>
