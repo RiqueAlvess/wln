@@ -19,6 +19,12 @@ logs/
 media/
 staticfiles/
 
+# Node modules and build artifacts
+node_modules/
+package-lock.json
+.package-lock.json
+*.bundle.js.map
+
 .env
 .env.local
 

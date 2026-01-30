@@ -18,7 +18,7 @@
             <h1><i class="bi bi-robot"></i> Análises de Setores com IA</h1>
             <p class="text-muted mb-0">Análises detalhadas geradas por Inteligência Artificial</p>
         </div>
-        <div>
+        <div class="d-flex gap-2">
             <select class="form-select" onchange="window.location.href='?campaign='+this.value">
                 <option value="">Selecione a Campanha</option>
                 {% for c in campaigns %}
@@ -27,6 +27,12 @@
                 </option>
                 {% endfor %}
             </select>
+            {% if campaign %}
+            <a href="{{ url('analytics:generate_sector_analysis') }}?campaign={{ campaign.id }}"
+               class="btn btn-primary text-nowrap">
+                <i class="bi bi-robot"></i> Gerar Análise
+            </a>
+            {% endif %}
         </div>
     </div>
 
@@ -38,7 +44,17 @@
     {% elif not analyses %}
     <div class="alert alert-warning">
         <h4><i class="bi bi-exclamation-triangle"></i> Nenhuma análise encontrada</h4>
-        <p class="mb-0">Não há análises de setores para esta campanha. Acesse o dashboard e gere análises para os setores desejados.</p>
+        <p class="mb-2">Não há análises de setores para esta campanha ainda.</p>
+        <div class="d-flex gap-2">
+            <a href="{{ url('analytics:generate_sector_analysis') }}?campaign={{ campaign.id }}"
+               class="btn btn-primary">
+                <i class="bi bi-robot"></i> Gerar Análise de IA
+            </a>
+            <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}"
+               class="btn btn-outline-primary">
+                <i class="bi bi-graph-up-arrow"></i> Ir para Dashboard
+            </a>
+        </div>
     </div>
     {% else %}
     <div class="row">

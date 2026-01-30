@@ -18,6 +18,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Third-party apps
+    'ckeditor',
+    'ckeditor_uploader',
+
+    # Local apps
     'apps.core',
     'apps.tenants',
     'apps.structure',
@@ -180,5 +185,40 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+    },
+}
+
+# CKEditor Configuration
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_IMAGE_BACKEND = "pillow"
+CKEDITOR_ALLOW_NONIMAGE_FILES = False
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 400,
+        'width': '100%',
+    },
+    'awesome_ckeditor': {
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            ['Bold', 'Italic', 'Underline', 'Strike'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['Link', 'Unlink'],
+            ['RemoveFormat', 'Source'],
+            ['Format', 'Font', 'FontSize'],
+            ['TextColor', 'BGColor'],
+            ['Image', 'Table', 'HorizontalRule', 'Blockquote'],
+            ['Maximize'],
+        ],
+        'height': 500,
+        'width': '100%',
+        'allowedContent': True,
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'image2',
+            'tableresize',
+        ]),
     },
 }

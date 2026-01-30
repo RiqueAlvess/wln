@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.utils import timezone
+from ckeditor_uploader.fields import RichTextUploadingField
 
 from apps.core.models import TimeStampedModel
 
@@ -45,9 +46,10 @@ class Artigo(TimeStampedModel):
         verbose_name='Resumo',
         help_text='Texto exibido no card de prévia (máx. 500 caracteres)'
     )
-    conteudo = models.TextField(
+    conteudo = RichTextUploadingField(
         verbose_name='Conteúdo',
-        help_text='Conteúdo completo do artigo (suporta Markdown)'
+        help_text='Conteúdo completo do artigo com formatação rica',
+        config_name='awesome_ckeditor'
     )
 
     # Imagem
