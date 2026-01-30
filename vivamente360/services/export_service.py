@@ -10,6 +10,8 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from datetime import datetime
+from bs4 import BeautifulSoup
+import re
 
 class ExportService:
     @staticmethod
@@ -71,6 +73,178 @@ class ExportService:
         doc.add_paragraph('Gerente de RH')
 
         return doc
+
+    @staticmethod
+    def export_plano_acao_rich_word(plano_acao):
+        """
+        Exporta um único plano de ação com conteúdo rico (HTML do editor TipTap) para DOCX
+        """
+        doc = Document()
+
+        # Cabeçalho do documento
+        heading = doc.add_heading(f'PLANO DE AÇÃO', 0)
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Informações básicas
+        doc.add_paragraph(f'Empresa: {plano_acao.empresa.nome}')
+        doc.add_paragraph(f'Campanha: {plano_acao.campaign.nome}')
+        doc.add_paragraph(f'Dimensão: {plano_acao.dimensao.nome}')
+        doc.add_paragraph(f'Nível de Risco: {plano_acao.nivel_risco}')
+        doc.add_paragraph(f'Responsável: {plano_acao.responsavel}')
+        doc.add_paragraph(f'Prazo: {plano_acao.prazo.strftime("%d/%m/%Y")}')
+        doc.add_paragraph(f'Status: {plano_acao.get_status_display()}')
+        doc.add_paragraph('')
+
+        # Conteúdo rico do editor (se disponível)
+        if plano_acao.conteudo_html:
+            doc.add_heading('Plano de Ação Detalhado', level=1)
+            ExportService._html_to_docx(doc, plano_acao.conteudo_html)
+        else:
+            # Fallback para campos legados
+            doc.add_heading('Descrição do Risco', level=1)
+            doc.add_paragraph(plano_acao.descricao_risco)
+
+            doc.add_heading('Ação Proposta', level=1)
+            doc.add_paragraph(plano_acao.acao_proposta)
+
+            if plano_acao.recursos_necessarios:
+                doc.add_heading('Recursos Necessários', level=1)
+                doc.add_paragraph(plano_acao.recursos_necessarios)
+
+            if plano_acao.indicadores:
+                doc.add_heading('Indicadores de Acompanhamento', level=1)
+                doc.add_paragraph(plano_acao.indicadores)
+
+        # Rodapé com assinaturas
+        doc.add_page_break()
+        doc.add_heading('Aprovações', level=1)
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Responsável pela Área de SST')
+        doc.add_paragraph('')
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Gerente de RH')
+        doc.add_paragraph('')
+        doc.add_paragraph('_' * 50)
+        doc.add_paragraph('Diretor/Presidente')
+
+        return doc
+
+    @staticmethod
+    def _html_to_docx(doc, html_content):
+        """
+        Converte HTML do editor TipTap para elementos do python-docx
+        """
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        for element in soup.children:
+            if element.name is None:  # Texto puro
+                continue
+
+            # Cabeçalhos
+            if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                level = int(element.name[1])
+                doc.add_heading(element.get_text(), level=level)
+
+            # Parágrafos
+            elif element.name == 'p':
+                p = doc.add_paragraph()
+                ExportService._add_formatted_text(p, element)
+
+            # Listas não ordenadas
+            elif element.name == 'ul':
+                # Verificar se é task list
+                if element.get('data-type') == 'taskList':
+                    for li in element.find_all('li', recursive=False):
+                        checkbox = li.find('input', {'type': 'checkbox'})
+                        checked = checkbox.get('checked') if checkbox else False
+                        text = li.get_text().strip()
+                        symbol = '☑' if checked else '☐'
+                        doc.add_paragraph(f'{symbol} {text}', style='List Bullet')
+                else:
+                    for li in element.find_all('li', recursive=False):
+                        doc.add_paragraph(li.get_text(), style='List Bullet')
+
+            # Listas ordenadas
+            elif element.name == 'ol':
+                for li in element.find_all('li', recursive=False):
+                    doc.add_paragraph(li.get_text(), style='List Number')
+
+            # Tabelas
+            elif element.name == 'table':
+                ExportService._add_table_to_docx(doc, element)
+
+            # Quebra de linha
+            elif element.name == 'br':
+                doc.add_paragraph('')
+
+    @staticmethod
+    def _add_formatted_text(paragraph, element):
+        """
+        Adiciona texto formatado (negrito, itálico, etc.) a um parágrafo
+        """
+        for child in element.children:
+            if child.name is None:  # Texto puro
+                run = paragraph.add_run(str(child))
+            elif child.name == 'strong' or child.name == 'b':
+                run = paragraph.add_run(child.get_text())
+                run.bold = True
+            elif child.name == 'em' or child.name == 'i':
+                run = paragraph.add_run(child.get_text())
+                run.italic = True
+            elif child.name == 'u':
+                run = paragraph.add_run(child.get_text())
+                run.underline = True
+            elif child.name == 's':
+                run = paragraph.add_run(child.get_text())
+                run.font.strike = True
+            elif child.name == 'span':
+                run = paragraph.add_run(child.get_text())
+                # Processar estilos inline (cores, etc.)
+                style = child.get('style', '')
+                if 'color:' in style:
+                    color_match = re.search(r'color:\s*([#\w]+)', style)
+                    if color_match:
+                        color_hex = color_match.group(1).replace('#', '')
+                        if len(color_hex) == 6:
+                            try:
+                                r = int(color_hex[0:2], 16)
+                                g = int(color_hex[2:4], 16)
+                                b = int(color_hex[4:6], 16)
+                                run.font.color.rgb = RGBColor(r, g, b)
+                            except ValueError:
+                                pass
+            else:
+                # Recursão para elementos aninhados
+                ExportService._add_formatted_text(paragraph, child)
+
+    @staticmethod
+    def _add_table_to_docx(doc, table_element):
+        """
+        Adiciona uma tabela HTML ao documento DOCX
+        """
+        rows = table_element.find_all('tr')
+        if not rows:
+            return
+
+        # Contar colunas
+        first_row = rows[0]
+        cols = len(first_row.find_all(['th', 'td']))
+
+        # Criar tabela
+        table = doc.add_table(rows=len(rows), cols=cols)
+        table.style = 'Light Grid Accent 1'
+
+        # Preencher células
+        for i, tr in enumerate(rows):
+            cells = tr.find_all(['th', 'td'])
+            for j, cell in enumerate(cells):
+                table.rows[i].cells[j].text = cell.get_text().strip()
+
+                # Negrito para headers
+                if cell.name == 'th':
+                    for paragraph in table.rows[i].cells[j].paragraphs:
+                        for run in paragraph.runs:
+                            run.bold = True
 
     @staticmethod
     def export_checklist_nr1_pdf(campaign, itens_por_etapa, progresso_geral, total_itens, total_concluidos):

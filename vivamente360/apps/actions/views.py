@@ -1,7 +1,8 @@
-from django.views.generic import ListView, View
-from django.shortcuts import get_object_or_404, render
+from django.views.generic import ListView, View, CreateView, UpdateView
+from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+from django.urls import reverse
 from django.db.models import Count, Q, Max
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -17,6 +18,9 @@ from .serializers import (
     EvidenciaNR1Serializer,
     ChecklistNR1ResumoSerializer
 )
+from .forms import PlanoAcaoForm
+from io import BytesIO
+import json
 
 
 class PlanoAcaoListView(RHRequiredMixin, ListView):
@@ -36,7 +40,118 @@ class PlanoAcaoListView(RHRequiredMixin, ListView):
         return context
 
 
+class PlanoAcaoCreateView(RHRequiredMixin, CreateView):
+    """
+    View para criar novo Plano de Ação com editor rico
+    """
+    model = PlanoAcao
+    form_class = PlanoAcaoForm
+    template_name = 'actions/plano_acao_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        campaign_id = self.kwargs['campaign_id']
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        kwargs['campaign'] = campaign
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        campaign_id = self.kwargs['campaign_id']
+        context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
+        return context
+
+    def form_valid(self, form):
+        campaign_id = self.kwargs['campaign_id']
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+
+        plano = form.save(commit=False)
+        plano.empresa = self.request.user.empresa
+        plano.campaign = campaign
+        plano.save()
+
+        return redirect('actions:plano_acao_list', campaign_id=campaign_id)
+
+    def get_success_url(self):
+        return reverse('actions:plano_acao_list', kwargs={'campaign_id': self.kwargs['campaign_id']})
+
+
+class PlanoAcaoUpdateView(RHRequiredMixin, UpdateView):
+    """
+    View para editar Plano de Ação existente
+    """
+    model = PlanoAcao
+    form_class = PlanoAcaoForm
+    template_name = 'actions/plano_acao_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        campaign_id = self.kwargs['campaign_id']
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        kwargs['campaign'] = campaign
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        campaign_id = self.kwargs['campaign_id']
+        context['campaign'] = get_object_or_404(Campaign, id=campaign_id)
+        return context
+
+    def get_success_url(self):
+        return reverse('actions:plano_acao_list', kwargs={'campaign_id': self.kwargs['campaign_id']})
+
+
+class PlanoAcaoAutoSaveView(RHRequiredMixin, View):
+    """
+    View para auto-save do conteúdo do editor (AJAX)
+    """
+    def post(self, request, campaign_id, pk):
+        if pk == '0':
+            # Novo plano de ação - criar rascunho
+            plano = PlanoAcao(
+                empresa=request.user.empresa,
+                campaign_id=campaign_id,
+                status='pendente'
+            )
+        else:
+            plano = get_object_or_404(PlanoAcao, id=pk, campaign_id=campaign_id)
+
+        # Atualizar campos do editor
+        if 'conteudo_estruturado' in request.POST:
+            try:
+                plano.conteudo_estruturado = json.loads(request.POST.get('conteudo_estruturado'))
+            except json.JSONDecodeError:
+                pass
+
+        if 'conteudo_html' in request.POST:
+            plano.conteudo_html = request.POST.get('conteudo_html')
+
+        # Atualizar outros campos se presentes
+        if 'dimensao' in request.POST and request.POST.get('dimensao'):
+            plano.dimensao_id = request.POST.get('dimensao')
+
+        if 'nivel_risco' in request.POST and request.POST.get('nivel_risco'):
+            plano.nivel_risco = request.POST.get('nivel_risco')
+
+        if 'responsavel' in request.POST and request.POST.get('responsavel'):
+            plano.responsavel = request.POST.get('responsavel')
+
+        if 'prazo' in request.POST and request.POST.get('prazo'):
+            plano.prazo = request.POST.get('prazo')
+
+        plano.save()
+
+        return JsonResponse({
+            'success': True,
+            'plano_id': plano.id,
+            'message': 'Rascunho salvo automaticamente'
+        })
+
+
 class ExportPlanoAcaoWordView(RHRequiredMixin, View):
+    """
+    Exporta lista de planos de ação (formato legado)
+    """
     def get(self, request, campaign_id):
         campaign = get_object_or_404(Campaign, id=campaign_id)
         planos = PlanoAcao.objects.filter(campaign=campaign).select_related('dimensao')
@@ -48,6 +163,34 @@ class ExportPlanoAcaoWordView(RHRequiredMixin, View):
         )
         response['Content-Disposition'] = f'attachment; filename=plano_acao_{campaign.nome}.docx'
         doc.save(response)
+
+        return response
+
+
+class ExportPlanoAcaoRichWordView(RHRequiredMixin, View):
+    """
+    Exporta um único plano de ação com conteúdo rico do editor TipTap
+    """
+    def get(self, request, campaign_id, pk):
+        plano = get_object_or_404(
+            PlanoAcao,
+            id=pk,
+            campaign_id=campaign_id
+        )
+
+        doc = ExportService.export_plano_acao_rich_word(plano)
+
+        # Salvar em buffer
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.read(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        filename = f'plano_acao_{plano.dimensao.nome}_{plano.id}.docx'
+        response['Content-Disposition'] = f'attachment; filename={filename}'
 
         return response
 
