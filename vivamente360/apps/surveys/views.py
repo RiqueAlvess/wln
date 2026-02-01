@@ -37,6 +37,33 @@ class CampaignCreateView(RHRequiredMixin, CreateView):
             # Usuário sem perfil não vê nenhuma empresa
             form.fields['empresa'].queryset = form.fields['empresa'].queryset.none()
 
+        # Adicionar classes CSS aos widgets
+        form.fields['empresa'].widget.attrs.update({
+            'class': 'form-select form-select-lg',
+            'required': 'required'
+        })
+        form.fields['nome'].widget.attrs.update({
+            'class': 'form-control form-control-lg',
+            'placeholder': 'Ex: Avaliação Anual 2024'
+        })
+        form.fields['descricao'].widget.attrs.update({
+            'class': 'form-control',
+            'rows': '4',
+            'placeholder': 'Descreva os objetivos e contexto desta campanha...'
+        })
+        form.fields['data_inicio'].widget.attrs.update({
+            'class': 'form-control form-control-lg',
+            'type': 'date'
+        })
+        form.fields['data_fim'].widget.attrs.update({
+            'class': 'form-control form-control-lg',
+            'type': 'date'
+        })
+
+        # Ocultar campo status (definido automaticamente como 'draft')
+        form.fields['status'].widget = form.fields['status'].hidden_widget()
+        form.fields['status'].initial = 'draft'
+
         return form
 
     def form_valid(self, form):

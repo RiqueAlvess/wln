@@ -45,6 +45,26 @@ class DashboardView(DashboardAccessMixin, TemplateView):
         unidade_id = self.request.GET.get('unidade')
         setor_id = self.request.GET.get('setor')
 
+        # Para líderes, é obrigatório selecionar um setor
+        # Não devem ver dados agregados de todos os setores da empresa
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.role == 'lideranca':
+            if not setor_id:
+                # Buscar setores disponíveis para mostrar dropdown
+                setores_disponiveis = Setor.objects.filter(
+                    id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
+                )
+                setores_disponiveis = self.filter_setores_by_permission(setores_disponiveis).order_by('nome')
+
+                # Retornar contexto mínimo com mensagem
+                context.update({
+                    'campaigns': campaigns,
+                    'campaign': campaign,
+                    'setores_disponiveis': setores_disponiveis,
+                    'unidades_disponiveis': Unidade.objects.none(),
+                    'requer_selecao_setor': True,
+                })
+                return context
+
         # Construir dict de filtros
         filters = {}
         if unidade_id:
