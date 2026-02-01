@@ -101,8 +101,8 @@ function selectSector(sectorId, sectorName) {
     document.getElementById('sectorName').textContent = sectorName;
     modal.show();
 
-    // Get CSRF token
-    const csrftoken = getCookie('csrfmiddlewaretoken') || getCookie('csrftoken');
+    // Get CSRF token from hidden input or cookie
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
 
     // Make request to enqueue analysis
     fetch('{{ url("analytics:generate_sector_analysis") }}', {
@@ -185,5 +185,5 @@ function getCookie(name) {
 }
 </script>
 
-{{ csrf_input }}
+{% csrf_token %}
 {% endblock %}
