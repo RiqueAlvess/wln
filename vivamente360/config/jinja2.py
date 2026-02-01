@@ -44,6 +44,13 @@ def truncatewords_filter(value, num_words=15):
     return ' '.join(words[:num_words]) + '...'
 
 
+def csrf_token_helper(request):
+    """
+    Helper function to get CSRF token value for Jinja2 templates.
+    """
+    return get_token(request)
+
+
 def environment(**options):
     env = Environment(**options)
     env.globals.update({
@@ -51,6 +58,7 @@ def environment(**options):
         'url': url_helper,
         'get_messages': get_messages,
         'csrf_input': csrf_input_helper,
+        'csrf_token': csrf_token_helper,
     })
 
     env.filters.update({
@@ -72,4 +80,5 @@ def jinja2_context_processor(request):
     """
     context = branding(request)
     context['csrf_input'] = csrf_input_helper(request)
+    context['csrf_token'] = csrf_token_helper(request)
     return context
