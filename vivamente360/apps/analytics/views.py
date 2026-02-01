@@ -232,10 +232,17 @@ class SectorAnalysisListView(DashboardAccessMixin, TemplateView):
 
         analyses = []
         if campaign:
+            # Buscar empresa do usuário com fallback seguro
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.empresas.exists():
+                empresa = self.request.user.profile.empresas.first()
+            else:
+                # Fallback: buscar pela empresa da campanha
+                empresa = campaign.empresa
+
             # Buscar todas as análises desta campanha
             analyses = SectorAnalysis.objects.filter(
                 campaign=campaign,
-                empresa=self.request.user.profile.empresas.first()
+                empresa=empresa
             ).select_related('setor', 'campaign').order_by('-created_at')
 
         context.update({
