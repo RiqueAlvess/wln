@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, models
 
 
 def convert_admin_users_to_superusers(apps, schema_editor):
@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='userprofile',
             name='role',
-            field=migrations.models.CharField(
+            field=models.CharField(
                 max_length=15,
                 choices=[
                     ('rh', 'RH'),
