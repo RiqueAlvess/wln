@@ -151,9 +151,16 @@
                 <h2 class="display-5 mb-1 fw-bold {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}">
                     {{ adesao }}%
                 </h2>
+                {# Número de respondentes - apenas para RH e Superusuário #}
+                {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
                 <p class="text-muted mb-0 small">
                     <strong>{{ respondidos }}</strong> de <strong>{{ total_convidados }}</strong> convidados
                 </p>
+                {% else %}
+                <p class="text-muted mb-0 small">
+                    Taxa de participação dos colaboradores
+                </p>
+                {% endif %}
                 <div class="progress mt-2" style="height: 6px;">
                     <div class="progress-bar {% if adesao >= 70 %}bg-success{% elif adesao >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
                          style="width: {{ adesao }}%"></div>
