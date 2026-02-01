@@ -33,6 +33,7 @@ def branding(request):
                 'favicon_url': empresa.favicon_url,
                 'cor_primaria': empresa.cor_primaria,
                 'cor_secundaria': empresa.cor_secundaria,
+                'cor_fonte': empresa.cor_fonte,
             }
         }
 
@@ -44,5 +45,6 @@ def branding(request):
             'favicon_url': '',
             'cor_primaria': '#0d6efd',
             'cor_secundaria': '#6c757d',
+            'cor_fonte': '#ffffff',
         }
     }

@@ -140,12 +140,41 @@ class SectorAnalysisView(DashboardAccessMixin, TemplateView):
         return context
 
 
-class GenerateSectorAnalysisView(DashboardAccessMixin, View):
+class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
     """
     View para gerar análise de setor
     """
+    template_name = 'analytics/generate_sector_analysis.html'
+
+    def get(self, request, *args, **kwargs):
+        """Exibe página de seleção de setor para gerar análise"""
+        campaigns = CampaignSelectors.get_user_campaigns(request.user)
+        campaign_id = request.GET.get('campaign')
+
+        if campaign_id:
+            campaign = campaigns.filter(id=campaign_id).first()
+        else:
+            campaign = campaigns.filter(status='active').first()
+
+        if not campaign:
+            messages.error(request, 'Selecione uma campanha válida.')
+            return redirect('analytics:sector_analysis_list')
+
+        # Buscar setores com respostas nesta campanha
+        setores_com_respostas = Setor.objects.filter(
+            id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
+        ).select_related('unidade').order_by('unidade__nome', 'nome')
+
+        context = {
+            'campaigns': campaigns,
+            'campaign': campaign,
+            'setores': setores_com_respostas,
+        }
+
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
+        """Processa geração de análise"""
         setor_id = request.POST.get('setor_id')
         campaign_id = request.POST.get('campaign_id')
         force_regenerate = request.POST.get('force_regenerate') == 'true'
