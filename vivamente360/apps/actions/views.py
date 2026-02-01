@@ -66,7 +66,11 @@ class PlanoAcaoCreateView(RHRequiredMixin, CreateView):
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
         plano = form.save(commit=False)
-        plano.empresa = self.request.user.empresa
+        # Obter empresa do perfil do usuário ou da campanha
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.empresas.exists():
+            plano.empresa = self.request.user.profile.empresas.first()
+        else:
+            plano.empresa = campaign.empresa
         plano.campaign = campaign
         plano.save()
 

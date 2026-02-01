@@ -56,12 +56,15 @@
             {% endfor %}
         </select>
         {% if campaign %}
-        <a href="{{ url('analytics:psychosocial_risk_matrix') }}?campaign={{ campaign.id }}" class="btn btn-danger">
-            <i class="bi bi-shield-exclamation"></i> Matriz de Risco NR-1
-        </a>
-        <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-gear"></i> Configurar
-        </a>
+            {# Recursos exclusivos para RH e Superusuário (Liderança vê apenas Dashboard) #}
+            {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
+            <a href="{{ url('analytics:psychosocial_risk_matrix') }}?campaign={{ campaign.id }}" class="btn btn-danger">
+                <i class="bi bi-shield-exclamation"></i> Matriz de Risco NR-1
+            </a>
+            <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-gear"></i> Configurar
+            </a>
+            {% endif %}
         {% endif %}
     </div>
     {% endif %}
@@ -74,10 +77,12 @@
             <div class="card-body text-center py-5">
                 <i class="bi bi-clipboard-data text-muted" style="font-size: 5rem;"></i>
                 <h3 class="mt-3">Nenhuma campanha selecionada</h3>
-                <p class="text-muted">Selecione uma campanha no menu acima para visualizar os dados ou crie uma nova campanha.</p>
+                <p class="text-muted">Selecione uma campanha no menu acima para visualizar os dados{% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %} ou crie uma nova campanha{% endif %}.</p>
+                {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
                 <a href="{{ url('surveys:create') }}" class="btn btn-primary mt-2">
                     <i class="bi bi-plus-circle"></i> Nova Campanha
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -118,16 +123,19 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="{% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}col-md-2{% else %}col-md-4{% endif %} d-flex align-items-end">
                 <button class="btn btn-outline-secondary w-100" id="btn-limpar-filtros">
                     <i class="bi bi-x-circle"></i> Limpar Filtros
                 </button>
             </div>
+            {# Análises IA - exclusivo para RH e Superusuário #}
+            {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
             <div class="col-md-2 d-flex align-items-end">
                 <a href="{{ url('analytics:sector_analysis_list') }}?campaign={{ campaign.id }}" class="btn btn-primary w-100">
                     <i class="bi bi-robot"></i> Análises IA
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -296,15 +304,17 @@
                                 </span>
                             </div>
 
-                            {% if item.setor_id %}
-                                <a href="{{ url('surveys:detail', campaign.id) }}"
-                                class="btn btn-sm btn-outline-primary w-100">
-                                    <i class="bi bi-robot"></i> Ver Análise IA
-                                </a>
-                            {% else %}
-                                <button class="btn btn-sm btn-outline-secondary w-100" disabled>
-                                    <i class="bi bi-exclamation-circle"></i> Setor indisponível
-                                </button>
+                            {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
+                                {% if item.setor_id %}
+                                    <a href="{{ url('surveys:detail', campaign.id) }}"
+                                    class="btn btn-sm btn-outline-primary w-100">
+                                        <i class="bi bi-robot"></i> Ver Análise IA
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-sm btn-outline-secondary w-100" disabled>
+                                        <i class="bi bi-exclamation-circle"></i> Setor indisponível
+                                    </button>
+                                {% endif %}
                             {% endif %}
                         </div>
                         {% endfor %}

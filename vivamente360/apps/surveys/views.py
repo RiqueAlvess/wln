@@ -23,6 +23,22 @@ class CampaignCreateView(RHRequiredMixin, CreateView):
     fields = ['nome', 'descricao', 'empresa', 'data_inicio', 'data_fim', 'status']
     success_url = reverse_lazy('surveys:list')
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+
+        # Filtrar empresas disponíveis baseado nas permissões do usuário
+        if self.request.user.is_superuser:
+            # Superusuário vê todas as empresas
+            pass
+        elif hasattr(self.request.user, 'profile'):
+            # RH vê apenas suas empresas vinculadas
+            form.fields['empresa'].queryset = self.request.user.profile.empresas.all()
+        else:
+            # Usuário sem perfil não vê nenhuma empresa
+            form.fields['empresa'].queryset = form.fields['empresa'].queryset.none()
+
+        return form
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         return super().form_valid(form)
