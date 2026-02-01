@@ -1,7 +1,7 @@
 from django.utils import timezone
 from apps.core.models import TaskQueue
 from apps.analytics.models import SectorAnalysis
-from services.ai.sector_analysis_service import SectorAnalysisService
+from services.sector_analysis_service import SectorAnalysisService
 import logging
 
 logger = logging.getLogger(__name__)
