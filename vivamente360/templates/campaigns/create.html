@@ -21,7 +21,7 @@
             </div>
             <div class="card-body p-4">
                 <form method="post">
-                    {% csrf_token %}
+                    {{ csrf_input }}
                     <div class="mb-4">
                         <label class="form-label fw-bold" for="{{ form.nome.id_for_label }}">
                             <i class="bi bi-tag text-primary"></i> Nome da Campanha
