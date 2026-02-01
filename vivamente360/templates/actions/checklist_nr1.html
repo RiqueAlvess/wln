@@ -207,7 +207,7 @@
                 <div class="col-md-3">
                     <label class="form-label small text-muted mb-1">
                         <i class="bi bi-paperclip"></i> Evidências
-                        <span class="badge bg-secondary">{{ item.evidencias.count }}</span>
+                        <span class="badge bg-secondary">{{ item.evidencias.count() }}</span>
                     </label>
                     <button class="btn btn-sm btn-outline-primary w-100"
                             onclick="abrirModalEvidencia({{ item.id }})"
@@ -215,7 +215,7 @@
                         <i class="bi bi-plus-circle"></i> Adicionar
                     </button>
 
-                    {% if item.evidencias.count > 0 %}
+                    {% if item.evidencias.count() > 0 %}
                     <div class="mt-2">
                         {% for evidencia in item.evidencias.all %}
                         <div class="d-flex align-items-center justify-content-between text-muted small mb-1">

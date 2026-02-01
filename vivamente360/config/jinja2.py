@@ -29,6 +29,21 @@ def csrf_input_helper(request):
     return Markup(f'<input type="hidden" name="csrfmiddlewaretoken" value="{token}">')
 
 
+def truncatewords_filter(value, num_words=15):
+    """
+    Trunca o texto pelo número de palavras.
+    Adiciona '...' ao final se o texto foi truncado.
+    """
+    if not value:
+        return ''
+
+    words = str(value).split()
+    if len(words) <= num_words:
+        return str(value)
+
+    return ' '.join(words[:num_words]) + '...'
+
+
 def environment(**options):
     env = Environment(**options)
     env.globals.update({
@@ -41,6 +56,7 @@ def environment(**options):
         'datetimeformat': lambda value, fmt='%d/%m/%Y %H:%M': value.strftime(fmt) if value else '',
         'dateformat': lambda value, fmt='%d/%m/%Y': value.strftime(fmt) if value else '',
         'truncate': lambda value, length=50: value[:length] + '...' if len(value) > length else value,
+        'truncatewords': truncatewords_filter,
         'tojson': lambda value: __import__('json').dumps(value),
     })
 

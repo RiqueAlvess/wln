@@ -36,6 +36,9 @@ class DashboardAccessMixin(RoleRequiredMixin):
         if self.request.user.is_superuser:
             return queryset
 
+        if not hasattr(self.request.user, 'profile'):
+            return queryset.none()
+
         profile = self.request.user.profile
 
         if profile.role == 'rh':
