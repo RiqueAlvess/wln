@@ -75,20 +75,33 @@ class UserNotificationManager(models.Manager):
     """Manager customizado para UserNotification."""
 
     def active(self):
-        """Retorna apenas notificações não expiradas (últimas 24h)."""
+        """
+        Retorna apenas notificações ativas:
+        - Notificações não lidas: sempre visíveis
+        - Notificações lidas: visíveis por 24h após a leitura
+        """
         from django.utils import timezone
         from datetime import timedelta
+        from django.db.models import Q
 
         cutoff = timezone.now() - timedelta(hours=24)
-        return self.filter(created_at__gte=cutoff)
+
+        # Retorna notificações não lidas OU lidas há menos de 24h
+        return self.filter(
+            Q(is_read=False) | Q(read_at__gte=cutoff)
+        )
 
     def delete_expired(self):
-        """Deleta notificações mais antigas que 24 horas."""
+        """
+        Deleta notificações expiradas:
+        - Notificações lidas há mais de 24 horas
+        """
         from django.utils import timezone
         from datetime import timedelta
 
         cutoff = timezone.now() - timedelta(hours=24)
-        deleted, _ = self.filter(created_at__lt=cutoff).delete()
+        # Deleta apenas notificações lidas há mais de 24h
+        deleted, _ = self.filter(is_read=True, read_at__lt=cutoff).delete()
         return deleted
 
 

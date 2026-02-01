@@ -450,59 +450,48 @@ class CampaignComparisonView(DashboardAccessMixin, TemplateView):
 
 class ExportCampaignComparisonView(DashboardAccessMixin, TemplateView):
     """
-    View para exportar comparação entre campanhas em Word
+    View para exportar comparação entre campanhas em Word via fila de processamento
     """
 
     def get(self, request, *args, **kwargs):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         campaign1_id = request.GET.get('campaign1')
         campaign2_id = request.GET.get('campaign2')
 
         if not campaign1_id or not campaign2_id:
-            messages.error(request, 'Selecione duas campanhas para comparar.')
-            return redirect('analytics:campaign_comparison')
+            return JsonResponse({'error': 'Selecione duas campanhas para comparar.'}, status=400)
 
         campaigns = CampaignSelectors.get_user_campaigns(request.user)
         campaign1 = campaigns.filter(id=campaign1_id).first()
         campaign2 = campaigns.filter(id=campaign2_id).first()
 
         if not campaign1 or not campaign2:
-            messages.error(request, 'Campanhas inválidas.')
-            return redirect('analytics:campaign_comparison')
+            return JsonResponse({'error': 'Campanhas inválidas.'}, status=400)
 
         try:
-            # Buscar dados de comparação
-            summary = ComparisonSelectors.get_evolution_summary(campaign1, campaign2)
-            dimensions = ComparisonSelectors.get_evolution_by_dimension(campaign1, campaign2)
-            sectors = ComparisonSelectors.get_top_sectors_evolution(campaign1, campaign2)
-
-            # Gerar análise de IA
-            evolution_data = {
-                'summary': summary,
-                'dimensions': dimensions,
-                'sectors': sectors,
-            }
-            ai_analysis = ComparisonSelectors.generate_ai_analysis(campaign1, campaign2, evolution_data)
-
-            # Gerar documento Word
-            doc = ExportService.export_campaign_comparison_word(
-                campaign1, campaign2, summary, dimensions, sectors, ai_analysis
+            # Criar task de processamento
+            task = TaskQueue.objects.create(
+                task_type='export_campaign_comparison',
+                payload={
+                    'campaign1_id': int(campaign1_id),
+                    'campaign2_id': int(campaign2_id),
+                },
+                user=request.user,
+                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                progress_message='Preparando comparação de campanhas...'
             )
 
-            # Preparar resposta HTTP
-            response = HttpResponse(
-                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            )
-            response['Content-Disposition'] = f'attachment; filename="Relatorio_Evolucao_{campaign1.empresa.nome.replace(" ", "_")}.docx"'
-
-            # Salvar documento no response
-            doc.save(response)
-
-            return response
+            return JsonResponse({
+                'task_id': task.id,
+                'message': 'Exportação iniciada. Você será notificado quando estiver pronta.',
+                'status_url': f'/api/tasks/{task.id}/'
+            })
 
         except Exception as e:
-            logger.error(f"Erro ao exportar comparação: {e}")
-            messages.error(request, f'Erro ao exportar relatório: {str(e)}')
-            return redirect('analytics:campaign_comparison')
+            logger.error(f"Erro ao criar task de comparação: {e}")
+            return JsonResponse({'error': f'Erro ao exportar relatório: {str(e)}'}, status=500)
 
 
 # ============================================================================
@@ -621,88 +610,76 @@ class SectorRiskDetailView(DashboardAccessMixin, TemplateView):
 
 
 class ExportRiskMatrixExcelView(DashboardAccessMixin, TemplateView):
-    """View para exportar matriz de risco em Excel"""
+    """View para exportar matriz de risco em Excel via fila de processamento"""
 
     def get(self, request, *args, **kwargs):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         campaign_id = kwargs.get('campaign_id')
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
         # Verificar permissão
         campaigns = CampaignSelectors.get_user_campaigns(request.user)
         if campaign not in campaigns:
-            messages.error(request, 'Você não tem permissão para acessar esta campanha.')
-            return redirect('analytics:dashboard')
-
-        from services.risk_assessment_service import RiskAssessmentService
-        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+            return JsonResponse({'error': 'Você não tem permissão para acessar esta campanha.'}, status=403)
 
         try:
-            # Gerar avaliação
-            avaliacao = RiskAssessmentService.avaliar_campanha_completa(
-                campaign,
-                processar_ia=True
+            # Criar task de processamento
+            task = TaskQueue.objects.create(
+                task_type='export_risk_matrix_excel',
+                payload={
+                    'campaign_id': campaign_id,
+                },
+                user=request.user,
+                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                progress_message='Preparando exportação de matriz de risco...'
             )
 
-            # Gerar Excel
-            excel_file = PsychosocialRiskExportService.export_to_excel(avaliacao)
-
-            # Preparar resposta
-            response = HttpResponse(
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            filename = f"Matriz_Risco_Psicossocial_{campaign.empresa.nome.replace(' ', '_')}_{campaign.nome.replace(' ', '_')}.xlsx"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-            # Salvar no response
-            excel_file.save(response)
-
-            return response
+            return JsonResponse({
+                'task_id': task.id,
+                'message': 'Exportação iniciada. Você será notificado quando estiver pronta.',
+                'status_url': f'/api/tasks/{task.id}/'
+            })
 
         except Exception as e:
-            logger.error(f"Erro ao exportar matriz para Excel: {e}", exc_info=True)
-            messages.error(request, f'Erro ao exportar para Excel: {str(e)}')
-            return redirect('analytics:psychosocial_risk_matrix')
+            logger.error(f"Erro ao criar task de matriz para Excel: {e}", exc_info=True)
+            return JsonResponse({'error': f'Erro ao exportar para Excel: {str(e)}'}, status=500)
 
 
 class ExportRiskMatrixPGRView(DashboardAccessMixin, TemplateView):
-    """View para exportar relatório PGR (Programa de Gerenciamento de Riscos)"""
+    """View para exportar relatório PGR (Programa de Gerenciamento de Riscos) via fila de processamento"""
 
     def get(self, request, *args, **kwargs):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         campaign_id = kwargs.get('campaign_id')
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
         # Verificar permissão
         campaigns = CampaignSelectors.get_user_campaigns(request.user)
         if campaign not in campaigns:
-            messages.error(request, 'Você não tem permissão para acessar esta campanha.')
-            return redirect('analytics:dashboard')
-
-        from services.risk_assessment_service import RiskAssessmentService
-        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+            return JsonResponse({'error': 'Você não tem permissão para acessar esta campanha.'}, status=403)
 
         try:
-            # Gerar avaliação
-            avaliacao = RiskAssessmentService.avaliar_campanha_completa(
-                campaign,
-                processar_ia=True
+            # Criar task de processamento
+            task = TaskQueue.objects.create(
+                task_type='export_pgr_document',
+                payload={
+                    'campaign_id': campaign_id,
+                },
+                user=request.user,
+                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                progress_message='Preparando relatório PGR...'
             )
 
-            # Gerar documento PGR
-            doc_bio = PsychosocialRiskExportService.export_pgr_document(avaliacao)
-
-            # Preparar resposta
-            response = HttpResponse(
-                content_type='text/plain; charset=utf-8'
-            )
-            filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.txt"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-            # Escrever conteúdo no response
-            response.write(doc_bio.getvalue())
-
-            return response
+            return JsonResponse({
+                'task_id': task.id,
+                'message': 'Exportação iniciada. Você será notificado quando estiver pronta.',
+                'status_url': f'/api/tasks/{task.id}/'
+            })
 
         except Exception as e:
-            logger.error(f"Erro ao exportar PGR: {e}", exc_info=True)
-            messages.error(request, f'Erro ao exportar relatório PGR: {str(e)}')
-            return redirect('analytics:psychosocial_risk_matrix')
+            logger.error(f"Erro ao criar task de PGR: {e}", exc_info=True)
+            return JsonResponse({'error': f'Erro ao exportar relatório PGR: {str(e)}'}, status=500)

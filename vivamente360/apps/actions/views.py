@@ -154,49 +154,62 @@ class PlanoAcaoAutoSaveView(RHRequiredMixin, View):
 
 class ExportPlanoAcaoWordView(RHRequiredMixin, View):
     """
-    Exporta lista de planos de ação (formato legado)
+    Exporta lista de planos de ação (formato legado) via fila de processamento
     """
     def get(self, request, campaign_id):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         campaign = get_object_or_404(Campaign, id=campaign_id)
-        planos = PlanoAcao.objects.filter(campaign=campaign).select_related('dimensao')
 
-        doc = ExportService.export_plano_acao_word(campaign, planos)
-
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        # Criar task de processamento
+        task = TaskQueue.objects.create(
+            task_type='export_plano_acao',
+            payload={
+                'campaign_id': campaign_id,
+            },
+            user=request.user,
+            empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+            progress_message='Preparando exportação de planos de ação...'
         )
-        response['Content-Disposition'] = f'attachment; filename=plano_acao_{campaign.nome}.docx'
-        doc.save(response)
 
-        return response
+        return JsonResponse({
+            'task_id': task.id,
+            'message': 'Exportação iniciada. Você será notificado quando estiver pronta.',
+            'status_url': f'/api/tasks/{task.id}/'
+        })
 
 
 class ExportPlanoAcaoRichWordView(RHRequiredMixin, View):
     """
-    Exporta um único plano de ação com conteúdo rico do editor TipTap
+    Exporta um único plano de ação com conteúdo rico do editor TipTap via fila de processamento
     """
     def get(self, request, campaign_id, pk):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         plano = get_object_or_404(
             PlanoAcao,
             id=pk,
             campaign_id=campaign_id
         )
 
-        doc = ExportService.export_plano_acao_rich_word(plano)
-
-        # Salvar em buffer
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-
-        response = HttpResponse(
-            buffer.read(),
-            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        # Criar task de processamento
+        task = TaskQueue.objects.create(
+            task_type='export_plano_acao_rich',
+            payload={
+                'plano_id': pk,
+            },
+            user=request.user,
+            empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+            progress_message='Preparando exportação de plano de ação...'
         )
-        filename = f'plano_acao_{plano.dimensao.nome}_{plano.id}.docx'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
 
-        return response
+        return JsonResponse({
+            'task_id': task.id,
+            'message': 'Exportação iniciada. Você será notificado quando estiver pronta.',
+            'status_url': f'/api/tasks/{task.id}/'
+        })
 
 
 # ============================================================================

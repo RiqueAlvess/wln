@@ -58,6 +58,8 @@ class TaskProcessor:
                 result = TaskProcessor._process_export_campaign_comparison(task)
             elif task.task_type == 'export_risk_matrix_excel':
                 result = TaskProcessor._process_export_risk_matrix_excel(task)
+            elif task.task_type == 'export_pgr_document':
+                result = TaskProcessor._process_export_pgr_document(task)
             else:
                 logger.warning(f"Tipo de tarefa desconhecido: {task.task_type}")
                 task.status = 'failed'
@@ -296,20 +298,39 @@ class TaskProcessor:
     @staticmethod
     def _process_export_campaign_comparison(task):
         """Processa exportação de comparação de campanhas."""
+        from app_selectors.comparison_selectors import ComparisonSelectors
+
         payload = task.payload
         campaign1_id = payload['campaign1_id']
         campaign2_id = payload['campaign2_id']
-        summary = payload['summary']
-        dimensions = payload['dimensions']
-        sectors = payload['sectors']
-        ai_analysis = payload.get('ai_analysis', '')
 
-        task.progress = 30
-        task.progress_message = 'Comparando campanhas...'
+        task.progress = 20
+        task.progress_message = 'Buscando dados das campanhas...'
         task.save(update_fields=['progress', 'progress_message'])
 
         campaign1 = Campaign.objects.get(id=campaign1_id)
         campaign2 = Campaign.objects.get(id=campaign2_id)
+
+        task.progress = 40
+        task.progress_message = 'Comparando campanhas...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Buscar dados de comparação
+        summary = ComparisonSelectors.get_evolution_summary(campaign1, campaign2)
+        dimensions = ComparisonSelectors.get_evolution_by_dimension(campaign1, campaign2)
+        sectors = ComparisonSelectors.get_top_sectors_evolution(campaign1, campaign2)
+
+        # Gerar análise de IA
+        evolution_data = {
+            'summary': summary,
+            'dimensions': dimensions,
+            'sectors': sectors,
+        }
+        ai_analysis = ComparisonSelectors.generate_ai_analysis(campaign1, campaign2, evolution_data)
+
+        task.progress = 60
+        task.progress_message = 'Gerando documento...'
+        task.save(update_fields=['progress', 'progress_message'])
 
         doc = ExportService.export_campaign_comparison_word(
             campaign1,
@@ -320,7 +341,7 @@ class TaskProcessor:
             ai_analysis
         )
 
-        task.progress = 70
+        task.progress = 80
         task.progress_message = 'Salvando relatório...'
         task.save(update_fields=['progress', 'progress_message'])
 
@@ -328,7 +349,7 @@ class TaskProcessor:
         doc.save(buffer)
         buffer.seek(0)
 
-        filename = f'comparacao_campanhas_{campaign1_id}_{campaign2_id}.docx'
+        filename = f'Relatorio_Evolucao_{campaign1.empresa.nome.replace(" ", "_")}.docx'
         file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
 
         file_info = TaskFileStorage.save_task_file(buffer, filename, task.id, file_type)
@@ -347,16 +368,113 @@ class TaskProcessor:
 
     @staticmethod
     def _process_export_risk_matrix_excel(task):
-        """Processa exportação de matriz de risco."""
+        """Processa exportação de matriz de risco em Excel."""
+        from services.risk_assessment_service import RiskAssessmentService
+        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+
         payload = task.payload
         campaign_id = payload['campaign_id']
 
-        # TODO: Implementar usando PsychosocialRiskExportService
-        # quando disponível
+        task.progress = 20
+        task.progress_message = 'Buscando dados da campanha...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        campaign = Campaign.objects.get(id=campaign_id)
+
+        task.progress = 40
+        task.progress_message = 'Avaliando riscos psicossociais...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Gerar avaliação completa com processamento de IA
+        avaliacao = RiskAssessmentService.avaliar_campanha_completa(
+            campaign,
+            processar_ia=True
+        )
+
+        task.progress = 70
+        task.progress_message = 'Gerando planilha Excel...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Gerar Excel
+        excel_file = PsychosocialRiskExportService.export_to_excel(avaliacao)
+
+        task.progress = 85
+        task.progress_message = 'Salvando arquivo...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Salvar em buffer
+        buffer = BytesIO()
+        excel_file.save(buffer)
+        buffer.seek(0)
+
+        filename = f"Matriz_Risco_Psicossocial_{campaign.empresa.nome.replace(' ', '_')}_{campaign.nome.replace(' ', '_')}.xlsx"
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        file_info = TaskFileStorage.save_task_file(buffer, filename, task.id, file_type)
+
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
 
         return {
             'success': True,
-            'filename': f'matriz_risco_{campaign_id}.xlsx'
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
+        }
+
+    @staticmethod
+    def _process_export_pgr_document(task):
+        """Processa exportação de documento PGR (Programa de Gerenciamento de Riscos)."""
+        from services.risk_assessment_service import RiskAssessmentService
+        from services.psychosocial_risk_export_service import PsychosocialRiskExportService
+
+        payload = task.payload
+        campaign_id = payload['campaign_id']
+
+        task.progress = 20
+        task.progress_message = 'Buscando dados da campanha...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        campaign = Campaign.objects.get(id=campaign_id)
+
+        task.progress = 40
+        task.progress_message = 'Avaliando riscos psicossociais...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Gerar avaliação completa com processamento de IA
+        avaliacao = RiskAssessmentService.avaliar_campanha_completa(
+            campaign,
+            processar_ia=True
+        )
+
+        task.progress = 70
+        task.progress_message = 'Gerando documento PGR...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Gerar documento PGR
+        doc_bio = PsychosocialRiskExportService.export_pgr_document(avaliacao)
+
+        task.progress = 85
+        task.progress_message = 'Salvando arquivo...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.txt"
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        file_info = TaskFileStorage.save_task_file(doc_bio, filename, task.id, file_type)
+
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
+
+        return {
+            'success': True,
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
         }
 
     @staticmethod
