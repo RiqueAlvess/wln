@@ -8,12 +8,13 @@ def branding(request):
     empresa = None
 
     if request.user.is_authenticated:
-        if hasattr(request.user, 'profile'):
+        # Superusers veem a primeira empresa ativa
+        if request.user.is_superuser:
+            empresa = Empresa.objects.filter(ativo=True).first()
+        elif hasattr(request.user, 'profile'):
             profile = request.user.profile
 
-            if profile.role == 'admin':
-                empresa = Empresa.objects.filter(ativo=True).first()
-            elif profile.role == 'rh':
+            if profile.role == 'rh':
                 empresa = profile.empresas.filter(ativo=True).first()
             elif profile.role == 'lideranca':
                 if profile.unidades_permitidas.exists():

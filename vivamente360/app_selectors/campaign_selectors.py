@@ -5,13 +5,14 @@ from django.db.models import Q
 class CampaignSelectors:
     @staticmethod
     def get_user_campaigns(user):
+        # Superusers têm acesso a todas as campanhas
+        if user.is_superuser:
+            return Campaign.objects.all()
+
         if not hasattr(user, 'profile'):
             return Campaign.objects.none()
 
         profile = user.profile
-
-        if profile.role == 'admin':
-            return Campaign.objects.all()
 
         if profile.role == 'rh':
             return Campaign.objects.filter(empresa__in=profile.empresas.all())

@@ -7,7 +7,6 @@ from apps.structure.models import Unidade, Setor
 
 class UserProfile(TimeStampedModel):
     ROLE_CHOICES = [
-        ('admin', 'Administrador'),
         ('rh', 'RH'),
         ('lideranca', 'Liderança'),
     ]
