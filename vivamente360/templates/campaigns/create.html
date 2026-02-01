@@ -21,62 +21,85 @@
             </div>
             <div class="card-body p-4">
                 <form method="post">
-                    {{ csrf_input }}
+                    {% csrf_token %}
                     <div class="mb-4">
-                        <label class="form-label fw-bold">
+                        <label class="form-label fw-bold" for="{{ form.nome.id_for_label }}">
                             <i class="bi bi-tag text-primary"></i> Nome da Campanha
                         </label>
-                        <input type="text" class="form-control form-control-lg" name="nome"
-                               placeholder="Ex: Avaliação Anual 2024"
-                               required>
+                        {{ form.nome }}
                         <small class="form-text text-muted">
                             <i class="bi bi-info-circle"></i> Escolha um nome descritivo para identificar facilmente esta campanha
                         </small>
+                        {% if form.nome.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.nome.errors }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">
+                        <label class="form-label fw-bold" for="{{ form.descricao.id_for_label }}">
                             <i class="bi bi-file-text text-primary"></i> Descrição
                         </label>
-                        <textarea class="form-control" name="descricao" rows="4"
-                                  placeholder="Descreva os objetivos e contexto desta campanha..."></textarea>
+                        {{ form.descricao }}
                         <small class="form-text text-muted">
                             <i class="bi bi-info-circle"></i> Opcional - Adicione informações que ajudem a contextualizar esta avaliação
                         </small>
+                        {% if form.descricao.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.descricao.errors }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">
+                        <label class="form-label fw-bold" for="{{ form.empresa.id_for_label }}">
                             <i class="bi bi-building text-primary"></i> Empresa
                         </label>
-                        <select class="form-select form-select-lg" name="empresa" required>
-                            <option value="">Selecione a empresa...</option>
-                        </select>
+                        {{ form.empresa }}
                         <small class="form-text text-muted">
                             <i class="bi bi-info-circle"></i> Selecione a empresa que será avaliada nesta campanha
                         </small>
+                        {% if form.empresa.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.empresa.errors }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold">
+                            <label class="form-label fw-bold" for="{{ form.data_inicio.id_for_label }}">
                                 <i class="bi bi-calendar-event text-primary"></i> Data de Início
                             </label>
-                            <input type="date" class="form-control form-control-lg" name="data_inicio" required>
+                            {{ form.data_inicio }}
                             <small class="form-text text-muted">
                                 <i class="bi bi-info-circle"></i> Quando a campanha começa
                             </small>
+                            {% if form.data_inicio.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.data_inicio.errors }}
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold">
+                            <label class="form-label fw-bold" for="{{ form.data_fim.id_for_label }}">
                                 <i class="bi bi-calendar-check text-primary"></i> Data de Término
                             </label>
-                            <input type="date" class="form-control form-control-lg" name="data_fim" required>
+                            {{ form.data_fim }}
                             <small class="form-text text-muted">
                                 <i class="bi bi-info-circle"></i> Quando a campanha termina
                             </small>
+                            {% if form.data_fim.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.data_fim.errors }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
+
+                    {# Campo status oculto - será definido como 'draft' automaticamente #}
+                    {{ form.status }}
 
                     <hr class="my-4">
 
