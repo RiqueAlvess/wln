@@ -68,16 +68,30 @@ class ImportCSVView(RHRequiredMixin, View):
             messages.error(request, error)
             return redirect('invitations:import', campaign_id=campaign_id)
 
-        crypto_service = CryptoService()
-        result = ImportService.process_import(campaign.empresa, campaign, rows, crypto_service)
+        # Enfileirar tarefa de importação no banco de dados
+        task = TaskQueue.objects.create(
+            task_type='import_csv',
+            payload={
+                'campaign_id': campaign_id,
+                'empresa_id': campaign.empresa.id,
+                'rows': rows,
+                'user_id': request.user.id
+            }
+        )
 
-        messages.success(request, f'{result["created"]} convites importados com sucesso.')
-        if result['errors']:
-            for error in result['errors'][:5]:
-                messages.warning(request, error)
+        messages.success(
+            request,
+            f'Importação de {len(rows)} registros enfileirada com sucesso. '
+            f'Você será notificado quando concluir.'
+        )
 
-        AuditService.log(request.user, campaign.empresa, 'import_csv',
-                         f'Importados {result["created"]} convites', request)
+        AuditService.log(
+            request.user,
+            campaign.empresa,
+            'import_csv',
+            f'Importação de {len(rows)} registros enfileirada (Task #{task.id})',
+            request
+        )
 
         return redirect('invitations:manage', campaign_id=campaign_id)
 
