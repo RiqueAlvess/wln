@@ -13,20 +13,62 @@
         :root {
             --bs-primary: {{ branding.cor_primaria }};
             --bs-primary-rgb: {{ branding.cor_primaria|replace('#', '')|int(base=16) // 65536 }}, {{ (branding.cor_primaria|replace('#', '')|int(base=16) // 256) % 256 }}, {{ branding.cor_primaria|replace('#', '')|int(base=16) % 256 }};
+            --cor-fonte-primaria: {{ branding.cor_fonte }};
         }
+
+        /* Cores principais */
         .bg-primary {
             background-color: {{ branding.cor_primaria }} !important;
+            color: {{ branding.cor_fonte }} !important;
         }
+
+        .text-primary {
+            color: {{ branding.cor_primaria }} !important;
+        }
+
+        /* Botões */
         .btn-primary {
             background-color: {{ branding.cor_primaria }};
             border-color: {{ branding.cor_primaria }};
+            color: {{ branding.cor_fonte }} !important;
+            transition: all 0.3s ease;
         }
-        .btn-primary:hover {
-            background-color: {{ branding.cor_secundaria }};
-            border-color: {{ branding.cor_secundaria }};
+
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active {
+            background-color: {{ branding.cor_secundaria }} !important;
+            border-color: {{ branding.cor_secundaria }} !important;
+            color: {{ branding.cor_fonte }} !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-        .text-primary {
-            color: {{ branding.cor_primaria }} !important;
+
+        .btn-outline-primary {
+            color: {{ branding.cor_primaria }};
+            border-color: {{ branding.cor_primaria }};
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            background-color: {{ branding.cor_primaria }} !important;
+            border-color: {{ branding.cor_primaria }} !important;
+            color: {{ branding.cor_fonte }} !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Links */
+        a {
+            color: {{ branding.cor_primaria }};
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: {{ branding.cor_secundaria }};
         }
 
         /* Grid harmonioso e espaçamento */
@@ -50,23 +92,44 @@
         .navbar {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
         .navbar-brand {
             font-weight: 600;
             font-size: 1.25rem;
+            color: {{ branding.cor_fonte }} !important;
         }
+
+        .navbar-brand:hover {
+            color: {{ branding.cor_fonte }} !important;
+            opacity: 0.9;
+        }
+
         .nav-link {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem !important;
             border-radius: 6px;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            color: {{ branding.cor_fonte }} !important;
         }
+
         .nav-link:hover {
             background-color: rgba(255,255,255,0.1);
+            color: {{ branding.cor_fonte }} !important;
+            transform: translateX(4px);
         }
+
         .nav-link i {
             font-size: 1.1rem;
+        }
+
+        .dropdown-toggle {
+            color: {{ branding.cor_fonte }} !important;
+        }
+
+        .dropdown-toggle:hover {
+            color: {{ branding.cor_fonte }} !important;
         }
     </style>
     {% block extra_head %}{% endblock %}

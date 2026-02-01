@@ -23,6 +23,7 @@ class Empresa(TimeStampedModel):
     favicon_url = models.URLField(blank=True)
     cor_primaria = models.CharField(max_length=7, default='#0d6efd')
     cor_secundaria = models.CharField(max_length=7, default='#6c757d')
+    cor_fonte = models.CharField(max_length=7, default='#ffffff', help_text='Cor da fonte nos botões e elementos primários')
     nome_app = models.CharField(max_length=100, default='VIVAMENTE 360º')
 
     ativo = models.BooleanField(default=True)

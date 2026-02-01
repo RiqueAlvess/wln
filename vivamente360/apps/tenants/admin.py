@@ -12,6 +12,6 @@ class EmpresaAdmin(admin.ModelAdmin):
             'fields': ('nome', 'cnpj', 'total_funcionarios', 'ativo')
         }),
         ('Branding', {
-            'fields': ('logo_url', 'favicon_url', 'cor_primaria', 'cor_secundaria', 'nome_app')
+            'fields': ('logo_url', 'favicon_url', 'cor_primaria', 'cor_secundaria', 'cor_fonte', 'nome_app')
         }),
     )
