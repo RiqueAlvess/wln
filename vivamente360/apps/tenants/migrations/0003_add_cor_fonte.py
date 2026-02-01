@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0002_add_cnae_fields'),
+        ('tenants', '0002_empresa_cnae_fields'),
     ]
 
     operations = [
