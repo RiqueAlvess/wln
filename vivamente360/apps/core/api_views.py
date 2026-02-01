@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from django.http import FileResponse, Http404
 from django.core.files.storage import default_storage
 from django.utils import timezone
@@ -19,6 +20,13 @@ from .serializers import (
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    """Paginação padrão para as APIs."""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class TaskQueueFilter(filters.FilterSet):
@@ -57,6 +65,7 @@ class TaskQueueViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TaskQueueSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = TaskQueueFilter
+    pagination_class = StandardResultsSetPagination
     ordering_fields = ['created_at', 'completed_at', 'status']
     ordering = ['-created_at']
 
@@ -185,11 +194,12 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
     """
     serializer_class = UserNotificationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Retorna notificações do usuário logado."""
-        return UserNotification.objects.filter(user=self.request.user)
+        """Retorna notificações ativas do usuário logado (últimas 24h)."""
+        return UserNotification.objects.active().filter(user=self.request.user)
 
     @action(detail=False, methods=['get'])
     def unread_count(self, request):

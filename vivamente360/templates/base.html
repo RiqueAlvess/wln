@@ -182,6 +182,48 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    {# Link para tela de processamento #}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url('core:task_processing') }}" title="Processamento de Arquivos">
+                            <i class="bi bi-list-task"></i>
+                            <span class="d-none d-lg-inline">Processamento</span>
+                        </a>
+                    </li>
+
+                    {# Notificações #}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link position-relative" href="#" id="notificationsDropdown"
+                           data-bs-toggle="dropdown" aria-expanded="false" title="Notificações">
+                            <i class="bi bi-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                  id="notification-badge" style="display: none; font-size: 0.65rem;">
+                                0
+                            </span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end" style="width: 350px; max-height: 400px; overflow-y: auto;"
+                             id="notifications-dropdown">
+                            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Notificações</span>
+                                <button class="btn btn-sm btn-link text-decoration-none p-0"
+                                        onclick="markAllNotificationsRead()" style="font-size: 0.75rem;">
+                                    Marcar todas como lidas
+                                </button>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <div id="notifications-list">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-center small" href="{{ url('core:task_processing') }}">
+                                Ver todas as tarefas
+                            </a>
+                        </div>
+                    </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i>
@@ -219,6 +261,170 @@
 
     {# Incluir modal de erro genérico em todas as páginas #}
     {% include 'components/error_modal.html' %}
+
+    {# Sistema de Notificações #}
+    {% if request.user.is_authenticated %}
+    <script>
+        let notificationCheckInterval = null;
+
+        // Carregar contador de notificações
+        async function loadNotificationCount() {
+            try {
+                const response = await fetch('/api/notifications/unread_count/');
+                const data = await response.json();
+
+                const badge = document.getElementById('notification-badge');
+                if (data.count > 0) {
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contador de notificações:', error);
+            }
+        }
+
+        // Carregar lista de notificações
+        async function loadNotifications() {
+            const container = document.getElementById('notifications-list');
+
+            try {
+                const response = await fetch('/api/notifications/?page_size=10&ordering=-created_at');
+                const data = await response.json();
+
+                if (!data.results || data.results.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted py-3"><small>Nenhuma notificação</small></div>';
+                    return;
+                }
+
+                let html = '';
+                data.results.forEach(notif => {
+                    html += renderNotification(notif);
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar notificações:', error);
+                container.innerHTML = '<div class="text-center text-danger py-3"><small>Erro ao carregar</small></div>';
+            }
+        }
+
+        // Renderizar notificação
+        function renderNotification(notif) {
+            const isUnread = !notif.is_read;
+            const bgClass = isUnread ? 'bg-light' : '';
+
+            const icons = {
+                'task_completed': 'check-circle text-success',
+                'task_failed': 'x-circle text-danger',
+                'file_ready': 'file-earmark-arrow-down text-primary',
+                'info': 'info-circle text-info',
+                'warning': 'exclamation-triangle text-warning',
+                'error': 'x-octagon text-danger'
+            };
+
+            const icon = icons[notif.notification_type] || 'bell';
+
+            let actionButton = '';
+            if (notif.link_url) {
+                actionButton = `<a href="${notif.link_url}" class="btn btn-sm btn-outline-primary mt-2">${notif.link_text || 'Ver'}</a>`;
+            }
+
+            return `
+                <div class="dropdown-item ${bgClass}" style="white-space: normal;"
+                     onclick="markNotificationRead(${notif.id}, '${notif.link_url || ''}')">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-${icon} mt-1"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold small">${notif.title}</div>
+                            <div class="small text-muted">${notif.message}</div>
+                            <div class="small text-muted mt-1">${notif.time_ago}</div>
+                            ${actionButton}
+                        </div>
+                        ${isUnread ? '<span class="badge bg-primary">Nova</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Marcar notificação como lida
+        async function markNotificationRead(id, linkUrl) {
+            try {
+                await fetch(`/api/notifications/${id}/mark_read/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                loadNotificationCount();
+                loadNotifications();
+
+                if (linkUrl) {
+                    window.location.href = linkUrl;
+                }
+            } catch (error) {
+                console.error('Erro ao marcar notificação como lida:', error);
+            }
+        }
+
+        // Marcar todas como lidas
+        async function markAllNotificationsRead() {
+            try {
+                await fetch('/api/notifications/mark_all_read/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                loadNotificationCount();
+                loadNotifications();
+            } catch (error) {
+                console.error('Erro ao marcar todas como lidas:', error);
+            }
+        }
+
+        // Função auxiliar para obter cookie CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Carregar notificações quando dropdown abre
+        document.getElementById('notificationsDropdown').addEventListener('click', function() {
+            loadNotifications();
+        });
+
+        // Iniciar verificação periódica
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNotificationCount();
+
+            // Atualizar contador a cada 30 segundos
+            notificationCheckInterval = setInterval(loadNotificationCount, 30000);
+        });
+
+        // Limpar intervalo ao sair da página
+        window.addEventListener('beforeunload', function() {
+            if (notificationCheckInterval) {
+                clearInterval(notificationCheckInterval);
+            }
+        });
+    </script>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>
