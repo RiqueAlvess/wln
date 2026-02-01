@@ -1,6 +1,7 @@
 from django.views.generic import TemplateView
 from django.shortcuts import redirect, render
 from django.conf import settings
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 class HomeView(TemplateView):
@@ -10,6 +11,19 @@ class HomeView(TemplateView):
         if request.user.is_authenticated:
             return redirect('analytics:dashboard')
         return redirect('accounts:login')
+
+
+class TaskProcessingView(LoginRequiredMixin, TemplateView):
+    """
+    Tela para visualizar e acompanhar o processamento de tasks/arquivos.
+    """
+    template_name = 'core/task_processing.html'
+    login_url = '/accounts/login/'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Processamento de Arquivos e Tarefas'
+        return context
 
 
 # Views para teste de páginas de erro (apenas em desenvolvimento)

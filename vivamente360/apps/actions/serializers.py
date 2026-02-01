@@ -7,7 +7,7 @@ from apps.tenants.models import Empresa
 class PlanoAcaoSerializer(serializers.ModelSerializer):
     dimensao_nome = serializers.CharField(source='dimensao.nome', read_only=True)
     campaign_nome = serializers.CharField(source='campaign.nome', read_only=True)
-    empresa_nome = serializers.CharField(source='empresa.nome_fantasia', read_only=True)
+    empresa_nome = serializers.CharField(source='empresa.nome', read_only=True)
 
     class Meta:
         model = PlanoAcao
