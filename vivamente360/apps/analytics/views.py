@@ -2,7 +2,10 @@ from django.views.generic import TemplateView, View
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
+from django.utils import timezone
+from datetime import timedelta
 from apps.core.mixins import DashboardAccessMixin
+from apps.core.models import TaskQueue
 from app_selectors.campaign_selectors import CampaignSelectors
 from app_selectors.dashboard_selectors import DashboardSelectors
 from app_selectors.comparison_selectors import ComparisonSelectors
@@ -13,6 +16,7 @@ from apps.structure.models import Unidade, Setor
 from apps.responses.models import SurveyResponse
 from apps.analytics.models import SectorAnalysis
 from apps.surveys.models import Campaign
+from tasks.ai_analysis_tasks import enqueue_sector_analysis
 import logging
 
 logger = logging.getLogger(__name__)
@@ -174,43 +178,88 @@ class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
-        """Processa geração de análise"""
-        setor_id = request.POST.get('setor_id')
-        campaign_id = request.POST.get('campaign_id')
-        force_regenerate = request.POST.get('force_regenerate') == 'true'
-
-        if not setor_id or not campaign_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'Parâmetros inválidos'
-            }, status=400)
-
+        """Enfileira geração de análise"""
         try:
-            # Gerar análise
-            analysis = SectorAnalysisService.gerar_analise(
-                int(setor_id),
-                int(campaign_id),
-                force_regenerate=force_regenerate
-            )
+            setor_id = request.POST.get('setor_id')
+            campaign_id = request.POST.get('campaign_id')
 
-            if not analysis:
+            if not setor_id or not campaign_id:
                 return JsonResponse({
-                    'success': False,
-                    'error': 'Não foi possível gerar a análise. Verifique se há dados suficientes.'
+                    'status': 'error',
+                    'message': 'Setor e campanha são obrigatórios'
                 }, status=400)
 
+            # Validar setor e campanha existem
+            setor = get_object_or_404(Setor, id=setor_id)
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+
+            # Verificar se já existe análise recente (últimas 24h)
+            recent_analysis = SectorAnalysis.objects.filter(
+                setor=setor,
+                campaign=campaign,
+                created_at__gte=timezone.now() - timedelta(hours=24)
+            ).first()
+
+            if recent_analysis:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Análise recente encontrada',
+                    'analysis_id': recent_analysis.id,
+                    'redirect_url': f'/dashboard/sector-analysis/{setor_id}/?campaign={campaign_id}'
+                })
+
+            # Enfileirar análise
+            task = enqueue_sector_analysis(
+                setor_id=setor_id,
+                campaign_id=campaign_id,
+                user_id=request.user.id if request.user.is_authenticated else None
+            )
+
             return JsonResponse({
-                'success': True,
-                'analysis_id': analysis.id,
-                'redirect_url': f'/analytics/sector-analysis/{setor_id}/{campaign_id}/'
+                'status': 'queued',
+                'message': 'Análise enfileirada para processamento',
+                'task_id': task.id,
+                'poll_url': f'/dashboard/sector-analysis/status/{task.id}/'
             })
 
         except Exception as e:
-            logger.error(f"Erro ao gerar análise: {e}")
+            logger.error(f"Erro ao enfileirar análise: {str(e)}")
             return JsonResponse({
-                'success': False,
-                'error': str(e)
+                'status': 'error',
+                'message': str(e)
             }, status=500)
+
+
+class CheckAnalysisStatusView(View):
+    """Verifica status de análise em processamento"""
+
+    def get(self, request, task_id):
+        try:
+            task = get_object_or_404(TaskQueue, id=task_id)
+
+            response_data = {
+                'task_id': task.id,
+                'status': task.status,
+                'attempts': task.attempts,
+                'created_at': task.created_at.isoformat()
+            }
+
+            if task.status == 'completed':
+                analysis_id = task.payload.get('analysis_id')
+                if analysis_id:
+                    analysis = SectorAnalysis.objects.get(id=analysis_id)
+                    response_data['redirect_url'] = f'/dashboard/sector-analysis/{analysis.setor.id}/?campaign={analysis.campaign.id}'
+
+            elif task.status == 'failed':
+                response_data['error'] = task.error_message
+
+            return JsonResponse(response_data)
+
+        except TaskQueue.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Task não encontrada'
+            }, status=404)
 
 
 class SectorAnalysisListView(DashboardAccessMixin, TemplateView):
