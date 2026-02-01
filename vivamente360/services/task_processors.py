@@ -1,8 +1,19 @@
 """
 Processadores de tarefas para o sistema de filas em banco de dados.
 Todas as tarefas são enfileiradas no modelo TaskQueue e processadas por workers.
+
+Tipos de tasks suportadas:
+- send_email: Envio de e-mails (convites, notificações)
+- generate_sector_analysis: Análise de setor por IA (GPT-4o)
+- import_csv: Importação de dados CSV
+- export_plano_acao: Exportação de planos de ação (Word)
+- export_plano_acao_rich: Exportação de plano de ação detalhado (Word)
+- export_checklist_nr1: Exportação de checklist NR-1 (PDF)
+- export_campaign_comparison: Comparação de campanhas (Word)
+- export_risk_matrix_excel: Matriz de risco (Excel)
 """
 from django.utils import timezone
+from django.db.models import F
 from apps.core.models import TaskQueue
 from services.export_service import ExportService
 from services.import_service import ImportService
@@ -30,7 +41,11 @@ class TaskProcessor:
 
         try:
             # Dispatch baseado no tipo de tarefa
-            if task.task_type == 'import_csv':
+            if task.task_type == 'send_email':
+                result = TaskProcessor._process_send_email(task)
+            elif task.task_type == 'generate_sector_analysis':
+                result = TaskProcessor._process_sector_analysis(task)
+            elif task.task_type == 'import_csv':
                 result = TaskProcessor._process_import_csv(task)
             elif task.task_type == 'export_plano_acao':
                 result = TaskProcessor._process_export_plano_acao(task)
@@ -64,6 +79,52 @@ class TaskProcessor:
             task.error_message = str(e)
             task.save()
             return False
+
+    @staticmethod
+    def _process_send_email(task):
+        """Processa envio de e-mail."""
+        from services.email_service import get_email_service
+        from apps.invitations.models import SurveyInvitation
+
+        payload = task.payload
+        email_service = get_email_service()
+
+        success = email_service.send(
+            to=payload['to'],
+            subject=payload['subject'],
+            html_body=payload['html']
+        )
+
+        if not success:
+            raise Exception("Falha no envio de e-mail")
+
+        # Atualizar status do convite
+        if 'invitation_id' in payload:
+            SurveyInvitation.objects.filter(
+                id=payload['invitation_id']
+            ).update(status='sent', sent_at=timezone.now())
+
+        return {'success': True, 'email_sent': True}
+
+    @staticmethod
+    def _process_sector_analysis(task):
+        """Processa análise de setor por IA."""
+        from services.sector_analysis_service import SectorAnalysisService
+
+        payload = task.payload
+        setor_id = payload['setor_id']
+        campaign_id = payload['campaign_id']
+
+        logger.info(f"Processando análise IA para setor {setor_id}, campanha {campaign_id}")
+
+        # Gerar análise usando service
+        analysis = SectorAnalysisService.gerar_analise(setor_id, campaign_id)
+
+        if not analysis:
+            raise Exception("Falha ao gerar análise de setor")
+
+        logger.info(f"Análise gerada com sucesso: ID {analysis.id}")
+        return {'success': True, 'analysis_id': analysis.id}
 
     @staticmethod
     def _process_import_csv(task):
@@ -253,7 +314,7 @@ class TaskQueueWorker:
         failed_tasks = TaskQueue.objects.filter(
             status='failed'
         ).exclude(
-            attempts__gte=models.F('max_attempts')
+            attempts__gte=F('max_attempts')
         ).order_by('-created_at')[:limit]
 
         retried = 0
