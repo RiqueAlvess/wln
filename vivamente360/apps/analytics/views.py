@@ -53,20 +53,25 @@ class DashboardView(DashboardAccessMixin, TemplateView):
             filters['setor_id'] = setor_id
 
         # Buscar unidades e setores disponíveis para esta campanha
+        # Filtrar por permissões do usuário (Liderança vê apenas suas unidades/setores)
         unidades_disponiveis = Unidade.objects.filter(
             id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('unidade_id', flat=True).distinct()
-        ).order_by('nome')
+        )
+        unidades_disponiveis = self.filter_unidades_by_permission(unidades_disponiveis).order_by('nome')
 
         # Se uma unidade foi selecionada, filtrar setores por ela
         if unidade_id:
             setores_disponiveis = Setor.objects.filter(
                 unidade_id=unidade_id,
                 id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
-            ).order_by('nome')
+            )
         else:
             setores_disponiveis = Setor.objects.filter(
                 id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
-            ).order_by('nome')
+            )
+
+        # Aplicar filtro de permissão (Liderança vê apenas seus setores)
+        setores_disponiveis = self.filter_setores_by_permission(setores_disponiveis).order_by('nome')
 
         # Buscar dados com filtros aplicados
         metrics = DashboardSelectors.get_campaign_metrics(campaign, filters)
@@ -132,6 +137,12 @@ class SectorAnalysisView(DashboardAccessMixin, TemplateView):
         setor = get_object_or_404(Setor, id=setor_id)
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
+        # Validar permissão: usuário pode acessar este setor?
+        setores_permitidos = self.get_setores_permitidos()
+        if setor not in setores_permitidos:
+            messages.error(self.request, 'Você não tem permissão para acessar análises deste setor.')
+            return redirect('analytics:sector_analysis_list')
+
         # Buscar ou gerar análise
         analysis = SectorAnalysisService.get_analise(setor_id, campaign_id)
 
@@ -167,7 +178,10 @@ class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
         # Buscar setores com respostas nesta campanha
         setores_com_respostas = Setor.objects.filter(
             id__in=SurveyResponse.objects.filter(campaign=campaign).values_list('setor_id', flat=True).distinct()
-        ).select_related('unidade').order_by('unidade__nome', 'nome')
+        ).select_related('unidade')
+
+        # Filtrar por permissões do usuário (Liderança vê apenas seus setores)
+        setores_com_respostas = self.filter_setores_by_permission(setores_com_respostas).order_by('unidade__nome', 'nome')
 
         context = {
             'campaigns': campaigns,
@@ -192,6 +206,14 @@ class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
             # Validar setor e campanha existem
             setor = get_object_or_404(Setor, id=setor_id)
             campaign = get_object_or_404(Campaign, id=campaign_id)
+
+            # Validar permissão: usuário pode acessar este setor?
+            setores_permitidos = self.get_setores_permitidos()
+            if setor not in setores_permitidos:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Você não tem permissão para gerar análise deste setor'
+                }, status=403)
 
             # Verificar se já existe análise recente (últimas 24h)
             recent_analysis = SectorAnalysis.objects.filter(
@@ -292,7 +314,11 @@ class SectorAnalysisListView(DashboardAccessMixin, TemplateView):
             analyses = SectorAnalysis.objects.filter(
                 campaign=campaign,
                 empresa=empresa
-            ).select_related('setor', 'campaign').order_by('-created_at')
+            ).select_related('setor', 'campaign')
+
+            # Filtrar análises por setores permitidos (Liderança vê apenas seus setores)
+            setores_permitidos = self.get_setores_permitidos()
+            analyses = analyses.filter(setor__in=setores_permitidos).order_by('-created_at')
 
         context.update({
             'campaigns': campaigns,
@@ -531,11 +557,17 @@ class SectorRiskDetailView(DashboardAccessMixin, TemplateView):
         campaign = get_object_or_404(Campaign, id=campaign_id)
         setor = get_object_or_404(Setor, id=setor_id)
 
-        # Verificar permissão
+        # Verificar permissão de campanha
         campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
         if campaign not in campaigns:
             messages.error(self.request, 'Você não tem permissão para acessar esta campanha.')
             return redirect('analytics:dashboard')
+
+        # Verificar permissão de setor (Liderança vê apenas seus setores)
+        setores_permitidos = self.get_setores_permitidos()
+        if setor not in setores_permitidos:
+            messages.error(self.request, 'Você não tem permissão para acessar dados deste setor.')
+            return redirect('analytics:psychosocial_risk_matrix')
 
         from services.risk_assessment_service import RiskAssessmentService
 
