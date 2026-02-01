@@ -218,6 +218,11 @@ class ChecklistNR1ListView(RHRequiredMixin, ListView):
         campaign_id = self.kwargs['campaign_id']
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
+        # Verificar se existem itens do checklist para esta campanha
+        # Se não existirem, criar os itens padrão
+        if not ChecklistNR1Etapa.objects.filter(campaign=campaign).exists():
+            self._criar_checklist_padrao(campaign)
+
         # Organizar itens por etapa
         itens_por_etapa = {}
         for etapa_num, etapa_nome in ChecklistNR1Etapa.ETAPAS:
@@ -246,6 +251,64 @@ class ChecklistNR1ListView(RHRequiredMixin, ListView):
         context['total_concluidos'] = total_concluidos
 
         return context
+
+    def _criar_checklist_padrao(self, campaign):
+        """
+        Cria os itens padrão do checklist NR-1 para uma campanha
+        """
+        # Itens padrão do checklist NR-1
+        itens_padrao = [
+            # Etapa 1: Preparação
+            (1, 1, "Definir equipe responsável pela avaliação", False),
+            (1, 2, "Comunicar colaboradores sobre a pesquisa", False),
+            (1, 3, "Garantir anonimato e confidencialidade", False),
+            (1, 4, "Selecionar instrumento de avaliação (HSE-IT)", True),
+            (1, 5, "Definir cronograma de aplicação", False),
+
+            # Etapa 2: Identificação de Perigos
+            (2, 1, "Mapear setores e cargos da empresa", False),
+            (2, 2, "Identificar fatores de risco por área", False),
+            (2, 3, "Levantar histórico de afastamentos", False),
+            (2, 4, "Consultar PCMSO e ASO existentes", False),
+
+            # Etapa 3: Avaliação de Riscos
+            (3, 1, "Aplicar questionário HSE-IT", True),
+            (3, 2, "Calcular scores por dimensão", True),
+            (3, 3, "Classificar níveis de risco (Matriz P×S)", False),
+            (3, 4, "Priorizar áreas de intervenção", False),
+
+            # Etapa 4: Planejamento e Controle
+            (4, 1, "Elaborar planos de ação para riscos críticos", False),
+            (4, 2, "Definir responsáveis e prazos", False),
+            (4, 3, "Alocar recursos necessários", False),
+            (4, 4, "Estabelecer indicadores de acompanhamento", False),
+
+            # Etapa 5: Monitoramento e Revisão
+            (5, 1, "Acompanhar execução dos planos de ação", False),
+            (5, 2, "Reavaliar riscos periodicamente", False),
+            (5, 3, "Revisar eficácia das intervenções", False),
+            (5, 4, "Ajustar estratégias conforme necessário", False),
+
+            # Etapa 6: Comunicação e Cultura
+            (6, 1, "Divulgar resultados aos colaboradores", False),
+            (6, 2, "Promover treinamentos sobre saúde mental", False),
+            (6, 3, "Fortalecer canais de comunicação interna", False),
+            (6, 4, "Fomentar cultura de prevenção e bem-estar", False),
+        ]
+
+        for etapa, ordem, texto, automatico in itens_padrao:
+            item = ChecklistNR1Etapa.objects.create(
+                campaign=campaign,
+                empresa=campaign.empresa,
+                etapa=etapa,
+                item_ordem=ordem,
+                item_texto=texto,
+                automatico=automatico,
+                concluido=automatico
+            )
+            if automatico:
+                item.data_conclusao = timezone.now()
+                item.save()
 
 
 class ChecklistNR1ItemUpdateView(RHRequiredMixin, View):

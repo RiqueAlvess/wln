@@ -149,7 +149,7 @@
         </div>
     </div>
 
-    <div class="card-body etapa-content" id="etapa-content-{{ etapa_num }}">
+    <div class="card-body etapa-content show" id="etapa-content-{{ etapa_num }}">
         {% for item in etapa_data.itens %}
         <div class="checklist-item border-bottom py-3" id="item-{{ item.id }}">
             <div class="row align-items-start">
@@ -358,15 +358,30 @@
     function toggleEtapa(etapaNum) {
         const content = document.getElementById(`etapa-content-${etapaNum}`);
         const icon = document.getElementById(`toggle-icon-${etapaNum}`);
+        const card = document.getElementById(`etapa-${etapaNum}`);
 
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            icon.classList.remove('bi-chevron-right');
-            icon.classList.add('bi-chevron-down');
-        } else {
-            content.style.display = 'none';
+        if (!content || !icon) {
+            console.error(`Elementos não encontrados para etapa ${etapaNum}`);
+            return;
+        }
+
+        // Verifica se está atualmente visível
+        const isVisible = content.classList.contains('show') || (!content.classList.contains('d-none') && content.style.display !== 'none');
+
+        if (isVisible) {
+            // Ocultar
+            content.classList.add('d-none');
+            content.classList.remove('show');
             icon.classList.remove('bi-chevron-down');
             icon.classList.add('bi-chevron-right');
+            if (card) card.classList.add('collapsed');
+        } else {
+            // Mostrar
+            content.classList.remove('d-none');
+            content.classList.add('show');
+            icon.classList.remove('bi-chevron-right');
+            icon.classList.add('bi-chevron-down');
+            if (card) card.classList.remove('collapsed');
         }
     }
 
