@@ -50,6 +50,7 @@ def environment(**options):
         'static': static,
         'url': url_helper,
         'get_messages': get_messages,
+        'csrf_input': csrf_input_helper,
     })
 
     env.filters.update({
