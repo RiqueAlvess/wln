@@ -24,7 +24,7 @@
         <div class="card-body">
             <h5 class="card-title"><i class="bi bi-calendar-check"></i> Campanha Selecionada</h5>
             <p class="card-text mb-0"><strong>{{ campaign.nome }}</strong></p>
-            <p class="text-muted small mb-0">{{ campaign.total_convidados }} convidados • {{ campaign.total_respostas }} respostas</p>
+            <p class="text-muted small mb-0">{{ campaign.total_convidados if hasattr(campaign, 'total_convidados') else 0 }} convidados • {{ campaign.total_respostas if hasattr(campaign, 'total_respostas') else 0 }} respostas</p>
         </div>
     </div>
 
@@ -102,10 +102,9 @@ function selectSector(sectorId, sectorName) {
     modal.show();
 
     // Get CSRF token
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-                     document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    const csrftoken = getCookie('csrfmiddlewaretoken') || getCookie('csrftoken');
 
-    // Make request to generate analysis
+    // Make request to enqueue analysis
     fetch('{{ url("analytics:generate_sector_analysis") }}', {
         method: 'POST',
         headers: {
@@ -120,12 +119,15 @@ function selectSector(sectorId, sectorName) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // Redirect to analysis page
+        if (data.status === 'queued') {
+            // Start polling for status
+            pollAnalysisStatus(data.task_id, modal);
+        } else if (data.status === 'success' && data.redirect_url) {
+            // Analysis already exists
             window.location.href = data.redirect_url;
         } else {
             modal.hide();
-            alert('Erro ao gerar análise: ' + data.error);
+            alert('Erro ao processar: ' + (data.message || 'Erro desconhecido'));
         }
     })
     .catch(error => {
@@ -133,6 +135,53 @@ function selectSector(sectorId, sectorName) {
         console.error('Error:', error);
         alert('Erro ao gerar análise. Por favor, tente novamente.');
     });
+}
+
+function pollAnalysisStatus(taskId, modal) {
+    const interval = setInterval(() => {
+        fetch(`/dashboard/sector-analysis/status/${taskId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'completed') {
+                    clearInterval(interval);
+
+                    if (data.redirect_url) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 500);
+                    } else {
+                        modal.hide();
+                        alert('Análise concluída!');
+                    }
+                } else if (data.status === 'failed') {
+                    clearInterval(interval);
+                    modal.hide();
+                    alert('Erro ao gerar análise: ' + (data.error || 'Erro desconhecido'));
+                }
+                // If status = 'pending' or 'processing', continue polling
+            })
+            .catch(error => {
+                console.error('Erro no polling:', error);
+                clearInterval(interval);
+                modal.hide();
+                alert('Erro ao verificar status da análise.');
+            });
+    }, 2000); // Poll every 2 seconds
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 </script>
 
