@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from apps.core.mixins import RHRequiredMixin
 from apps.surveys.models import Campaign
+from apps.surveys.forms import CampaignForm
 from app_selectors.campaign_selectors import CampaignSelectors
 
 
@@ -19,8 +20,8 @@ class CampaignListView(RHRequiredMixin, ListView):
 
 class CampaignCreateView(RHRequiredMixin, CreateView):
     model = Campaign
+    form_class = CampaignForm
     template_name = 'campaigns/create.html'
-    fields = ['nome', 'descricao', 'empresa', 'data_inicio', 'data_fim', 'status']
     success_url = reverse_lazy('surveys:list')
 
     def get_form(self, form_class=None):
@@ -36,33 +37,6 @@ class CampaignCreateView(RHRequiredMixin, CreateView):
         else:
             # Usuário sem perfil não vê nenhuma empresa
             form.fields['empresa'].queryset = form.fields['empresa'].queryset.none()
-
-        # Adicionar classes CSS aos widgets
-        form.fields['empresa'].widget.attrs.update({
-            'class': 'form-select form-select-lg',
-            'required': 'required'
-        })
-        form.fields['nome'].widget.attrs.update({
-            'class': 'form-control form-control-lg',
-            'placeholder': 'Ex: Avaliação Anual 2024'
-        })
-        form.fields['descricao'].widget.attrs.update({
-            'class': 'form-control',
-            'rows': '4',
-            'placeholder': 'Descreva os objetivos e contexto desta campanha...'
-        })
-        form.fields['data_inicio'].widget.attrs.update({
-            'class': 'form-control form-control-lg',
-            'type': 'date'
-        })
-        form.fields['data_fim'].widget.attrs.update({
-            'class': 'form-control form-control-lg',
-            'type': 'date'
-        })
-
-        # Ocultar campo status (definido automaticamente como 'draft')
-        form.fields['status'].widget = form.fields['status'].hidden_widget()
-        form.fields['status'].initial = 'draft'
 
         return form
 
