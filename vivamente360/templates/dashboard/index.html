@@ -140,6 +140,26 @@
     </div>
 </div>
 
+{# Alerta para líderes sem setor selecionado #}
+{% if requer_selecao_setor %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-warning border-0 shadow-sm" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle-fill fs-2 me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Selecione um setor para visualizar os dados</h5>
+                    <p class="mb-0">
+                        Para garantir a privacidade e segurança dos dados, é necessário selecionar um setor específico no filtro acima.
+                        Você tem acesso aos setores permitidos de acordo com suas permissões.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+
 <div class="row g-4 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="card metric-card {% if adesao >= 70 %}success{% elif adesao >= 50 %}warning{% else %}danger{% endif %} border-0 shadow-sm h-100">
@@ -350,6 +370,8 @@
 <h3 class="section-title">📈 Análises Detalhadas</h3>
 
 <div class="row g-4 mb-4">
+    {# Análise por Gênero - apenas para RH e Superusuário #}
+    {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
@@ -362,8 +384,9 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
-    <div class="col-lg-6">
+    <div class="{% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}col-lg-6{% else %}col-12{% endif %}">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
                 <h5 class="mb-0"><i class="bi bi-calendar-range text-primary"></i> Análise por Faixa Etária</h5>
@@ -423,6 +446,8 @@
 <h3 class="section-title">👥 Análise Demográfica Detalhada</h3>
 
 <div class="row g-4 mb-4">
+    {# Score por Gênero - apenas para RH e Superusuário #}
+    {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
@@ -435,8 +460,9 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
-    <div class="col-lg-6">
+    <div class="{% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}col-lg-6{% else %}col-12{% endif %}">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom">
                 <h5 class="mb-0"><i class="bi bi-graph-up text-primary"></i> Score Médio por Dimensão - Faixa Etária</h5>
@@ -450,6 +476,8 @@
     </div>
 </div>
 
+{# TOP 3 Grupos Demográficos - apenas para RH e Superusuário #}
+{% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
 <div class="row g-4 mb-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm">
@@ -495,6 +523,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <div class="row g-4">
     <div class="col-12">
@@ -532,7 +561,9 @@
     </div>
 </div>
 
-{% endif %}
+{% endif %}{# Fim do bloco else de requer_selecao_setor #}
+
+{% endif %}{# Fim do bloco if campaign #}
 {% endblock %}
 
 {% block scripts %}
