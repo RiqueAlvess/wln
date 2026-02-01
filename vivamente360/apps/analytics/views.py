@@ -688,17 +688,17 @@ class ExportRiskMatrixPGRView(DashboardAccessMixin, TemplateView):
             )
 
             # Gerar documento PGR
-            doc = PsychosocialRiskExportService.export_pgr_document(avaliacao)
+            doc_bio = PsychosocialRiskExportService.export_pgr_document(avaliacao)
 
             # Preparar resposta
             response = HttpResponse(
-                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                content_type='text/plain; charset=utf-8'
             )
-            filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.docx"
+            filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.txt"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
-            # Salvar no response
-            doc.save(response)
+            # Escrever conteúdo no response
+            response.write(doc_bio.getvalue())
 
             return response
 

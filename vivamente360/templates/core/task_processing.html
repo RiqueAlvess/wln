@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - {{ branding.nome_app }}{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-task me-2"></i> Processamento de Arquivos e Tarefas</h2>
+        <button class="btn btn-sm btn-outline-primary" onclick="refreshAll()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar
+        </button>
+    </div>
+
+    <!-- Resumo das Tasks -->
+    <div class="row mb-4" id="taskSummary">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="mb-0" id="summary-total">-</h3>
+                    <small class="text-muted">Total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="mb-0 text-warning" id="summary-pending">-</h3>
+                    <small class="text-muted">Pendentes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h3 class="mb-0 text-info" id="summary-processing">-</h3>
+                    <small class="text-muted">Processando</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="mb-0 text-success" id="summary-completed">-</h3>
+                    <small class="text-muted">Concluídas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h3 class="mb-0 text-danger" id="summary-failed">-</h3>
+                    <small class="text-muted">Falhadas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="mb-0 text-primary" id="summary-files">-</h3>
+                    <small class="text-muted">Arquivos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">
+                <i class="bi bi-list-task"></i> Tarefas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">
+                <i class="bi bi-file-earmark-arrow-down"></i> Arquivos Prontos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabsContent">
+        <!-- Tab Tarefas -->
+        <div class="tab-pane fade show active" id="tasks" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <label class="me-2">Filtrar:</label>
+                    <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="statusFilter" onchange="loadTasks()">
+                        <option value="">Todos os status</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="processing">Processando</option>
+                        <option value="completed">Concluídas</option>
+                        <option value="failed">Falhadas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="tasksContainer">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Arquivos Prontos -->
+        <div class="tab-pane fade" id="files" role="tabpanel">
+            <div id="filesContainer">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval = null;
+
+// Carregar resumo das tasks
+async function loadSummary() {
+    try {
+        const response = await fetch('/api/tasks/summary/');
+        const data = await response.json();
+
+        document.getElementById('summary-total').textContent = data.total;
+        document.getElementById('summary-pending').textContent = data.pending;
+        document.getElementById('summary-processing').textContent = data.processing;
+        document.getElementById('summary-completed').textContent = data.completed;
+        document.getElementById('summary-failed').textContent = data.failed;
+        document.getElementById('summary-files').textContent = data.files_available;
+    } catch (error) {
+        console.error('Erro ao carregar resumo:', error);
+    }
+}
+
+// Carregar lista de tasks
+async function loadTasks() {
+    const container = document.getElementById('tasksContainer');
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    try {
+        let url = '/api/tasks/?ordering=-created_at';
+        if (statusFilter) {
+            url += `&status=${statusFilter}`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.results.length === 0) {
+            container.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Nenhuma tarefa encontrada.</div>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        data.results.forEach(task => {
+            html += renderTaskItem(task);
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Erro ao carregar tasks:', error);
+        container.innerHTML = '<div class="alert alert-danger">Erro ao carregar tarefas.</div>';
+    }
+}
+
+// Renderizar item de task
+function renderTaskItem(task) {
+    const statusColors = {
+        'pending': 'warning',
+        'processing': 'info',
+        'completed': 'success',
+        'failed': 'danger'
+    };
+
+    const statusIcons = {
+        'pending': 'hourglass-split',
+        'processing': 'arrow-repeat',
+        'completed': 'check-circle',
+        'failed': 'x-circle'
+    };
+
+    const color = statusColors[task.status] || 'secondary';
+    const icon = statusIcons[task.status] || 'circle';
+
+    let progressBar = '';
+    if (task.status === 'processing') {
+        progressBar = `
+            <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                     style="width: ${task.progress}%"></div>
+            </div>
+            ${task.progress_message ? `<small class="text-muted">${task.progress_message}</small>` : ''}
+        `;
+    }
+
+    let downloadButton = '';
+    if (task.can_download) {
+        const fileSize = formatFileSize(task.file_size);
+        downloadButton = `
+            <a href="/api/tasks/${task.id}/download/" class="btn btn-sm btn-primary">
+                <i class="bi bi-download"></i> Baixar (${fileSize})
+            </a>
+        `;
+    }
+
+    let errorMessage = '';
+    if (task.error_message) {
+        errorMessage = `
+            <div class="alert alert-danger alert-sm mt-2 mb-0">
+                <small><strong>Erro:</strong> ${task.error_message}</small>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="list-group-item">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-${color} me-2">
+                            <i class="bi bi-${icon}"></i> ${task.status_display}
+                        </span>
+                        <h6 class="mb-0">${getTaskTypeName(task.task_type)}</h6>
+                    </div>
+                    ${progressBar}
+                    ${task.file_name ? `<div class="mt-1"><small class="text-muted"><i class="bi bi-file-earmark"></i> ${task.file_name}</small></div>` : ''}
+                    <small class="text-muted">
+                        Criada em ${formatDate(task.created_at)}
+                        ${task.completed_at ? `- Concluída em ${formatDate(task.completed_at)}` : ''}
+                    </small>
+                    ${errorMessage}
+                </div>
+                <div class="ms-3">
+                    ${downloadButton}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Carregar arquivos prontos
+async function loadFiles() {
+    const container = document.getElementById('filesContainer');
+
+    try {
+        const response = await fetch('/api/tasks/?status=completed&is_file_task=true&ordering=-completed_at');
+        const data = await response.json();
+
+        const filesWithPath = data.results.filter(task => task.can_download);
+
+        if (filesWithPath.length === 0) {
+            container.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Nenhum arquivo disponível para download.</div>';
+            return;
+        }
+
+        let html = '<div class="row g-3">';
+        filesWithPath.forEach(task => {
+            html += renderFileCard(task);
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Erro ao carregar arquivos:', error);
+        container.innerHTML = '<div class="alert alert-danger">Erro ao carregar arquivos.</div>';
+    }
+}
+
+// Renderizar card de arquivo
+function renderFileCard(task) {
+    const fileSize = formatFileSize(task.file_size);
+    const fileIcon = getFileIcon(task.file_name);
+
+    return `
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-${fileIcon} text-primary" style="font-size: 3rem;"></i>
+                    <h6 class="card-title mt-2">${task.file_name}</h6>
+                    <p class="card-text text-muted small">${fileSize}</p>
+                    <p class="card-text text-muted small">
+                        ${task.duration ? `Gerado em ${Math.round(task.duration)}s` : ''}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="/api/tasks/${task.id}/download/" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-download"></i> Baixar
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Funções auxiliares
+function getTaskTypeName(taskType) {
+    const names = {
+        'export_plano_acao': 'Exportação de Plano de Ação',
+        'export_plano_acao_rich': 'Exportação de Plano de Ação Detalhado',
+        'export_checklist_nr1': 'Exportação de Checklist NR-1',
+        'export_campaign_comparison': 'Comparação de Campanhas',
+        'export_risk_matrix_excel': 'Matriz de Risco',
+        'export_pgr_document': 'Documento PGR',
+        'send_email': 'Envio de E-mail',
+        'generate_sector_analysis': 'Análise de Setor',
+        'import_csv': 'Importação de Dados'
+    };
+    return names[taskType] || taskType;
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleString('pt-BR');
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '-';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const icons = {
+        'pdf': 'file-earmark-pdf',
+        'docx': 'file-earmark-word',
+        'doc': 'file-earmark-word',
+        'xlsx': 'file-earmark-excel',
+        'xls': 'file-earmark-excel',
+        'csv': 'file-earmark-spreadsheet',
+        'txt': 'file-earmark-text'
+    };
+    return icons[ext] || 'file-earmark';
+}
+
+function refreshAll() {
+    loadSummary();
+    loadTasks();
+    loadFiles();
+}
+
+// Auto-refresh a cada 5 segundos
+function startAutoRefresh() {
+    autoRefreshInterval = setInterval(() => {
+        loadSummary();
+        loadTasks();
+
+        // Atualizar arquivos se a tab estiver ativa
+        const filesTab = document.getElementById('files-tab');
+        if (filesTab.classList.contains('active')) {
+            loadFiles();
+        }
+    }, 5000);
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+}
+
+// Carregar dados ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    refreshAll();
+    startAutoRefresh();
+
+    // Carregar arquivos quando a tab for ativada
+    document.getElementById('files-tab').addEventListener('shown.bs.tab', function() {
+        loadFiles();
+    });
+});
+
+// Parar auto-refresh quando sair da página
+window.addEventListener('beforeunload', stopAutoRefresh);
+</script>
+{% endblock %}

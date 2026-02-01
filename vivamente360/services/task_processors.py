@@ -18,6 +18,7 @@ from apps.core.models import TaskQueue
 from services.export_service import ExportService
 from services.import_service import ImportService
 from services.crypto_service import CryptoService
+from services.task_file_storage import TaskFileStorage
 from apps.surveys.models import Campaign
 from io import BytesIO
 import logging
@@ -67,8 +68,13 @@ class TaskProcessor:
             # Marcar como concluída
             task.status = 'completed'
             task.completed_at = timezone.now()
+            task.progress = 100
+            task.progress_message = 'Concluído'
             task.payload['result'] = result
             task.save()
+
+            # Criar notificação de sucesso
+            TaskProcessor._create_completion_notification(task, result)
 
             logger.info(f"Tarefa {task.id} ({task.task_type}) processada com sucesso")
             return True
@@ -77,7 +83,12 @@ class TaskProcessor:
             logger.error(f"Erro ao processar tarefa {task.id} ({task.task_type}): {str(e)}")
             task.status = 'failed'
             task.error_message = str(e)
+            task.progress_message = 'Erro no processamento'
             task.save()
+
+            # Criar notificação de falha
+            TaskProcessor._create_failure_notification(task, str(e))
+
             return False
 
     @staticmethod
@@ -157,24 +168,44 @@ class TaskProcessor:
         campaign_id = payload['campaign_id']
         plano_ids = payload.get('plano_ids', [])
 
+        task.progress = 25
+        task.progress_message = 'Gerando documento...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         campaign = Campaign.objects.get(id=campaign_id)
         planos = PlanoAcao.objects.filter(id__in=plano_ids)
 
         doc = ExportService.export_plano_acao_word(campaign, planos)
 
-        # Salvar documento em memória para obter tamanho
+        task.progress = 50
+        task.progress_message = 'Salvando arquivo...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        # Salvar documento em storage permanente
         buffer = BytesIO()
         doc.save(buffer)
-        file_size = buffer.tell()
-        buffer.close()
+        buffer.seek(0)
 
-        # TODO: Salvar arquivo em storage permanente (S3, filesystem, etc)
-        # e retornar URL ou caminho
+        filename = f'plano_acao_{campaign_id}.docx'
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        task.progress = 75
+        task.progress_message = 'Finalizando...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        file_info = TaskFileStorage.save_task_file(buffer, filename, task.id, file_type)
+
+        # Atualizar task com informações do arquivo
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
 
         return {
             'success': True,
-            'file_size': file_size,
-            'filename': f'plano_acao_{campaign_id}.docx'
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
         }
 
     @staticmethod
@@ -185,18 +216,36 @@ class TaskProcessor:
         payload = task.payload
         plano_id = payload['plano_id']
 
+        task.progress = 30
+        task.progress_message = 'Gerando plano de ação detalhado...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         plano_acao = PlanoAcao.objects.get(id=plano_id)
         doc = ExportService.export_plano_acao_rich_word(plano_acao)
 
+        task.progress = 70
+        task.progress_message = 'Salvando arquivo...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         buffer = BytesIO()
         doc.save(buffer)
-        file_size = buffer.tell()
-        buffer.close()
+        buffer.seek(0)
+
+        filename = f'plano_acao_detalhado_{plano_id}.docx'
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        file_info = TaskFileStorage.save_task_file(buffer, filename, task.id, file_type)
+
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
 
         return {
             'success': True,
-            'file_size': file_size,
-            'filename': f'plano_acao_rich_{plano_id}.docx'
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
         }
 
     @staticmethod
@@ -209,6 +258,10 @@ class TaskProcessor:
         total_itens = payload['total_itens']
         total_concluidos = payload['total_concluidos']
 
+        task.progress = 30
+        task.progress_message = 'Gerando checklist NR-1...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         campaign = Campaign.objects.get(id=campaign_id)
 
         pdf_content = ExportService.export_checklist_nr1_pdf(
@@ -219,12 +272,25 @@ class TaskProcessor:
             total_concluidos
         )
 
-        # TODO: Salvar PDF em storage permanente
+        task.progress = 70
+        task.progress_message = 'Salvando PDF...'
+        task.save(update_fields=['progress', 'progress_message'])
+
+        filename = f'checklist_nr1_{campaign_id}.pdf'
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        file_info = TaskFileStorage.save_task_file(pdf_content, filename, task.id, file_type)
+
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
 
         return {
             'success': True,
-            'file_size': len(pdf_content),
-            'filename': f'checklist_nr1_{campaign_id}.pdf'
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
         }
 
     @staticmethod
@@ -238,6 +304,10 @@ class TaskProcessor:
         sectors = payload['sectors']
         ai_analysis = payload.get('ai_analysis', '')
 
+        task.progress = 30
+        task.progress_message = 'Comparando campanhas...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         campaign1 = Campaign.objects.get(id=campaign1_id)
         campaign2 = Campaign.objects.get(id=campaign2_id)
 
@@ -250,15 +320,29 @@ class TaskProcessor:
             ai_analysis
         )
 
+        task.progress = 70
+        task.progress_message = 'Salvando relatório...'
+        task.save(update_fields=['progress', 'progress_message'])
+
         buffer = BytesIO()
         doc.save(buffer)
-        file_size = buffer.tell()
-        buffer.close()
+        buffer.seek(0)
+
+        filename = f'comparacao_campanhas_{campaign1_id}_{campaign2_id}.docx'
+        file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
+
+        file_info = TaskFileStorage.save_task_file(buffer, filename, task.id, file_type)
+
+        task.file_path = file_info['file_path']
+        task.file_name = file_info['file_name']
+        task.file_size = file_info['file_size']
+        task.save(update_fields=['file_path', 'file_name', 'file_size'])
 
         return {
             'success': True,
-            'file_size': file_size,
-            'filename': f'comparacao_campanhas_{campaign1_id}_{campaign2_id}.docx'
+            'file_size': file_info['file_size'],
+            'filename': file_info['file_name'],
+            'file_path': file_info['file_path']
         }
 
     @staticmethod
@@ -274,6 +358,94 @@ class TaskProcessor:
             'success': True,
             'filename': f'matriz_risco_{campaign_id}.xlsx'
         }
+
+    @staticmethod
+    def _create_completion_notification(task, result):
+        """Cria notificação de task completada."""
+        from apps.core.models import UserNotification
+
+        if not task.user:
+            return
+
+        # Mapear tipos de task para mensagens amigáveis
+        task_names = {
+            'send_email': 'E-mail enviado',
+            'generate_sector_analysis': 'Análise de setor gerada',
+            'import_csv': 'Importação de dados concluída',
+            'export_plano_acao': 'Plano de ação exportado',
+            'export_plano_acao_rich': 'Plano de ação detalhado exportado',
+            'export_checklist_nr1': 'Checklist NR-1 exportado',
+            'export_campaign_comparison': 'Comparação de campanhas exportada',
+            'export_risk_matrix_excel': 'Matriz de risco exportada',
+            'export_pgr_document': 'Documento PGR exportado',
+        }
+
+        title = task_names.get(task.task_type, 'Tarefa concluída')
+
+        # Determinar tipo de notificação e mensagem
+        if task.is_file_task:
+            notification_type = 'file_ready'
+            message = f'{title}. Seu arquivo está pronto para download.'
+            link_url = f'/tasks/download/{task.id}/'
+            link_text = 'Baixar arquivo'
+        else:
+            notification_type = 'task_completed'
+            message = f'{title} com sucesso.'
+            link_url = ''
+            link_text = ''
+
+        try:
+            UserNotification.objects.create(
+                user=task.user,
+                empresa=task.empresa,
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                task=task,
+                link_url=link_url,
+                link_text=link_text
+            )
+            logger.info(f"Notificação de sucesso criada para task {task.id}")
+        except Exception as e:
+            logger.error(f"Erro ao criar notificação de sucesso: {str(e)}")
+
+    @staticmethod
+    def _create_failure_notification(task, error_message):
+        """Cria notificação de task falhada."""
+        from apps.core.models import UserNotification
+
+        if not task.user:
+            return
+
+        task_names = {
+            'send_email': 'Erro ao enviar e-mail',
+            'generate_sector_analysis': 'Erro na análise de setor',
+            'import_csv': 'Erro na importação de dados',
+            'export_plano_acao': 'Erro ao exportar plano de ação',
+            'export_plano_acao_rich': 'Erro ao exportar plano de ação detalhado',
+            'export_checklist_nr1': 'Erro ao exportar checklist NR-1',
+            'export_campaign_comparison': 'Erro ao exportar comparação',
+            'export_risk_matrix_excel': 'Erro ao exportar matriz de risco',
+            'export_pgr_document': 'Erro ao exportar documento PGR',
+        }
+
+        title = task_names.get(task.task_type, 'Erro na tarefa')
+
+        # Truncar mensagem de erro se muito longa
+        error_preview = error_message[:200] + '...' if len(error_message) > 200 else error_message
+
+        try:
+            UserNotification.objects.create(
+                user=task.user,
+                empresa=task.empresa,
+                notification_type='task_failed',
+                title=title,
+                message=f'Houve um erro ao processar sua solicitação: {error_preview}',
+                task=task
+            )
+            logger.info(f"Notificação de falha criada para task {task.id}")
+        except Exception as e:
+            logger.error(f"Erro ao criar notificação de falha: {str(e)}")
 
 
 class TaskQueueWorker:

@@ -286,7 +286,7 @@ class ExportService:
         # Informações da Campanha
         info_data = [
             ['Campanha:', campaign.nome],
-            ['Empresa:', campaign.empresa.nome_fantasia],
+            ['Empresa:', campaign.empresa.nome],
             ['Período:', f'{campaign.data_inicio.strftime("%d/%m/%Y")} a {campaign.data_fim.strftime("%d/%m/%Y")}'],
             ['Data de Geração:', datetime.now().strftime("%d/%m/%Y %H:%M")],
         ]
