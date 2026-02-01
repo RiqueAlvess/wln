@@ -24,7 +24,7 @@
         <div class="card-body">
             <h5 class="card-title"><i class="bi bi-calendar-check"></i> Campanha Selecionada</h5>
             <p class="card-text mb-0"><strong>{{ campaign.nome }}</strong></p>
-            <p class="text-muted small mb-0">{{ campaign.total_convidados if hasattr(campaign, 'total_convidados') else 0 }} convidados • {{ campaign.total_respostas if hasattr(campaign, 'total_respostas') else 0 }} respostas</p>
+            <p class="text-muted small mb-0">{{ campaign.total_convidados | default(0) }} convidados • {{ campaign.total_respostas | default(0) }} respostas</p>
         </div>
     </div>
 
