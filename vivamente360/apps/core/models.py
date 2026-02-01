@@ -71,9 +71,32 @@ class TaskQueue(models.Model):
         return self.status == 'completed' and bool(self.file_path)
 
 
+class UserNotificationManager(models.Manager):
+    """Manager customizado para UserNotification."""
+
+    def active(self):
+        """Retorna apenas notificações não expiradas (últimas 24h)."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        cutoff = timezone.now() - timedelta(hours=24)
+        return self.filter(created_at__gte=cutoff)
+
+    def delete_expired(self):
+        """Deleta notificações mais antigas que 24 horas."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        cutoff = timezone.now() - timedelta(hours=24)
+        deleted, _ = self.filter(created_at__lt=cutoff).delete()
+        return deleted
+
+
 class UserNotification(models.Model):
     """
     Notificações para usuários sobre tasks completadas, erros, etc.
+
+    Notificações são automaticamente deletadas após 24 horas.
     """
     TYPE_CHOICES = [
         ('task_completed', 'Task Completada'),
@@ -86,6 +109,8 @@ class UserNotification(models.Model):
 
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='notifications')
     empresa = models.ForeignKey('tenants.Empresa', on_delete=models.CASCADE, null=True, blank=True)
+
+    objects = UserNotificationManager()
 
     notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     title = models.CharField(max_length=255)
