@@ -34,8 +34,7 @@ def process_sector_analysis_queue():
         logger.info(f"Processando análise IA para setor {setor_id}, campanha {campaign_id}")
 
         # Gerar análise usando service
-        service = SectorAnalysisService()
-        analysis = service.generate_analysis(setor_id, campaign_id)
+        analysis = SectorAnalysisService.gerar_analise(setor_id, campaign_id)
 
         # Marcar como concluído
         task.status = 'completed'
