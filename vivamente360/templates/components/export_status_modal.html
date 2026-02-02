@@ -1,0 +1,233 @@
+<!-- Modal de Status de Exportação -->
+<div class="modal fade" id="exportStatusModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" id="exportModalHeader">
+                <h5 class="modal-title" id="exportModalTitle">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    <span>Processando Exportação</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="exportModalClose" style="display: none;"></button>
+            </div>
+            <div class="modal-body text-center py-4" id="exportModalBody">
+                <!-- Loading State -->
+                <div id="exportLoadingState">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <h6 class="mb-2" id="exportMainMessage">Exportação iniciada. Você será notificado quando estiver pronta.</h6>
+                    <p class="text-muted mb-0" id="exportProgressMessage">Aguarde enquanto processamos sua solicitação...</p>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mt-3" style="height: 20px; display: none;" id="exportProgressBar">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             aria-valuenow="0"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             style="width: 0%"
+                             id="exportProgressBarInner">
+                            <span id="exportProgressPercent">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success State -->
+                <div id="exportSuccessState" style="display: none;">
+                    <div class="text-success mb-3">
+                        <i class="bi bi-check-circle-fill" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="mb-3">Exportação Concluída!</h6>
+                    <a href="#" class="btn btn-primary" id="exportDownloadBtn" target="_blank">
+                        <i class="bi bi-download me-2"></i>Baixar Arquivo
+                    </a>
+                </div>
+
+                <!-- Error State -->
+                <div id="exportErrorState" style="display: none;">
+                    <div class="text-danger mb-3">
+                        <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="mb-2">Erro ao Processar Exportação</h6>
+                    <p class="text-muted" id="exportErrorMessage">Ocorreu um erro inesperado. Por favor, tente novamente.</p>
+                </div>
+            </div>
+            <div class="modal-footer" id="exportModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Configuração do modal de exportação
+    window.ExportStatusManager = {
+        modal: null,
+        pollingInterval: null,
+        taskId: null,
+
+        init: function() {
+            const modalElement = document.getElementById('exportStatusModal');
+            if (modalElement) {
+                this.modal = new bootstrap.Modal(modalElement);
+            }
+        },
+
+        show: function(taskId, message) {
+            if (!this.modal) {
+                this.init();
+            }
+
+            this.taskId = taskId;
+            this.reset();
+
+            // Atualizar mensagem inicial se fornecida
+            if (message) {
+                document.getElementById('exportMainMessage').textContent = message;
+            }
+
+            this.modal.show();
+            this.startPolling();
+        },
+
+        reset: function() {
+            // Limpar polling anterior
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+
+            // Reset estados
+            document.getElementById('exportLoadingState').style.display = 'block';
+            document.getElementById('exportSuccessState').style.display = 'none';
+            document.getElementById('exportErrorState').style.display = 'none';
+            document.getElementById('exportModalFooter').style.display = 'none';
+            document.getElementById('exportModalClose').style.display = 'none';
+            document.getElementById('exportProgressBar').style.display = 'none';
+
+            // Reset header
+            document.getElementById('exportModalHeader').className = 'modal-header';
+            document.getElementById('exportModalTitle').innerHTML = '<i class="bi bi-hourglass-split me-2"></i><span>Processando Exportação</span>';
+
+            // Reset mensagens
+            document.getElementById('exportMainMessage').textContent = 'Exportação iniciada. Você será notificado quando estiver pronta.';
+            document.getElementById('exportProgressMessage').textContent = 'Aguarde enquanto processamos sua solicitação...';
+        },
+
+        startPolling: function() {
+            const self = this;
+
+            // Poll a cada 2 segundos
+            this.pollingInterval = setInterval(function() {
+                self.checkStatus();
+            }, 2000);
+
+            // Primeira verificação imediata
+            this.checkStatus();
+        },
+
+        checkStatus: function() {
+            const self = this;
+
+            fetch(`/api/tasks/${this.taskId}/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao verificar status da tarefa');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Atualizar progresso se disponível
+                if (data.progress > 0) {
+                    const progressBar = document.getElementById('exportProgressBar');
+                    const progressBarInner = document.getElementById('exportProgressBarInner');
+                    const progressPercent = document.getElementById('exportProgressPercent');
+
+                    progressBar.style.display = 'block';
+                    progressBarInner.style.width = data.progress + '%';
+                    progressBarInner.setAttribute('aria-valuenow', data.progress);
+                    progressPercent.textContent = data.progress + '%';
+                }
+
+                // Atualizar mensagem de progresso
+                if (data.progress_message) {
+                    document.getElementById('exportProgressMessage').textContent = data.progress_message;
+                }
+
+                // Verificar status
+                if (data.status === 'completed') {
+                    self.showSuccess(data);
+                } else if (data.status === 'failed') {
+                    self.showError(data.error_message || 'Erro desconhecido ao processar exportação');
+                }
+                // Se ainda está 'pending' ou 'processing', continua polling
+            })
+            .catch(error => {
+                console.error('Erro ao verificar status:', error);
+                self.showError('Erro ao verificar status da exportação');
+            });
+        },
+
+        showSuccess: function(data) {
+            // Parar polling
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+
+            // Atualizar UI
+            document.getElementById('exportLoadingState').style.display = 'none';
+            document.getElementById('exportSuccessState').style.display = 'block';
+            document.getElementById('exportModalFooter').style.display = 'flex';
+            document.getElementById('exportModalClose').style.display = 'block';
+
+            // Atualizar header
+            document.getElementById('exportModalHeader').className = 'modal-header bg-success text-white';
+            document.getElementById('exportModalTitle').innerHTML = '<i class="bi bi-check-circle-fill me-2"></i><span>Concluído</span>';
+
+            // Configurar botão de download
+            if (data.can_download) {
+                const downloadBtn = document.getElementById('exportDownloadBtn');
+                downloadBtn.href = `/api/tasks/${data.id}/download/`;
+                downloadBtn.style.display = 'inline-block';
+            }
+        },
+
+        showError: function(errorMessage) {
+            // Parar polling
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+
+            // Atualizar UI
+            document.getElementById('exportLoadingState').style.display = 'none';
+            document.getElementById('exportErrorState').style.display = 'block';
+            document.getElementById('exportModalFooter').style.display = 'flex';
+            document.getElementById('exportModalClose').style.display = 'block';
+
+            // Atualizar header
+            document.getElementById('exportModalHeader').className = 'modal-header bg-danger text-white';
+            document.getElementById('exportModalTitle').innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i><span>Erro</span>';
+
+            // Atualizar mensagem de erro
+            document.getElementById('exportErrorMessage').textContent = errorMessage;
+        }
+    };
+
+    // Inicializar quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.ExportStatusManager.init();
+        });
+    } else {
+        window.ExportStatusManager.init();
+    }
+})();
+</script>

@@ -354,12 +354,15 @@
     <!-- Botão Exportar -->
     <div class="text-center mt-4">
         <a href="{{ url('analytics:export_campaign_comparison') }}?campaign1={{ campaign1.id }}&campaign2={{ campaign2.id }}"
-           class="btn btn-primary btn-lg">
+           class="btn btn-primary btn-lg async-export">
             <i class="bi bi-file-earmark-word"></i> Exportar Relatório de Evolução (Word)
         </a>
     </div>
     {% endif %}
 </div>
+
+<!-- Include Modal de Status de Exportação -->
+{% include 'components/export_status_modal.html' %}
 {% endblock %}
 
 {% block scripts %}
@@ -430,4 +433,5 @@
     }
     {% endif %}
 </script>
+<script src="{{ static('js/export_handler.js') }}"></script>
 {% endblock %}

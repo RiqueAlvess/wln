@@ -16,7 +16,7 @@
         <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Voltar
         </a>
-        <a href="{{ url('actions:export_plano_word', campaign_id=campaign.id) }}" class="btn btn-success">
+        <a href="{{ url('actions:export_plano_word', campaign_id=campaign.id) }}" class="btn btn-success async-export">
             <i class="bi bi-file-earmark-word"></i> Exportar Word
         </a>
     </div>
@@ -182,4 +182,11 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Include Modal de Status de Exportação -->
+{% include 'components/export_status_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ static('js/export_handler.js') }}"></script>
 {% endblock %}
