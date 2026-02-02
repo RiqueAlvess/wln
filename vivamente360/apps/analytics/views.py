@@ -479,7 +479,7 @@ class ExportCampaignComparisonView(DashboardAccessMixin, TemplateView):
                     'campaign2_id': int(campaign2_id),
                 },
                 user=request.user,
-                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                empresa=campaign1.empresa,
                 progress_message='Preparando comparação de campanhas...'
             )
 
@@ -632,7 +632,7 @@ class ExportRiskMatrixExcelView(DashboardAccessMixin, TemplateView):
                     'campaign_id': campaign_id,
                 },
                 user=request.user,
-                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                empresa=campaign.empresa,
                 progress_message='Preparando exportação de matriz de risco...'
             )
 
@@ -670,7 +670,7 @@ class ExportRiskMatrixPGRView(DashboardAccessMixin, TemplateView):
                     'campaign_id': campaign_id,
                 },
                 user=request.user,
-                empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+                empresa=campaign.empresa,
                 progress_message='Preparando relatório PGR...'
             )
 
