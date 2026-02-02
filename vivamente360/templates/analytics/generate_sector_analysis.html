@@ -66,9 +66,6 @@
 
 </div>
 
-<!-- Include Modal de Status de Exportação -->
-{% include 'components/export_status_modal.html' %}
-
 <style>
 .sector-card {
     transition: all 0.3s ease;
@@ -82,15 +79,57 @@
 }
 </style>
 
-<script src="{{ static('js/export_handler.js') }}"></script>
 <script>
+// Função auxiliar para obter CSRF token
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.content;
+    const input = document.querySelector('[name="csrfmiddlewaretoken"]');
+    return input ? input.value : '{{ csrf_token }}';
+}
+
+// Função para mostrar toast
+function showToast(message, type = 'info', duration = 3000) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+
+    const bgClass = {
+        'success': 'bg-success',
+        'error': 'bg-danger',
+        'info': 'bg-info'
+    }[type] || 'bg-info';
+
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { delay: duration });
+    toast.show();
+
+    toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+}
+
+// Função para gerar análise de setor
 function selectSector(sectorId, sectorName) {
-    // Make request to enqueue analysis
+    // Fazer requisição para enfileirar análise
     fetch('{{ url("analytics:generate_sector_analysis") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCsrfToken()
         },
         body: new URLSearchParams({
             'setor_id': sectorId,
@@ -98,45 +137,45 @@ function selectSector(sectorId, sectorName) {
             'force_regenerate': 'false'
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao iniciar análise');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'queued' && data.task_id) {
-            // Usar modal de status customizado com redirecionamento
-            if (window.ExportStatusManager) {
-                window.ExportStatusManager.show(data.task_id, `Gerando análise com IA para ${sectorName}...`);
+            // Mostrar toast de sucesso
+            showToast(
+                `✓ Análise de IA iniciada para <strong>${sectorName}</strong>!<br>` +
+                `<small>Você receberá uma notificação quando estiver pronta (pode levar alguns minutos).</small>`,
+                'success',
+                6000
+            );
 
-                // Adicionar listener customizado para redirecionar quando concluído
-                const originalShowSuccess = window.ExportStatusManager.showSuccess;
-                window.ExportStatusManager.showSuccess = function(taskData) {
-                    // Verificar se tem redirect_url no payload da task
-                    if (taskData.payload && taskData.payload.redirect_url) {
-                        window.location.href = taskData.payload.redirect_url;
-                    } else {
-                        // Redirecionar para lista de análises
-                        window.location.href = '{{ url("analytics:sector_analysis_list") }}';
-                    }
-                };
-            } else {
-                alert(data.message || 'Análise enfileirada com sucesso!');
-            }
+            // Redirecionar para lista de análises após 3 segundos
+            setTimeout(() => {
+                window.location.href = '{{ url("analytics:sector_analysis_list") }}';
+            }, 3000);
         } else if (data.status === 'success' && data.redirect_url) {
-            // Analysis already exists
-            window.location.href = data.redirect_url;
+            // Análise já existe - redirecionar imediatamente
+            showToast('✓ Análise já existe! Redirecionando...', 'info', 2000);
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 2000);
         } else {
-            if (window.showErrorModal) {
-                window.showErrorModal('Erro', data.message || 'Erro ao processar análise');
-            } else {
-                alert('Erro ao processar: ' + (data.message || 'Erro desconhecido'));
-            }
+            // Erro genérico
+            throw new Error(data.message || 'Erro ao processar análise');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        if (window.showErrorModal) {
-            window.showErrorModal('Erro', 'Erro ao gerar análise. Por favor, tente novamente.');
-        } else {
-            alert('Erro ao gerar análise. Por favor, tente novamente.');
-        }
+        console.error('Erro:', error);
+        showToast(
+            `✗ Erro ao gerar análise: ${error.message}<br>` +
+            `<small>Por favor, tente novamente.</small>`,
+            'error',
+            5000
+        );
     });
 }
 </script>
