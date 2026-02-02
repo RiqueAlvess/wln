@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.authentication import SessionAuthentication
 from django.http import FileResponse, Http404
 from django.core.files.storage import default_storage
 from django.utils import timezone
@@ -22,6 +23,15 @@ from .serializers import (
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """
+    SessionAuthentication sem validação CSRF.
+    Usado para endpoints que já tem proteção adequada.
+    """
+    def enforce_csrf(self, request):
+        return  # Desabilita CSRF check
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -68,6 +78,7 @@ class TaskQueueViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = TaskQueueSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
     filterset_class = TaskQueueFilter
     pagination_class = StandardResultsSetPagination
     ordering_fields = ['created_at', 'completed_at', 'status']
@@ -200,6 +211,7 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
     """
     serializer_class = UserNotificationSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
     pagination_class = StandardResultsSetPagination
     ordering = ['-created_at']
 

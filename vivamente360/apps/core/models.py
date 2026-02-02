@@ -146,6 +146,14 @@ class UserNotification(models.Model):
         indexes = [
             models.Index(fields=['user', 'is_read', '-created_at']),
         ]
+        # Prevenir notificações duplicadas para a mesma task
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'task', 'notification_type'],
+                name='unique_notification_per_task',
+                condition=models.Q(task__isnull=False)
+            )
+        ]
 
     def __str__(self):
         return f"{self.title} - {self.user.username}"

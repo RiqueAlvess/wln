@@ -468,12 +468,28 @@
          * @param {string} type - Tipo do toast: 'success', 'error', 'warning', 'info'
          * @param {number} duration - Duração em ms (padrão: 5000)
          */
+        // Fila para prevenir toasts duplicados
+        window.toastQueue = window.toastQueue || new Set();
+
         window.showToast = function(message, type = 'info', duration = 5000) {
+            // Verificar se já existe toast com mesma mensagem e tipo
+            const toastKey = `${message}-${type}`;
+            if (window.toastQueue.has(toastKey)) {
+                console.log('Toast duplicado bloqueado:', message);
+                return;
+            }
+
             const container = document.getElementById('toastContainer');
             if (!container) {
                 console.error('Toast container not found');
                 return;
             }
+
+            // Adicionar à fila para prevenir duplicatas
+            window.toastQueue.add(toastKey);
+
+            // Remover da fila após a duração + buffer
+            setTimeout(() => window.toastQueue.delete(toastKey), duration + 100);
 
             const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
