@@ -169,7 +169,7 @@ class ExportPlanoAcaoWordView(RHRequiredMixin, View):
                 'campaign_id': campaign_id,
             },
             user=request.user,
-            empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+            empresa=campaign.empresa,
             progress_message='Preparando exportação de planos de ação...'
         )
 
@@ -201,7 +201,7 @@ class ExportPlanoAcaoRichWordView(RHRequiredMixin, View):
                 'plano_id': pk,
             },
             user=request.user,
-            empresa=request.user.profile.empresa if hasattr(request.user, 'profile') else None,
+            empresa=plano.campaign.empresa,
             progress_message='Preparando exportação de plano de ação...'
         )
 
