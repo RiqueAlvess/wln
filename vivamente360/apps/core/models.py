@@ -156,3 +156,102 @@ class UserNotification(models.Model):
             self.is_read = True
             self.read_at = timezone.now()
             self.save()
+
+
+class ExportedFile(TimeStampedModel):
+    """
+    Gerencia arquivos exportados com TTL de 48 horas.
+
+    Este model rastreia arquivos gerados por tasks de exportação,
+    permitindo melhor controle sobre expiração e limpeza automática.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('processing', 'Processando'),
+        ('completed', 'Concluído'),
+        ('failed', 'Falhou'),
+        ('expired', 'Expirado'),
+    ]
+
+    TIPO_CHOICES = [
+        ('excel', 'Excel'),
+        ('pdf', 'PDF'),
+        ('word', 'Word'),
+        ('txt', 'Texto'),
+    ]
+
+    task = models.OneToOneField(
+        TaskQueue,
+        on_delete=models.CASCADE,
+        related_name='exported_file'
+    )
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='exported_files'
+    )
+    empresa = models.ForeignKey(
+        'tenants.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    campaign = models.ForeignKey(
+        'surveys.Campaign',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    tipo = models.CharField(max_length=50, choices=TIPO_CHOICES)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+
+    # Data de expiração (criado + 48h)
+    expires_at = models.DateTimeField(
+        help_text='Data e hora em que o arquivo expira e deve ser removido'
+    )
+
+    # Controle de downloads
+    downloaded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Primeira vez que o arquivo foi baixado'
+    )
+    download_count = models.IntegerField(
+        default=0,
+        help_text='Número de vezes que o arquivo foi baixado'
+    )
+
+    class Meta:
+        db_table = 'core_exported_file'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status', 'expires_at']),
+            models.Index(fields=['status', 'expires_at']),
+            models.Index(fields=['empresa', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.user.username} - {self.status}"
+
+    @property
+    def is_expired(self):
+        """Verifica se o arquivo está expirado."""
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_available(self):
+        """Verifica se o arquivo está disponível para download."""
+        return self.status == 'completed' and not self.is_expired
+
+    def mark_downloaded(self):
+        """Registra que o arquivo foi baixado."""
+        if not self.downloaded_at:
+            self.downloaded_at = timezone.now()
+        self.download_count += 1
+        self.save(update_fields=['downloaded_at', 'download_count'])
+
+    def mark_expired(self):
+        """Marca o arquivo como expirado."""
+        self.status = 'expired'
+        self.save(update_fields=['status'])

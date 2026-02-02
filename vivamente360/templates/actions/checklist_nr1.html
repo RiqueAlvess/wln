@@ -83,10 +83,10 @@
         <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Voltar
         </a>
-        <button onclick="exportarPDF()" class="btn btn-outline-primary">
+        <a href="{{ url('actions:export_checklist_pdf', campaign_id=campaign.id) }}" class="btn btn-outline-primary async-export">
             <i class="bi bi-file-pdf"></i> Exportar PDF
-        </button>
-        <button onclick="gerarRelatorio()" class="btn btn-success">
+        </a>
+        <button onclick="gerarRelatorio()" class="btn btn-success" disabled title="Em desenvolvimento">
             <i class="bi bi-file-earmark-text"></i> Gerar Relatório Completo
         </button>
     </div>
@@ -505,10 +505,6 @@
                 location.reload();
             }
         });
-    }
-
-    function exportarPDF() {
-        window.location.href = `/actions/{{ campaign.id }}/checklist-nr1/export-pdf/`;
     }
 
     function gerarRelatorio() {

@@ -262,8 +262,12 @@
     {# Incluir modal de erro genérico em todas as páginas #}
     {% include 'components/error_modal.html' %}
 
+    {# Modal de Status de Exportação #}
+    {% include 'components/export_status_modal.html' %}
+
     {# Sistema de Notificações #}
     {% if request.user.is_authenticated %}
+    <script src="{{ static('js/export_handler.js') }}"></script>
     <script>
         let notificationCheckInterval = null;
 
