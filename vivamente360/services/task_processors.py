@@ -532,6 +532,17 @@ class TaskProcessor:
             link_text = ''
 
         try:
+            # Verificar se já existe notificação para esta task
+            existing = UserNotification.objects.filter(
+                user=task.user,
+                task=task,
+                notification_type=notification_type
+            ).exists()
+
+            if existing:
+                logger.info(f"Notificação já existe para task {task.id}, pulando criação")
+                return
+
             UserNotification.objects.create(
                 user=task.user,
                 empresa=task.empresa,
@@ -572,6 +583,17 @@ class TaskProcessor:
         error_preview = error_message[:200] + '...' if len(error_message) > 200 else error_message
 
         try:
+            # Verificar se já existe notificação para esta task
+            existing = UserNotification.objects.filter(
+                user=task.user,
+                task=task,
+                notification_type='task_failed'
+            ).exists()
+
+            if existing:
+                logger.info(f"Notificação de falha já existe para task {task.id}, pulando criação")
+                return
+
             UserNotification.objects.create(
                 user=task.user,
                 empresa=task.empresa,
