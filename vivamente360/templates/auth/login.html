@@ -5,197 +5,422 @@
 {% block extra_head %}
 <style>
     body {
-        background: linear-gradient(135deg, #f6f7f8 0%, #e9ecef 100%);
-        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
     }
-    .login-container {
+
+    /* Container Principal - Split Screen */
+    .login-wrapper {
+        display: flex;
         min-height: 100vh;
+        width: 100%;
+    }
+
+    /* LADO ESQUERDO - Inspiracional */
+    .login-left {
+        flex: 1;
+        background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 2rem 0;
-    }
-    .login-card {
-        border: none;
-        border-radius: 1rem;
-        overflow: hidden;
-        max-width: 460px;
-        width: 100%;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        border-top: 4px solid var(--primary-blue);
-    }
-    .login-header {
-        background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%);
-        padding: 3rem 2rem;
-        text-align: center;
+        padding: 3rem;
         position: relative;
         overflow: hidden;
     }
-    .login-header::before {
+
+    .login-left::before {
         content: '';
         position: absolute;
         top: -50%;
         right: -50%;
         width: 200%;
         height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: pulse 4s ease-in-out infinite;
+        background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 60%);
+        animation: pulse-slow 8s ease-in-out infinite;
     }
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.1); opacity: 0.3; }
+
+    @keyframes pulse-slow {
+        0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        50% { transform: scale(1.1) rotate(5deg); opacity: 0.8; }
     }
-    .login-header i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
+
+    .login-left-content {
+        position: relative;
+        z-index: 1;
+        max-width: 540px;
         color: white;
-        position: relative;
-        z-index: 1;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
     }
-    .login-header h3 {
-        color: white;
-        font-weight: 800;
-        margin-bottom: 0.5rem;
-        font-size: 1.75rem;
-        letter-spacing: -0.02em;
-        position: relative;
-        z-index: 1;
-    }
-    .login-header p {
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 0.875rem;
-        margin: 0;
-        font-weight: 500;
-        position: relative;
-        z-index: 1;
-    }
-    .card-body {
-        padding: 2.5rem 2rem;
+
+    .login-left-icon {
+        width: 72px;
+        height: 72px;
         background-color: white;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
-    .card-body h5 {
-        color: var(--primary-navy);
-        font-weight: 700;
+
+    .login-left-icon i {
+        font-size: 2.5rem;
+        color: var(--primary-blue);
+    }
+
+    .login-left h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.03em;
+    }
+
+    .login-left p {
+        font-size: 1.25rem;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.95);
+        line-height: 1.6;
+        margin-bottom: 3rem;
+    }
+
+    .login-trust {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .login-trust-text {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* LADO DIREITO - Formulário */
+    .login-right {
+        flex: 1;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2rem;
+    }
+
+    .login-right-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 2rem;
     }
+
+    .login-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .login-logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-logo-icon i {
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .login-logo-text {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--primary-navy);
+        text-transform: uppercase;
+        letter-spacing: -0.02em;
+    }
+
+    /* Formulário */
+    .login-form-container {
+        max-width: 420px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 3rem 0;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .login-form-title {
+        color: var(--text-primary);
+        font-size: 1.875rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .login-form-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+        margin-bottom: 2.5rem;
+    }
+
     .form-label {
         color: var(--text-primary);
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.875rem;
         margin-bottom: 0.5rem;
     }
+
     .input-group {
         border-radius: 0.5rem;
         overflow: hidden;
         border: 2px solid var(--border-medium);
         transition: var(--transition-base);
+        background-color: white;
     }
+
     .input-group-text {
         background-color: var(--bg-slate);
         border: none;
         color: var(--text-secondary);
         padding: 0.875rem 1rem;
     }
+
     .form-control {
         border: none;
         padding: 0.875rem 1rem;
         font-size: 0.9375rem;
+        background-color: transparent;
     }
+
     .form-control:focus {
         box-shadow: none;
+        background-color: transparent;
     }
+
     .input-group:focus-within {
         border-color: var(--primary-blue);
-        box-shadow: 0 0 0 3px rgba(15, 102, 189, 0.1);
+        box-shadow: 0 0 0 4px rgba(15, 102, 189, 0.1);
     }
+
     .input-group:focus-within .input-group-text {
         background-color: rgba(15, 102, 189, 0.08);
         color: var(--primary-blue);
     }
+
     .btn-primary {
         padding: 0.875rem 2rem;
         font-weight: 700;
         font-size: 1rem;
         letter-spacing: 0.02em;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 12px rgba(15, 102, 189, 0.2);
+        box-shadow: 0 4px 12px rgba(15, 102, 189, 0.25);
         transition: var(--transition-smooth);
+        border: none;
+        background: var(--primary-blue);
     }
+
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(15, 102, 189, 0.3);
+        box-shadow: 0 8px 24px rgba(15, 102, 189, 0.35);
+        background: var(--secondary-blue);
     }
-    .card-footer {
-        background: linear-gradient(to bottom, transparent, rgba(15, 102, 189, 0.02));
-        border-top: 1px solid var(--border-light);
-        padding: 1.25rem;
+
+    .btn-primary:active {
+        transform: translateY(0);
     }
-    .card-footer small {
-        color: var(--text-secondary);
-        font-weight: 500;
+
+    /* Footer */
+    .login-footer {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-light);
+        flex-wrap: wrap;
+        gap: 1rem;
     }
-    .card-footer i {
+
+    .login-footer-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: rgba(40, 167, 69, 0.1);
+        border: 1px solid rgba(40, 167, 69, 0.2);
+        border-radius: 2rem;
         color: var(--risk-acceptable);
-        font-size: 1.125rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .login-footer-links {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+    }
+
+    .login-footer-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .login-footer-links a:hover {
+        color: var(--primary-blue);
+    }
+
+    .login-footer-copy {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* Responsividade */
+    @media (max-width: 991px) {
+        .login-left {
+            display: none;
+        }
+
+        .login-right {
+            flex: auto;
+            min-height: 100vh;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .login-right {
+            padding: 1.5rem;
+        }
+
+        .login-form-container {
+            padding: 2rem 0;
+        }
+
+        .login-left h1 {
+            font-size: 2rem;
+        }
+
+        .login-footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="login-container">
-        <div class="col-md-5 col-lg-4">
-            <div class="card login-card shadow-lg">
-                <div class="login-header">
-                    <i class="bi bi-shield-lock"></i>
-                    <h3>VIVAMENTE 360º</h3>
-                    <p>Sistema de Gestão de Riscos Psicossociais</p>
+<div class="login-wrapper">
+    <!-- LADO ESQUERDO - Inspiracional -->
+    <div class="login-left d-none d-lg-flex">
+        <div class="login-left-content">
+            <div class="login-left-icon">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+            <h1>Fortalecendo a Saúde Mental no Trabalho.</h1>
+            <p>
+                Participe de milhares de organizações que gerenciam riscos psicossociais
+                e promovem uma cultura de trabalho mais saudável com VIVAMENTE 360º.
+            </p>
+            <div class="login-trust">
+                <i class="bi bi-patch-check-fill" style="font-size: 1.5rem;"></i>
+                <span class="login-trust-text">Confiado por líderes de RH em todo o Brasil</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LADO DIREITO - Formulário -->
+    <div class="login-right">
+        <!-- Header com Logo -->
+        <div class="login-right-header">
+            <div class="login-logo">
+                <div class="login-logo-icon">
+                    <i class="bi bi-shield-check"></i>
                 </div>
-                <div class="card-body p-4">
-                    <h5 class="text-center mb-4 fw-semibold" style="color: #495057;">
-                        Acesse sua conta
-                    </h5>
-                    <form method="post">
-                        {{ csrf_input }}
-                        <div class="mb-4">
-                            <label for="username" class="form-label fw-semibold">
-                                Usuário
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="bi bi-person"></i>
-                                </span>
-                                <input type="text" class="form-control" id="username" name="username"
-                                       placeholder="Digite seu usuário" required autofocus>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label for="password" class="form-label fw-semibold">
-                                Senha
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="bi bi-lock"></i>
-                                </span>
-                                <input type="password" class="form-control" id="password" name="password"
-                                       placeholder="Digite sua senha" required>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 btn-lg">
-                            <i class="bi bi-box-arrow-in-right"></i> Entrar
-                        </button>
-                    </form>
+                <span class="login-logo-text">VIVAMENTE 360º</span>
+            </div>
+        </div>
+
+        <!-- Formulário Centralizado -->
+        <div class="login-form-container">
+            <h3 class="login-form-title">Acesso Seguro</h3>
+            <p class="login-form-subtitle">
+                Bem-vindo de volta! Insira suas credenciais para acessar o painel de controle.
+            </p>
+
+            <form method="post">
+                {{ csrf_input }}
+
+                <!-- Campo Usuário -->
+                <div class="mb-4">
+                    <label for="username" class="form-label">Usuário</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="username"
+                            name="username"
+                            placeholder="Digite seu usuário"
+                            required
+                            autofocus
+                        >
+                    </div>
                 </div>
-                <div class="card-footer bg-light text-center text-muted py-3">
-                    <small>
-                        <i class="bi bi-shield-check"></i> Acesso seguro e protegido
-                    </small>
+
+                <!-- Campo Senha -->
+                <div class="mb-4">
+                    <label for="password" class="form-label">Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock-fill"></i>
+                        </span>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            placeholder="Digite sua senha"
+                            required
+                        >
+                    </div>
                 </div>
+
+                <!-- Botão Entrar -->
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    <span>Entrar</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            <div class="login-footer-badge">
+                <i class="bi bi-shield-fill-check"></i>
+                <span>Acesso Seguro</span>
+            </div>
+            <div class="login-footer-links">
+                <a href="#">Privacidade</a>
+                <a href="#">Termos</a>
+                <a href="#">Ajuda</a>
+            </div>
+            <div class="login-footer-copy">
+                © 2024 VIVAMENTE
             </div>
         </div>
     </div>
