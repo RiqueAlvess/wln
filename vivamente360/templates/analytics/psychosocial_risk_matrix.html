@@ -63,10 +63,10 @@
 
         {% if campaign %}
         <div class="d-flex gap-2">
-            <a href="{{ url('analytics:export_risk_matrix_excel', campaign.id) }}" class="btn btn-success">
+            <a href="{{ url('analytics:export_risk_matrix_excel', campaign.id) }}" class="btn btn-success async-export">
                 <i class="bi bi-file-earmark-excel"></i> Exportar Excel
             </a>
-            <a href="{{ url('analytics:export_risk_matrix_pgr', campaign.id) }}" class="btn btn-primary">
+            <a href="{{ url('analytics:export_risk_matrix_pgr', campaign.id) }}" class="btn btn-primary async-export">
                 <i class="bi bi-file-earmark-word"></i> Relatório PGR
             </a>
             <a href="{{ url('analytics:dashboard') }}?campaign={{ campaign.id }}" class="btn btn-outline-secondary">
@@ -320,4 +320,11 @@
 
     {% endif %}
 </div>
+
+<!-- Include Modal de Status de Exportação -->
+{% include 'components/export_status_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ static('js/export_handler.js') }}"></script>
 {% endblock %}
