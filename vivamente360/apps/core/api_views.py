@@ -9,6 +9,8 @@ from rest_framework.pagination import PageNumberPagination
 from django.http import FileResponse, Http404
 from django.core.files.storage import default_storage
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django_filters import rest_framework as filters
 
 from .models import TaskQueue, UserNotification
@@ -57,10 +59,12 @@ class TaskQueueFilter(filters.FilterSet):
             return queryset.exclude(task_type__in=file_task_types)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TaskQueueViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet para consulta de tasks.
     Somente leitura - tasks são criadas por outros endpoints.
+    CSRF exemption aplicado para compatibilidade com chamadas AJAX.
     """
     serializer_class = TaskQueueSerializer
     permission_classes = [IsAuthenticated]
@@ -188,9 +192,11 @@ class TaskQueueViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UserNotificationViewSet(viewsets.ModelViewSet):
     """
     ViewSet para notificações do usuário.
+    CSRF exemption aplicado para compatibilidade com chamadas AJAX.
     """
     serializer_class = UserNotificationSerializer
     permission_classes = [IsAuthenticated]

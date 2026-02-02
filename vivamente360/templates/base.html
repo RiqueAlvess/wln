@@ -386,17 +386,35 @@
                     }
                 });
 
+                if (!response.ok) {
+                    throw new Error('Erro ao marcar notificações');
+                }
+
                 const data = await response.json();
 
                 // Atualizar UI
                 loadNotificationCount();
                 loadNotifications();
 
-                // Feedback visual (opcional: criar um toast)
-                console.log('✓ Notificações marcadas como lidas:', data.message);
+                // Feedback visual com toast
+                if (window.showToast) {
+                    showToast(
+                        '<i class="bi bi-check-circle-fill"></i> <strong>Notificações marcadas como lidas</strong><br>' + data.message,
+                        'success',
+                        3000
+                    );
+                }
             } catch (error) {
                 console.error('Erro ao marcar todas como lidas:', error);
-                alert('Erro ao marcar notificações como lidas. Por favor, tente novamente.');
+                if (window.showToast) {
+                    showToast(
+                        '<i class="bi bi-x-circle"></i> <strong>Erro ao marcar notificações</strong><br>Por favor, tente novamente.',
+                        'error',
+                        4000
+                    );
+                } else {
+                    alert('Erro ao marcar notificações como lidas. Por favor, tente novamente.');
+                }
             }
         }
 
@@ -437,6 +455,99 @@
         });
     </script>
     {% endif %}
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;" id="toastContainer"></div>
+
+    <!-- Toast System Script -->
+    <script>
+        /**
+         * Sistema de Toast Global
+         * Exibe notificações toast rápidas e não-bloqueantes
+         * @param {string} message - Mensagem a ser exibida (aceita HTML)
+         * @param {string} type - Tipo do toast: 'success', 'error', 'warning', 'info'
+         * @param {number} duration - Duração em ms (padrão: 5000)
+         */
+        window.showToast = function(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            if (!container) {
+                console.error('Toast container not found');
+                return;
+            }
+
+            const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            const bgClasses = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info'
+            };
+            const bgClass = bgClasses[type] || 'bg-info';
+
+            const icons = {
+                'success': '<i class="bi bi-check-circle-fill me-2"></i>',
+                'error': '<i class="bi bi-exclamation-triangle-fill me-2"></i>',
+                'warning': '<i class="bi bi-exclamation-circle-fill me-2"></i>',
+                'info': '<i class="bi bi-info-circle-fill me-2"></i>'
+            };
+            const icon = icons[type] || '';
+
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${icon}${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', toastHtml);
+
+            const toastElement = document.getElementById(toastId);
+            const bsToast = new bootstrap.Toast(toastElement, {
+                delay: duration,
+                autohide: true
+            });
+
+            bsToast.show();
+
+            // Remove do DOM após fechar
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                toastElement.remove();
+            });
+        };
+
+        /**
+         * Atalho para toast de sucesso
+         */
+        window.showSuccess = function(message, duration = 5000) {
+            showToast(message, 'success', duration);
+        };
+
+        /**
+         * Atalho para toast de erro
+         */
+        window.showError = function(message, duration = 5000) {
+            showToast(message, 'error', duration);
+        };
+
+        /**
+         * Atalho para toast de aviso
+         */
+        window.showWarning = function(message, duration = 5000) {
+            showToast(message, 'warning', duration);
+        };
+
+        /**
+         * Atalho para toast de informação
+         */
+        window.showInfo = function(message, duration = 5000) {
+            showToast(message, 'info', duration);
+        };
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>
