@@ -7,7 +7,7 @@
     'use strict';
 
     /**
-     * Intercepta um link de exportação e mostra o modal de status
+     * Intercepta um link de exportação e mostra toast de feedback
      * @param {Event} event - Evento de clique
      * @param {HTMLElement} link - Elemento do link clicado
      */
@@ -16,6 +16,15 @@
 
         const url = link.href;
         const method = link.dataset.method || 'GET';
+
+        // Mostrar toast de processamento
+        if (window.showToast) {
+            showToast(
+                '<i class="bi bi-hourglass-split"></i> <strong>Processando exportação...</strong>',
+                'info',
+                3000
+            );
+        }
 
         // Fazer requisição para iniciar exportação
         const fetchOptions = {
@@ -42,11 +51,16 @@
             })
             .then(data => {
                 if (data.task_id) {
-                    // Mostrar modal com status da tarefa
-                    if (window.ExportStatusManager) {
-                        window.ExportStatusManager.show(data.task_id, data.message);
+                    // Mostrar toast de sucesso ao invés de modal bloqueante
+                    if (window.showToast) {
+                        showToast(
+                            `<strong>Exportação iniciada com sucesso!</strong><br>
+                            Você receberá uma notificação quando o arquivo estiver pronto para download.
+                            <br><small class="text-white-50">Disponível por 48 horas</small>`,
+                            'success',
+                            6000
+                        );
                     } else {
-                        console.error('ExportStatusManager não está disponível');
                         alert(data.message || 'Exportação iniciada. Você será notificado quando estiver pronta.');
                     }
                 } else {
@@ -55,8 +69,12 @@
             })
             .catch(error => {
                 console.error('Erro ao processar exportação:', error);
-                if (window.showErrorModal) {
-                    window.showErrorModal('Erro ao Exportar', error.message || 'Ocorreu um erro ao iniciar a exportação. Por favor, tente novamente.');
+                if (window.showToast) {
+                    showToast(
+                        `<i class="bi bi-x-circle"></i> <strong>Erro ao exportar</strong><br>${error.message || 'Ocorreu um erro ao iniciar a exportação. Por favor, tente novamente.'}`,
+                        'error',
+                        5000
+                    );
                 } else {
                     alert('Erro ao iniciar exportação: ' + error.message);
                 }
@@ -106,6 +124,15 @@
     window.startAsyncExport = function(url, method, message) {
         method = method || 'GET';
 
+        // Mostrar toast de processamento
+        if (window.showToast) {
+            showToast(
+                '<i class="bi bi-hourglass-split"></i> <strong>Processando exportação...</strong>',
+                'info',
+                3000
+            );
+        }
+
         const fetchOptions = {
             method: method,
             headers: {
@@ -129,10 +156,16 @@
             })
             .then(data => {
                 if (data.task_id) {
-                    if (window.ExportStatusManager) {
-                        window.ExportStatusManager.show(data.task_id, message || data.message);
+                    // Mostrar toast de sucesso
+                    if (window.showToast) {
+                        showToast(
+                            message || `<strong>Exportação iniciada com sucesso!</strong><br>
+                            Você receberá uma notificação quando o arquivo estiver pronto para download.
+                            <br><small class="text-white-50">Disponível por 48 horas</small>`,
+                            'success',
+                            6000
+                        );
                     } else {
-                        console.error('ExportStatusManager não está disponível');
                         alert(data.message || 'Exportação iniciada.');
                     }
                 } else {
@@ -141,8 +174,12 @@
             })
             .catch(error => {
                 console.error('Erro ao processar exportação:', error);
-                if (window.showErrorModal) {
-                    window.showErrorModal('Erro ao Exportar', error.message);
+                if (window.showToast) {
+                    showToast(
+                        `<i class="bi bi-x-circle"></i> <strong>Erro ao exportar</strong><br>${error.message}`,
+                        'error',
+                        5000
+                    );
                 } else {
                     alert('Erro: ' + error.message);
                 }
