@@ -253,9 +253,10 @@ class TaskProcessor:
     @staticmethod
     def _process_export_checklist_nr1(task):
         """Processa exportação de checklist NR-1."""
+        from apps.actions.models import ChecklistNR1Etapa
+
         payload = task.payload
         campaign_id = payload['campaign_id']
-        itens_por_etapa = payload['itens_por_etapa']
         progresso_geral = payload['progresso_geral']
         total_itens = payload['total_itens']
         total_concluidos = payload['total_concluidos']
@@ -265,6 +266,24 @@ class TaskProcessor:
         task.save(update_fields=['progress', 'progress_message'])
 
         campaign = Campaign.objects.get(id=campaign_id)
+
+        # Reconstruir itens_por_etapa com objetos do modelo
+        itens_por_etapa_payload = payload['itens_por_etapa']
+        itens_por_etapa = {}
+
+        for etapa_num_str, etapa_data in itens_por_etapa_payload.items():
+            etapa_num = int(etapa_num_str)
+            # Buscar os itens reais do banco de dados
+            item_ids = [item['id'] for item in etapa_data['itens']]
+            itens_obj = ChecklistNR1Etapa.objects.filter(id__in=item_ids).order_by('item_ordem')
+
+            itens_por_etapa[etapa_num] = {
+                'nome': etapa_data['nome'],
+                'itens': itens_obj,
+                'total': etapa_data['total'],
+                'concluidos': etapa_data['concluidos'],
+                'progresso': etapa_data['progresso']
+            }
 
         pdf_content = ExportService.export_checklist_nr1_pdf(
             campaign,
