@@ -54,10 +54,17 @@ class ImportCSVView(RHRequiredMixin, View):
         return render(request, 'invitations/import_csv.html', {'campaign': campaign})
 
     def post(self, request, campaign_id):
+        from django.http import JsonResponse
+
         campaign = get_object_or_404(Campaign, id=campaign_id)
         csv_file = request.FILES.get('csv_file')
 
+        # Verificar se é uma requisição AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
         if not csv_file:
+            if is_ajax:
+                return JsonResponse({'error': 'Nenhum arquivo foi enviado.'}, status=400)
             messages.error(request, 'Nenhum arquivo foi enviado.')
             return redirect('invitations:import', campaign_id=campaign_id)
 
@@ -65,6 +72,8 @@ class ImportCSVView(RHRequiredMixin, View):
         valid, error, rows = ImportService.validate_csv(content)
 
         if not valid:
+            if is_ajax:
+                return JsonResponse({'error': error}, status=400)
             messages.error(request, error)
             return redirect('invitations:import', campaign_id=campaign_id)
 
@@ -79,12 +88,6 @@ class ImportCSVView(RHRequiredMixin, View):
             }
         )
 
-        messages.success(
-            request,
-            f'Importação de {len(rows)} registros enfileirada com sucesso. '
-            f'Você será notificado quando concluir.'
-        )
-
         AuditService.log(
             request.user,
             campaign.empresa,
@@ -93,6 +96,21 @@ class ImportCSVView(RHRequiredMixin, View):
             request
         )
 
+        # Se for AJAX, retornar JSON
+        if is_ajax:
+            return JsonResponse({
+                'task_id': task.id,
+                'message': f'Importação de {len(rows)} registros iniciada. Você será notificado quando concluir.',
+                'status_url': f'/api/tasks/{task.id}/',
+                'redirect_url': f'/invitations/{campaign_id}/manage/'
+            })
+
+        # Caso contrário, comportamento legacy com messages
+        messages.success(
+            request,
+            f'Importação de {len(rows)} registros enfileirada com sucesso. '
+            f'Você será notificado quando concluir.'
+        )
         return redirect('invitations:manage', campaign_id=campaign_id)
 
 

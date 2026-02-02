@@ -314,6 +314,7 @@
         function renderNotification(notif) {
             const isUnread = !notif.is_read;
             const bgClass = isUnread ? 'bg-light' : '';
+            const opacityStyle = isUnread ? '' : 'opacity: 0.6;';
 
             const icons = {
                 'task_completed': 'check-circle text-success',
@@ -332,7 +333,7 @@
             }
 
             return `
-                <div class="dropdown-item ${bgClass}" style="white-space: normal;"
+                <div class="dropdown-item ${bgClass}" style="white-space: normal; ${opacityStyle}"
                      onclick="markNotificationRead(${notif.id}, '${notif.link_url || ''}')">
                     <div class="d-flex align-items-start gap-2">
                         <i class="bi bi-${icon} mt-1"></i>
@@ -342,7 +343,7 @@
                             <div class="small text-muted mt-1">${notif.time_ago}</div>
                             ${actionButton}
                         </div>
-                        ${isUnread ? '<span class="badge bg-primary">Nova</span>' : ''}
+                        ${isUnread ? '<span class="badge bg-primary">Nova</span>' : '<span class="badge bg-secondary">Lida</span>'}
                     </div>
                 </div>
             `;
@@ -373,7 +374,7 @@
         // Marcar todas como lidas
         async function markAllNotificationsRead() {
             try {
-                await fetch('/api/notifications/mark_all_read/', {
+                const response = await fetch('/api/notifications/mark_all_read/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -381,10 +382,17 @@
                     }
                 });
 
+                const data = await response.json();
+
+                // Atualizar UI
                 loadNotificationCount();
                 loadNotifications();
+
+                // Feedback visual (opcional: criar um toast)
+                console.log('✓ Notificações marcadas como lidas:', data.message);
             } catch (error) {
                 console.error('Erro ao marcar todas como lidas:', error);
+                alert('Erro ao marcar notificações como lidas. Por favor, tente novamente.');
             }
         }
 
