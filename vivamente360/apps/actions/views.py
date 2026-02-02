@@ -442,11 +442,53 @@ class ChecklistNR1ExportPDFView(RHRequiredMixin, View):
         campaign = get_object_or_404(Campaign, id=campaign_id)
 
         try:
-            # Criar task de processamento
+            # Buscar todos os itens do checklist
+            itens = ChecklistNR1Etapa.objects.filter(campaign=campaign).order_by('etapa', 'item_ordem')
+
+            # Organizar itens por etapa
+            itens_por_etapa = {}
+            for etapa_num, etapa_nome in ChecklistNR1Etapa.ETAPAS:
+                itens_etapa = itens.filter(etapa=etapa_num)
+                total = itens_etapa.count()
+                concluidos = itens_etapa.filter(concluido=True).count()
+                progresso = (concluidos / total * 100) if total > 0 else 0
+
+                # Serializar itens para o payload
+                itens_lista = []
+                for item in itens_etapa:
+                    itens_lista.append({
+                        'id': item.id,
+                        'item_texto': item.item_texto,
+                        'concluido': item.concluido,
+                        'automatico': item.automatico,
+                        'responsavel': item.responsavel or '',
+                        'prazo': item.prazo.isoformat() if item.prazo else None,
+                        'observacoes': item.observacoes or '',
+                        'evidencias_count': item.evidencias.count()
+                    })
+
+                itens_por_etapa[etapa_num] = {
+                    'nome': etapa_nome,
+                    'itens': itens_lista,
+                    'total': total,
+                    'concluidos': concluidos,
+                    'progresso': progresso
+                }
+
+            # Calcular progresso geral
+            total_itens = itens.count()
+            total_concluidos = itens.filter(concluido=True).count()
+            progresso_geral = (total_concluidos / total_itens * 100) if total_itens > 0 else 0
+
+            # Criar task de processamento com payload completo
             task = TaskQueue.objects.create(
                 task_type='export_checklist_nr1',
                 payload={
                     'campaign_id': campaign_id,
+                    'itens_por_etapa': itens_por_etapa,
+                    'progresso_geral': progresso_geral,
+                    'total_itens': total_itens,
+                    'total_concluidos': total_concluidos
                 },
                 user=request.user,
                 empresa=campaign.empresa,
