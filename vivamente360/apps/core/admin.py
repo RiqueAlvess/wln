@@ -1,9 +1,9 @@
 """
-Django Admin para TaskQueue e UserNotification
+Django Admin para TaskQueue, UserNotification e ExportedFile
 """
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import TaskQueue, UserNotification
+from .models import TaskQueue, UserNotification, ExportedFile
 
 
 @admin.register(TaskQueue)
@@ -175,3 +175,116 @@ class UserNotificationAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} notificações marcadas como não lidas.')
     mark_as_unread.short_description = 'Marcar como não lida'
+
+
+@admin.register(ExportedFile)
+class ExportedFileAdmin(admin.ModelAdmin):
+    """Admin para ExportedFile."""
+
+    list_display = [
+        'id', 'tipo_badge', 'status_badge', 'user', 'empresa',
+        'campaign', 'is_expired_icon', 'download_count',
+        'expires_at', 'created_at'
+    ]
+    list_filter = ['tipo', 'status', 'created_at', 'empresa', 'expires_at']
+    search_fields = ['user__username', 'empresa__nome', 'campaign__nome']
+    readonly_fields = [
+        'created_at', 'updated_at', 'downloaded_at', 'download_count',
+        'is_expired', 'is_available'
+    ]
+
+    fieldsets = (
+        ('Informações do Arquivo', {
+            'fields': ('task', 'tipo', 'status', 'user', 'empresa', 'campaign')
+        }),
+        ('Expiração', {
+            'fields': ('expires_at', 'is_expired', 'is_available')
+        }),
+        ('Downloads', {
+            'fields': ('download_count', 'downloaded_at')
+        }),
+        ('Datas', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+
+    def tipo_badge(self, obj):
+        """Exibe tipo de arquivo com badge."""
+        colors = {
+            'excel': 'success',
+            'pdf': 'danger',
+            'word': 'primary',
+            'txt': 'secondary'
+        }
+        color = colors.get(obj.tipo, 'secondary')
+        return format_html(
+            '<span class="badge badge-{}">{}</span>',
+            color, obj.get_tipo_display()
+        )
+    tipo_badge.short_description = 'Tipo'
+
+    def status_badge(self, obj):
+        """Exibe status com badge colorido."""
+        colors = {
+            'pending': 'warning',
+            'processing': 'info',
+            'completed': 'success',
+            'failed': 'danger',
+            'expired': 'secondary'
+        }
+        color = colors.get(obj.status, 'secondary')
+        return format_html(
+            '<span class="badge badge-{}">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+
+    def is_expired_icon(self, obj):
+        """Ícone indicando se está expirado."""
+        if obj.is_expired:
+            return format_html('<span style="color: red;">✗ Expirado</span>')
+        elif obj.is_available:
+            return format_html('<span style="color: green;">✓ Disponível</span>')
+        return format_html('<span style="color: gray;">⧗ Processando</span>')
+    is_expired_icon.short_description = 'Disponibilidade'
+
+    actions = ['mark_as_expired', 'delete_expired_files']
+
+    def mark_as_expired(self, request, queryset):
+        """Ação para marcar arquivos como expirados."""
+        updated = 0
+        for obj in queryset:
+            if obj.status != 'expired':
+                obj.mark_expired()
+                updated += 1
+        self.message_user(request, f'{updated} arquivos marcados como expirados.')
+    mark_as_expired.short_description = 'Marcar como expirado'
+
+    def delete_expired_files(self, request, queryset):
+        """Ação para deletar arquivos expirados fisicamente."""
+        from django.core.files.storage import default_storage
+        deleted = 0
+        errors = 0
+
+        for obj in queryset.filter(status='expired'):
+            try:
+                task = obj.task
+                if task.file_path and default_storage.exists(task.file_path):
+                    default_storage.delete(task.file_path)
+                    task.file_path = ''
+                    task.file_name = ''
+                    task.file_size = None
+                    task.save(update_fields=['file_path', 'file_name', 'file_size'])
+                    deleted += 1
+            except Exception as e:
+                errors += 1
+
+        self.message_user(
+            request,
+            f'{deleted} arquivos deletados fisicamente. Erros: {errors}'
+        )
+    delete_expired_files.short_description = 'Deletar arquivos expirados do disco'
+
+    def has_add_permission(self, request):
+        """Desabilita adição manual pelo admin."""
+        return False

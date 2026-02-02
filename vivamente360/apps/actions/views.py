@@ -21,6 +21,9 @@ from .serializers import (
 from .forms import PlanoAcaoForm
 from io import BytesIO
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PlanoAcaoListView(RHRequiredMixin, ListView):
@@ -430,44 +433,35 @@ class EvidenciaNR1DeleteView(RHRequiredMixin, View):
 
 class ChecklistNR1ExportPDFView(RHRequiredMixin, View):
     """
-    View para exportar o checklist completo em PDF
+    View para exportar o checklist completo em PDF via fila de processamento
     """
     def get(self, request, campaign_id):
+        from apps.core.models import TaskQueue
+        from django.http import JsonResponse
+
         campaign = get_object_or_404(Campaign, id=campaign_id)
-        itens = ChecklistNR1Etapa.objects.filter(
-            campaign=campaign
-        ).prefetch_related('evidencias').order_by('etapa', 'item_ordem')
 
-        # Organizar itens por etapa
-        itens_por_etapa = {}
-        for etapa_num, etapa_nome in ChecklistNR1Etapa.ETAPAS:
-            itens_etapa = itens.filter(etapa=etapa_num)
-            total = itens_etapa.count()
-            concluidos = itens_etapa.filter(concluido=True).count()
-            progresso = (concluidos / total * 100) if total > 0 else 0
+        try:
+            # Criar task de processamento
+            task = TaskQueue.objects.create(
+                task_type='export_checklist_nr1',
+                payload={
+                    'campaign_id': campaign_id,
+                },
+                user=request.user,
+                empresa=campaign.empresa,
+                progress_message='Preparando exportação do checklist NR-1...'
+            )
 
-            itens_por_etapa[etapa_num] = {
-                'nome': etapa_nome,
-                'itens': itens_etapa,
-                'total': total,
-                'concluidos': concluidos,
-                'progresso': progresso
-            }
+            return JsonResponse({
+                'task_id': task.id,
+                'message': 'Exportação do checklist iniciada. Você será notificado quando estiver pronta.',
+                'status_url': f'/api/tasks/{task.id}/'
+            })
 
-        # Calcular progresso geral
-        total_itens = itens.count()
-        total_concluidos = itens.filter(concluido=True).count()
-        progresso_geral = (total_concluidos / total_itens * 100) if total_itens > 0 else 0
-
-        # Gerar PDF
-        pdf = ExportService.export_checklist_nr1_pdf(
-            campaign, itens_por_etapa, progresso_geral, total_itens, total_concluidos
-        )
-
-        response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename=checklist_nr1_{campaign.nome}.pdf'
-
-        return response
+        except Exception as e:
+            logger.error(f"Erro ao criar task de checklist NR-1: {e}", exc_info=True)
+            return JsonResponse({'error': f'Erro ao exportar checklist: {str(e)}'}, status=500)
 
 
 # ============================================================================
