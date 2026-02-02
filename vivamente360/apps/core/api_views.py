@@ -225,6 +225,7 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
+    @method_decorator(csrf_exempt)
     def mark_read(self, request, pk=None):
         """
         Marca uma notificação como lida.
@@ -235,6 +236,7 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
+    @method_decorator(csrf_exempt)
     def mark_all_read(self, request):
         """
         Marca todas as notificações como lidas.
@@ -246,6 +248,7 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
         return Response({'message': f'{updated} notificações marcadas como lidas'})
 
     @action(detail=False, methods=['post'])
+    @method_decorator(csrf_exempt)
     def mark_multiple_read(self, request):
         """
         Marca múltiplas notificações como lidas.
