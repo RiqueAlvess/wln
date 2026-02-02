@@ -206,6 +206,10 @@ Filial SP,Vendas,Gerente,pedro@empresa.com<br>
     </div>
 </div>
 
+<!-- Include Modal de Status de Exportação -->
+{% include 'components/export_status_modal.html' %}
+
+<script src="{{ static('js/export_handler.js') }}"></script>
 <script>
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('csv_file');
@@ -280,5 +284,65 @@ function downloadTemplate() {
     a.download = 'modelo_importacao.csv';
     a.click();
 }
+
+// Interceptar submit do form para mostrar modal
+const importForm = document.getElementById('importForm');
+importForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(importForm);
+
+    // Fazer requisição AJAX
+    fetch(importForm.action || window.location.href, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Erro ao processar importação');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.task_id) {
+            // Mostrar modal de status
+            if (window.ExportStatusManager) {
+                window.ExportStatusManager.show(data.task_id, data.message);
+
+                // Quando concluir, redirecionar
+                const originalShowSuccess = window.ExportStatusManager.showSuccess;
+                window.ExportStatusManager.showSuccess = function(taskData) {
+                    originalShowSuccess.call(window.ExportStatusManager, taskData);
+
+                    // Adicionar botão de ir para lista
+                    setTimeout(() => {
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        }
+                    }, 2000);
+                };
+            } else {
+                alert(data.message || 'Importação iniciada com sucesso!');
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao importar:', error);
+        if (window.showErrorModal) {
+            window.showErrorModal('Erro ao Importar', error.message || 'Erro ao processar importação. Verifique o arquivo e tente novamente.');
+        } else {
+            alert('Erro: ' + (error.message || 'Erro ao processar importação'));
+        }
+    });
+});
 </script>
 {% endblock %}
