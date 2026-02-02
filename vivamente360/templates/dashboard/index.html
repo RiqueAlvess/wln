@@ -36,33 +36,45 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-end mb-4 pb-3 border-bottom">
     <div>
-        <h1 class="h2 mb-1">
-            <i class="bi bi-graph-up-arrow text-primary"></i> Dashboard de Riscos Psicossociais
+        <p class="text-uppercase text-primary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 0.1em;">
+            Conformidade NR-1 - Gestão de Riscos Psicossociais
+        </p>
+        <h1 class="h2 mb-1 fw-bold" style="color: var(--primary-navy);">
+            <i class="bi bi-graph-up-arrow text-primary me-2"></i>
+            Análise de Riscos Psicossociais
         </h1>
         {% if campaign %}
-        <p class="text-muted mb-0">Análise da campanha: <strong>{{ campaign.nome }}</strong></p>
+        <p class="text-muted mb-0 small">
+            Campanha: <strong>{{ campaign.nome }}</strong>
+            {% if campaign.data_inicio %} | Início: {{ campaign.data_inicio | dateformat }}{% endif %}
+        </p>
         {% endif %}
     </div>
+
     {% if campaigns %}
-    <div class="d-flex gap-2">
-        <select class="form-select" style="width: 300px;" onchange="location = '?campaign=' + this.value;">
-            <option value="">Selecione uma campanha</option>
-            {% for c in campaigns %}
-            <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>
-                {{ c.nome }} ({{ c.data_inicio | dateformat }})
-            </option>
-            {% endfor %}
-        </select>
+    <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex align-items-center gap-2 bg-white border px-3 py-2 rounded shadow-sm">
+            <i class="bi bi-calendar3 text-primary"></i>
+            <select class="form-select form-select-sm border-0 shadow-none" style="width: 280px;" onchange="location = '?campaign=' + this.value;">
+                <option value="">📊 Selecione uma campanha</option>
+                {% for c in campaigns %}
+                <option value="{{ c.id }}" {% if campaign and c.id == campaign.id %}selected{% endif %}>
+                    {{ c.nome }} ({{ c.data_inicio | dateformat }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
         {% if campaign %}
             {# Recursos exclusivos para RH e Superusuário (Liderança vê apenas Dashboard) #}
             {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
-            <a href="{{ url('analytics:psychosocial_risk_matrix') }}?campaign={{ campaign.id }}" class="btn btn-danger">
-                <i class="bi bi-shield-exclamation"></i> Matriz de Risco NR-1
+            <a href="{{ url('analytics:psychosocial_risk_matrix') }}?campaign={{ campaign.id }}" class="btn btn-danger btn-sm">
+                <i class="bi bi-shield-exclamation me-1"></i> Matriz de Risco NR-1
             </a>
-            <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary">
-                <i class="bi bi-gear"></i> Configurar
+            <a href="{{ url('surveys:detail', campaign.id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-gear me-1"></i> Configurar
             </a>
             {% endif %}
         {% endif %}
@@ -161,80 +173,140 @@
 {% else %}
 
 <div class="row g-4 mb-4">
+    <!-- Card 1: Taxa de Adesão -->
     <div class="col-lg-3 col-md-6">
-        <div class="card metric-card {% if adesao >= 70 %}success{% elif adesao >= 50 %}warning{% else %}danger{% endif %} border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="fs-6 text-muted fw-semibold">Taxa de Adesão</div>
-                    <i class="bi bi-people-fill {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}" style="font-size: 1.5rem;"></i>
+        <div class="card metric-card border-0 shadow-soft h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-uppercase text-muted mb-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;">
+                            Taxa de Adesão
+                        </p>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 rounded p-2">
+                        <i class="bi bi-people-fill text-primary fs-4"></i>
+                    </div>
                 </div>
-                <h2 class="display-5 mb-1 fw-bold {% if adesao >= 70 %}text-success{% elif adesao >= 50 %}text-warning{% else %}text-danger{% endif %}">
-                    {{ adesao }}%
-                </h2>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <h2 class="display-5 mb-0 fw-bold" style="color: var(--primary-navy);">
+                        {{ adesao }}%
+                    </h2>
+                    {% if adesao >= 70 %}
+                    <span class="badge bg-success-subtle text-success small">Ótimo</span>
+                    {% elif adesao >= 50 %}
+                    <span class="badge bg-warning-subtle text-warning small">Regular</span>
+                    {% else %}
+                    <span class="badge bg-danger-subtle text-danger small">Baixo</span>
+                    {% endif %}
+                </div>
+
                 {# Número de respondentes - apenas para RH e Superusuário #}
                 {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
-                <p class="text-muted mb-0 small">
+                <p class="text-muted small mb-3">
                     <strong>{{ respondidos }}</strong> de <strong>{{ total_convidados }}</strong> convidados
                 </p>
                 {% else %}
-                <p class="text-muted mb-0 small">
+                <p class="text-muted small mb-3">
                     Taxa de participação dos colaboradores
                 </p>
                 {% endif %}
-                <div class="progress mt-2" style="height: 6px;">
+
+                <div class="progress" style="height: 6px;">
                     <div class="progress-bar {% if adesao >= 70 %}bg-success{% elif adesao >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
-                         style="width: {{ adesao }}%"></div>
+                         style="width: {{ adesao }}%; border-radius: 0.5rem;"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Card 2: IGRP -->
     <div class="col-lg-3 col-md-6">
-        <div class="card metric-card info border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="fs-6 text-muted fw-semibold">IGRP</div>
-                    <i class="bi bi-clipboard-pulse text-info" style="font-size: 1.5rem;"></i>
+        <div class="card metric-card border-0 shadow-soft h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <p class="text-uppercase text-muted mb-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;">
+                        IGRP Index
+                    </p>
+                    <div class="bg-primary bg-opacity-10 rounded p-2">
+                        <i class="bi bi-clipboard-pulse text-primary fs-4"></i>
+                    </div>
                 </div>
-                <h2 class="display-5 mb-1 fw-bold text-info">{{ igrp }}</h2>
-                <p class="text-muted mb-0 small">Índice Geral de Riscos Psicossociais</p>
-                <div class="mt-2">
-                    <span class="badge bg-secondary">Escala 0-4</span>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <h2 class="display-5 mb-0 fw-bold" style="color: var(--primary-navy);">
+                        {{ igrp }}
+                    </h2>
+                    <span class="badge bg-info-subtle text-info small">Índice</span>
                 </div>
+
+                <p class="text-muted small mb-2">
+                    Índice Geral de Riscos Psicossociais
+                </p>
+                <span class="badge bg-secondary mt-1" style="font-size: 0.65rem;">Escala 0-4</span>
             </div>
         </div>
     </div>
 
+    <!-- Card 3: Risco Alto/Crítico -->
     <div class="col-lg-3 col-md-6">
-        <div class="card metric-card danger border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="fs-6 text-muted fw-semibold">Risco Alto/Crítico</div>
-                    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 1.5rem;"></i>
+        <div class="card metric-card border-0 shadow-soft h-100" style="border-left: 4px solid var(--risk-critical) !important;">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <p class="text-uppercase text-muted mb-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;">
+                        Risco Alto/Crítico
+                    </p>
+                    <div class="bg-danger bg-opacity-10 rounded p-2">
+                        <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+                    </div>
                 </div>
-                <h2 class="display-5 mb-1 fw-bold text-danger">{{ pct_risco_alto }}%</h2>
-                <p class="text-muted mb-0 small">Colaboradores necessitam atenção</p>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <h2 class="display-5 mb-0 fw-bold text-danger">
+                        {{ pct_risco_alto }}%
+                    </h2>
+                    {% if pct_risco_alto < 15 %}
+                    <span class="badge bg-success-subtle text-success small">Controlado</span>
+                    {% elif pct_risco_alto > 25 %}
+                    <span class="badge bg-danger-subtle text-danger small">Crítico</span>
+                    {% endif %}
+                </div>
+
+                <p class="text-muted small mb-2">
+                    Colaboradores necessitam atenção
+                </p>
+
                 {% if pct_risco_alto > 25 %}
-                <div class="mt-2">
-                    <span class="badge bg-danger">⚠️ Ação Imediata</span>
-                </div>
+                <span class="badge bg-danger small">⚠️ Ação Imediata</span>
                 {% endif %}
             </div>
         </div>
     </div>
 
+    <!-- Card 4: Respostas Válidas -->
     <div class="col-lg-3 col-md-6">
-        <div class="card metric-card success border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="fs-6 text-muted fw-semibold">Respostas Válidas</div>
-                    <i class="bi bi-check-circle-fill text-success" style="font-size: 1.5rem;"></i>
+        <div class="card metric-card border-0 shadow-soft h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <p class="text-uppercase text-muted mb-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;">
+                        Respostas Válidas
+                    </p>
+                    <div class="bg-success bg-opacity-10 rounded p-2">
+                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                    </div>
                 </div>
-                <h2 class="display-5 mb-1 fw-bold">{{ respondidos }}</h2>
-                <p class="text-muted mb-0 small">Questionários completos</p>
-                <div class="mt-2">
-                    <span class="badge bg-success">✓ Processados</span>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <h2 class="display-5 mb-0 fw-bold" style="color: var(--primary-navy);">
+                        {{ respondidos }}
+                    </h2>
+                    <span class="badge bg-success-subtle text-success small">Válidas</span>
                 </div>
+
+                <p class="text-muted small mb-2">
+                    Questionários completos
+                </p>
+                <span class="badge bg-success small">✓ Processados</span>
             </div>
         </div>
     </div>
@@ -295,7 +367,10 @@
     </div>
 </div>
 
-<h3 class="section-title">📊 Análise por Dimensões HSE-IT</h3>
+<h3 class="section-title">
+    <i class="bi bi-bar-chart-fill text-primary"></i>
+    Análise por Dimensões HSE-IT
+</h3>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
@@ -367,7 +442,10 @@
     </div>
 </div>
 
-<h3 class="section-title">📈 Análises Detalhadas</h3>
+<h3 class="section-title">
+    <i class="bi bi-graph-up text-primary"></i>
+    Análises Detalhadas
+</h3>
 
 <div class="row g-4 mb-4">
     {# Análise por Gênero - apenas para RH e Superusuário #}
@@ -402,35 +480,53 @@
 
 <div class="row g-4 mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-soft">
             <div class="card-header bg-white border-bottom">
-                <h5 class="mb-0"><i class="bi bi-ui-checks text-primary"></i> Matriz de Risco por Setor e Dimensão</h5>
+                <h5 class="mb-0 fw-bold" style="color: var(--primary-navy);">
+                    <i class="bi bi-ui-checks text-primary me-2"></i>
+                    Matriz de Risco por Setor e Dimensão
+                </h5>
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
-                    <i class="bi bi-info-circle"></i> Cores representam o nível de risco:
-                    <span class="badge badge-verde">Baixo</span>
-                    <span class="badge badge-amarelo">Moderado</span>
-                    <span class="badge badge-laranja">Alto</span>
-                    <span class="badge badge-vermelho">Crítico</span>
+                    <i class="bi bi-info-circle text-primary me-1"></i> Cores representam o nível de risco:
+                    <span class="badge badge-verde ms-2">Baixo</span>
+                    <span class="badge badge-amarelo ms-1">Moderado</span>
+                    <span class="badge badge-laranja ms-1">Alto</span>
+                    <span class="badge badge-vermelho ms-1">Crítico</span>
                 </p>
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered text-center">
-                        <thead>
-                            <tr class="table-light">
-                                <th>Setor</th>
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead style="background-color: #f8fafc;">
+                            <tr>
+                                <th class="text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em; color: var(--text-secondary);">
+                                    Setor
+                                </th>
                                 {% for dim_label in dimensoes_labels %}
-                                <th class="small">{{ dim_label }}</th>
+                                <th class="text-center text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em; color: var(--text-secondary);">
+                                    {{ dim_label }}
+                                </th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for setor_data in heatmap_data %}
                             <tr>
-                                <td class="text-start fw-semibold">{{ setor_data.setor }}</td>
+                                <td class="fw-bold" style="color: var(--primary-navy);">
+                                    <i class="bi bi-building text-muted me-2"></i>
+                                    {{ setor_data.setor }}
+                                </td>
                                 {% for score in setor_data.scores %}
-                                <td style="background-color: {% if score >= 3.5 %}#d4edda{% elif score >= 2.5 %}#fff3cd{% elif score >= 1.5 %}#ffe5d0{% else %}#f8d7da{% endif %};">
-                                    {{ score }}
+                                <td class="text-center p-2">
+                                    <div class="heatmap-cell d-flex align-items-center justify-content-center p-2 fw-bold text-white"
+                                         style="
+                                            background-color: {% if score >= 3.5 %}#28a745{% elif score >= 2.5 %}#ffc107{% elif score >= 1.5 %}#fd7e14{% else %}#dc3545{% endif %};
+                                            min-height: 48px;
+                                            border-radius: 0.375rem;
+                                            font-size: 0.875rem;
+                                         ">
+                                        {{ score }}
+                                    </div>
                                 </td>
                                 {% endfor %}
                             </tr>
@@ -443,7 +539,10 @@
     </div>
 </div>
 
-<h3 class="section-title">👥 Análise Demográfica Detalhada</h3>
+<h3 class="section-title">
+    <i class="bi bi-people-fill text-primary"></i>
+    Análise Demográfica Detalhada
+</h3>
 
 <div class="row g-4 mb-4">
     {# Score por Gênero - apenas para RH e Superusuário #}
