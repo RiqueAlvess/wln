@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Termo de Consentimento - LGPD{% endblock %}
+
+{% block extra_head %}
+<style>
+    .lgpd-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    .lgpd-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .lgpd-content {
+        max-height: 400px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+    .lgpd-content::-webkit-scrollbar {
+        width: 8px;
+    }
+    .lgpd-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    .lgpd-content::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+    .lgpd-content::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    .checkbox-wrapper {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container lgpd-container">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-10 col-lg-8">
+            <div class="card lgpd-card shadow-lg">
+                <div class="card-header bg-primary text-white text-center p-4">
+                    <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                    <h3 class="mb-2 mt-3">Termo de Consentimento</h3>
+                    <p class="mb-0" style="opacity: 0.9;">Lei Geral de Proteção de Dados - LGPD</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Importante:</strong> Por favor, leia atentamente este termo antes de prosseguir com o questionário.
+                    </div>
+
+                    <div class="lgpd-content mb-4">
+                        <h5 class="text-primary mb-3">
+                            <i class="bi bi-file-text"></i> Termo de Consentimento e Privacidade
+                        </h5>
+
+                        <p>
+                            Prezado(a) colaborador(a),
+                        </p>
+
+                        <p>
+                            Em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD),
+                            informamos que <strong>{{ empresa.nome }}</strong> está conduzindo uma pesquisa de clima organizacional
+                            como parte da campanha <strong>{{ campaign.nome }}</strong>.
+                        </p>
+
+                        <h6 class="text-primary mt-4 mb-3">
+                            <i class="bi bi-lock-fill"></i> Sobre seus dados pessoais:
+                        </h6>
+                        <ul>
+                            <li>Suas respostas são <strong>completamente anônimas</strong></li>
+                            <li>Coletaremos apenas dados demográficos (faixa etária, tempo de empresa e gênero) para fins estatísticos</li>
+                            <li>Não será possível identificar você individualmente a partir das respostas</li>
+                            <li>Os dados serão utilizados exclusivamente para análise de clima organizacional</li>
+                            <li>As informações serão armazenadas de forma segura e criptografada</li>
+                        </ul>
+
+                        <h6 class="text-primary mt-4 mb-3">
+                            <i class="bi bi-graph-up"></i> Finalidade da coleta:
+                        </h6>
+                        <ul>
+                            <li>Avaliar o clima organizacional da empresa</li>
+                            <li>Identificar oportunidades de melhoria no ambiente de trabalho</li>
+                            <li>Gerar relatórios estatísticos agregados</li>
+                            <li>Desenvolver planos de ação baseados nos resultados</li>
+                        </ul>
+
+                        <h6 class="text-primary mt-4 mb-3">
+                            <i class="bi bi-people-fill"></i> Seus direitos:
+                        </h6>
+                        <ul>
+                            <li>Confirmar a existência de tratamento de dados</li>
+                            <li>Solicitar acesso aos dados coletados</li>
+                            <li>Solicitar a correção de dados incompletos, inexatos ou desatualizados</li>
+                            <li>Solicitar a anonimização, bloqueio ou eliminação de dados</li>
+                            <li>Revogar o consentimento a qualquer momento</li>
+                        </ul>
+
+                        <h6 class="text-primary mt-4 mb-3">
+                            <i class="bi bi-hourglass-split"></i> Retenção de dados:
+                        </h6>
+                        <p>
+                            Os dados serão mantidos pelo período necessário para análise da campanha e elaboração de
+                            relatórios, sendo eliminados após o cumprimento das finalidades ou conforme determinação legal.
+                        </p>
+
+                        <h6 class="text-primary mt-4 mb-3">
+                            <i class="bi bi-envelope"></i> Contato:
+                        </h6>
+                        <p>
+                            Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados,
+                            entre em contato com o encarregado de dados da empresa através dos canais de comunicação interna.
+                        </p>
+
+                        <p class="mt-4">
+                            <strong>Ao aceitar este termo, você declara que:</strong>
+                        </p>
+                        <ul>
+                            <li>Leu e compreendeu todas as informações acima</li>
+                            <li>Concorda voluntariamente em participar da pesquisa</li>
+                            <li>Autoriza o tratamento dos seus dados conforme descrito</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="step" value="lgpd">
+
+                        <div class="checkbox-wrapper mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="lgpd_aceito" id="lgpd_aceito" required>
+                                <label class="form-check-label fw-bold" for="lgpd_aceito">
+                                    <i class="bi bi-check-square text-success"></i>
+                                    Li e aceito os termos de uso e privacidade conforme a LGPD.
+                                    Concordo voluntariamente em participar desta pesquisa de clima organizacional.
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Atenção:</strong> É necessário aceitar os termos para prosseguir com o questionário.
+                        </div>
+
+                        <hr class="my-4">
+
+                        <button type="submit" class="btn btn-success btn-lg w-100" id="btnContinue">
+                            <i class="bi bi-arrow-right-circle"></i> Aceito e Desejo Continuar
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center text-muted py-3">
+                    <small>
+                        <i class="bi bi-shield-lock"></i>
+                        Seus dados estão protegidos conforme a Lei Geral de Proteção de Dados (LGPD)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Habilitar botão apenas se checkbox estiver marcado
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('lgpd_aceito');
+    const btnContinue = document.getElementById('btnContinue');
+
+    // Desabilitar botão inicialmente
+    btnContinue.disabled = !checkbox.checked;
+
+    checkbox.addEventListener('change', function() {
+        btnContinue.disabled = !this.checked;
+    });
+});
+</script>
+{% endblock %}
