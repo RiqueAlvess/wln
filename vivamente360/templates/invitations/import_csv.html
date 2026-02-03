@@ -299,7 +299,8 @@ importForm.addEventListener('submit', function(e) {
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
     .then(response => {
         if (!response.ok) {
