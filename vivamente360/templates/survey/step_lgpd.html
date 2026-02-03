@@ -136,7 +136,7 @@
                     </div>
 
                     <form method="post">
-                        {% csrf_token %}
+                        {{ csrf_input }}
                         <input type="hidden" name="step" value="lgpd">
 
                         <div class="checkbox-wrapper mb-4">
