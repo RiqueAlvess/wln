@@ -49,35 +49,38 @@ class DashboardSelectors:
 
     @staticmethod
     def get_dimensoes_scores(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        # Busca apenas o campo respostas para minimizar transferência de dados
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign).only('respostas')
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
-        dimensoes_data = {dim: [] for dim in ScoreService.DIMENSOES.keys()}
+        dimensoes_totais = {dim: 0.0 for dim in ScoreService.DIMENSOES.keys()}
+        count = 0
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             for dimensao in ScoreService.DIMENSOES.keys():
-                score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
-                dimensoes_data[dimensao].append(score)
+                dimensoes_totais[dimensao] += ScoreService.calcular_score_dimensao(
+                    response.respostas, dimensao
+                )
+            count += 1
 
-        result = {}
-        for dimensao, scores in dimensoes_data.items():
-            if scores:
-                result[dimensao] = round(sum(scores) / len(scores), 2)
-            else:
-                result[dimensao] = 0.0
+        if count == 0:
+            return {dim: 0.0 for dim in ScoreService.DIMENSOES.keys()}
 
-        return result
+        return {dim: round(total / count, 2) for dim, total in dimensoes_totais.items()}
 
     @staticmethod
     def get_top_setores_criticos(campaign, limit=5, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .select_related('setor')
+            .only('respostas', 'setor__nome')
+        )
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
         setor_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             setor_nome = response.setor.nome
             scores = ScoreService.processar_resposta_completa(response.respostas)
 
@@ -100,13 +103,12 @@ class DashboardSelectors:
 
     @staticmethod
     def get_demografico_genero(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign).only('genero')
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         genero_count = defaultdict(int)
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             genero = genero_map.get(response.genero, 'Não informado')
             genero_count[genero] += 1
 
@@ -117,12 +119,11 @@ class DashboardSelectors:
 
     @staticmethod
     def get_demografico_faixa_etaria(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = SurveyResponse.objects.filter(campaign=campaign).only('faixa_etaria')
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
         faixa_count = defaultdict(int)
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             faixa_count[response.faixa_etaria] += 1
 
         faixas_ordem = ['18-24', '25-34', '35-49', '50-59', '60+']
@@ -133,13 +134,17 @@ class DashboardSelectors:
 
     @staticmethod
     def get_heatmap_data(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign).select_related('setor')
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .select_related('setor')
+            .only('respostas', 'setor__nome')
+        )
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
         setor_dimensoes = defaultdict(lambda: defaultdict(list))
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             setor_nome = response.setor.nome
             for dimensao in ScoreService.DIMENSOES.keys():
                 score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
@@ -165,14 +170,17 @@ class DashboardSelectors:
         """
         Retorna dict com {genero: {dimensao: score_medio}}
         """
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .only('respostas', 'genero')
+        )
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         genero_dimensoes = defaultdict(lambda: defaultdict(list))
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             genero = genero_map.get(response.genero, 'Não informado')
             for dimensao in ScoreService.DIMENSOES.keys():
                 score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
@@ -195,13 +203,16 @@ class DashboardSelectors:
         """
         Retorna dict com {faixa: {dimensao: score_medio}}
         """
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .only('respostas', 'faixa_etaria')
+        )
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
         faixa_dimensoes = defaultdict(lambda: defaultdict(list))
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             faixa = response.faixa_etaria
             for dimensao in ScoreService.DIMENSOES.keys():
                 score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
@@ -225,14 +236,17 @@ class DashboardSelectors:
         Retorna TOP N grupos demográficos com maior percentual de respostas em risco crítico.
         Grupos incluem combinações de gênero e faixa etária.
         """
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .only('respostas', 'genero', 'faixa_etaria')
+        )
         responses_qs = DashboardSelectors._apply_filters(responses_qs, filters)
-        responses = responses_qs
         genero_map = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro', 'N': 'Não informado'}
 
         grupos_riscos = defaultdict(lambda: {'total': 0, 'criticos': 0})
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             genero = genero_map.get(response.genero, 'Não informado')
             faixa = response.faixa_etaria
             grupo = f"{genero} ({faixa})"

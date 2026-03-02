@@ -15,11 +15,18 @@ class PlanoAcao(TimeStampedModel):
         ('cancelado', 'Cancelado'),
     ]
 
+    NIVEL_RISCO_CHOICES = [
+        ('aceitavel', 'Aceitável'),
+        ('moderado', 'Moderado'),
+        ('importante', 'Importante'),
+        ('critico', 'Crítico'),
+    ]
+
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
     dimensao = models.ForeignKey(Dimensao, on_delete=models.CASCADE)
 
-    nivel_risco = models.CharField(max_length=20)
+    nivel_risco = models.CharField(max_length=20, choices=NIVEL_RISCO_CHOICES, default='moderado')
     descricao_risco = models.TextField()
     acao_proposta = models.TextField()
     responsavel = models.CharField(max_length=255)

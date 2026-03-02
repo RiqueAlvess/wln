@@ -1,3 +1,6 @@
+from apps.shared.constants import SCORE_THRESHOLDS_NEGATIVO, SCORE_THRESHOLDS_POSITIVO
+
+
 class ScoreService:
     DIMENSOES = {
         "demandas": [3, 6, 9, 12, 16, 18, 20, 22],
@@ -30,20 +33,22 @@ class ScoreService:
         eh_negativo = dimensao in cls.DIMENSOES_NEGATIVAS
 
         if eh_negativo:
-            if score >= 3.1:
+            t = SCORE_THRESHOLDS_NEGATIVO
+            if score >= t['alto']:
                 return {"classificacao": "ALTO RISCO", "probabilidade": 4}
-            elif score >= 2.1:
+            elif score >= t['moderado']:
                 return {"classificacao": "Risco Moderado", "probabilidade": 3}
-            elif score >= 1.1:
+            elif score >= t['medio']:
                 return {"classificacao": "Risco Médio", "probabilidade": 2}
             else:
                 return {"classificacao": "Baixo Risco", "probabilidade": 1}
         else:
-            if score <= 1.0:
+            t = SCORE_THRESHOLDS_POSITIVO
+            if score <= t['alto']:
                 return {"classificacao": "ALTO RISCO", "probabilidade": 4}
-            elif score <= 2.0:
+            elif score <= t['moderado']:
                 return {"classificacao": "Risco Moderado", "probabilidade": 3}
-            elif score <= 3.0:
+            elif score <= t['medio']:
                 return {"classificacao": "Risco Médio", "probabilidade": 2}
             else:
                 return {"classificacao": "Baixo Risco", "probabilidade": 1}
