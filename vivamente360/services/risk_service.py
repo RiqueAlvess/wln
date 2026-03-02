@@ -101,17 +101,20 @@ class RiskService:
 
     @staticmethod
     def calcular_igrp(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .only('respostas')
+        )
         responses_qs = RiskService._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
-        if not responses.exists():
+        if not responses_qs.exists():
             return 0.0
 
         total_score = 0
         total_dimensoes = 0
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             scores = ScoreService.processar_resposta_completa(response.respostas)
             for dimensao, data in scores.items():
                 total_score += data['nivel']
@@ -124,16 +127,19 @@ class RiskService:
 
     @staticmethod
     def get_distribuicao_riscos(campaign, filters=None):
-        responses_qs = SurveyResponse.objects.filter(campaign=campaign)
+        responses_qs = (
+            SurveyResponse.objects
+            .filter(campaign=campaign)
+            .only('respostas')
+        )
         responses_qs = RiskService._apply_filters(responses_qs, filters)
-        responses = responses_qs
 
         critico = 0
         importante = 0
         moderado = 0
         aceitavel = 0
 
-        for response in responses:
+        for response in responses_qs.iterator(chunk_size=200):
             scores = ScoreService.processar_resposta_completa(response.respostas)
             for dimensao, data in scores.items():
                 nr = data['nivel']
