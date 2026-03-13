@@ -217,7 +217,7 @@
 
                     {% if item.evidencias.count() > 0 %}
                     <div class="mt-2">
-                        {% for evidencia in item.evidencias.all %}
+                        {% for evidencia in item.evidencias.all() %}
                         <div class="d-flex align-items-center justify-content-between text-muted small mb-1">
                             <a href="{{ evidencia.arquivo.url }}" target="_blank" class="text-truncate" style="max-width: 150px;">
                                 <i class="bi bi-file-earmark"></i> {{ evidencia.nome_original }}
@@ -412,9 +412,60 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Atualizar progresso da etapa
+                atualizarProgressoEtapa(data.etapa, data.progresso_etapa, data.concluidos_etapa, data.total_etapa);
+                // Atualizar progresso geral
+                atualizarProgressoGeral(data.progresso_geral, data.total_concluidos, data.total_itens);
+                // Atualizar timestamp
+                document.getElementById('ultima-atualizacao').textContent = 'agora';
             }
         });
+    }
+
+    function atualizarProgressoEtapa(etapaNum, progresso, concluidos, total) {
+        const etapaEl = document.getElementById(`etapa-${etapaNum}`);
+        if (!etapaEl) return;
+
+        // Barra de progresso da etapa no cabeçalho
+        const progressBar = etapaEl.querySelector('.card-header .progress-bar');
+        if (progressBar) {
+            progressBar.style.width = progresso + '%';
+            progressBar.textContent = Math.round(progresso) + '%';
+            if (progresso >= 100) {
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-success');
+            } else {
+                progressBar.classList.remove('bg-success');
+                progressBar.classList.add('bg-primary');
+            }
+        }
+
+        // Badge de contagem X/Y
+        const badge = etapaEl.querySelector('.card-header .badge');
+        if (badge) {
+            badge.textContent = `${concluidos}/${total}`;
+        }
+    }
+
+    function atualizarProgressoGeral(progresso, concluidos, total) {
+        // Barra de progresso geral
+        const progressBarGeral = document.querySelector('.card .progress-bar[aria-valuemax="100"]');
+        if (progressBarGeral) {
+            progressBarGeral.style.width = progresso + '%';
+            progressBarGeral.setAttribute('aria-valuenow', progresso);
+            progressBarGeral.textContent = `${concluidos} de ${total} itens concluídos`;
+            if (progresso >= 100) {
+                progressBarGeral.classList.remove('progress-bar-animated');
+            } else {
+                progressBarGeral.classList.add('progress-bar-animated');
+            }
+        }
+
+        // Badge de percentual
+        const badgeGeral = document.querySelector('.card .badge.bg-primary.fs-6');
+        if (badgeGeral) {
+            badgeGeral.textContent = Math.round(progresso) + '%';
+        }
     }
 
     function atualizarResponsavel(itemId, responsavel) {
