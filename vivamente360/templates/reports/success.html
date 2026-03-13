@@ -1,0 +1,74 @@
+{% extends 'reports/base_public.html' %}
+
+{% block title %}Denúncia Registrada{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body p-4 text-center">
+        <div class="mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style="width: 80px; height: 80px;">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+            </div>
+        </div>
+
+        <h4 class="fw-bold mb-2">Denúncia Registrada com Sucesso</h4>
+        <p class="text-muted mb-4">Sua denúncia foi recebida e será analisada pela equipe responsável.</p>
+
+        <div class="alert alert-danger border-0 text-start mb-4" style="background-color: rgba(220, 53, 69, 0.08);">
+            <h6 class="fw-bold text-danger mb-3">
+                <i class="bi bi-exclamation-triangle-fill"></i> GUARDE ESTAS INFORMAÇÕES
+            </h6>
+            <p class="small mb-3">
+                Estas são as <strong>únicas credenciais</strong> para acompanhar sua denúncia.
+                Não é possível recuperá-las posteriormente.
+            </p>
+
+            <div class="bg-white rounded p-3 mb-3">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-muted mb-1">Protocolo:</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <code class="fs-4 fw-bold text-dark" id="protocolo">{{ protocolo }}</code>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('protocolo')" title="Copiar">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <hr>
+                <div>
+                    <label class="form-label small fw-bold text-muted mb-1">Chave de Acesso:</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <code class="small text-dark text-break" id="access_token">{{ access_token }}</code>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('access_token')" title="Copiar">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-outline-danger btn-sm" onclick="copyAll()">
+                <i class="bi bi-clipboard-check"></i> Copiar Tudo
+            </button>
+        </div>
+
+        <a href="{{ url('reports:track', empresa_slug=empresa.slug) }}" class="btn btn-primary">
+            <i class="bi bi-search"></i> Acompanhar Denúncia
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text);
+    }
+
+    function copyAll() {
+        const protocolo = document.getElementById('protocolo').textContent;
+        const token = document.getElementById('access_token').textContent;
+        const text = `Protocolo: ${protocolo}\nChave de Acesso: ${token}`;
+        navigator.clipboard.writeText(text);
+    }
+</script>
+{% endblock %}

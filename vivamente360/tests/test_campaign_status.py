@@ -13,6 +13,7 @@ from apps.surveys.models import Campaign
 from apps.invitations.models import SurveyInvitation
 from apps.tenants.models import Empresa
 from apps.structure.models import Unidade, Setor, Cargo
+# Note: Cargo is still used in SurveyInvitation, just not in SurveyResponse
 from tasks.campaign_tasks import verificar_campanhas_expiradas
 
 
@@ -34,7 +35,7 @@ class CampaignStatusTestCase(TestCase):
         )
 
         self.setor = Setor.objects.create(
-            empresa=self.empresa,
+            unidade=self.unidade,
             nome='Setor Teste'
         )
 

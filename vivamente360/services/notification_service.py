@@ -61,63 +61,36 @@ class NotificationService:
     @staticmethod
     def enviar_resultado_individual(survey_response):
         """
-        Envia email com resultado individual após conclusão do questionário.
+        Notifica o RH que uma nova resposta foi recebida na campanha.
 
-        Args:
-            survey_response: Objeto SurveyResponse com as respostas do questionário
-
-        Returns:
-            TaskQueue: Tarefa de envio criada ou None se não for possível enviar
-
-        Nota:
-            Requer que o survey_response tenha email do respondente disponível.
-            Por questões de LGPD, o email pode estar na SurveyInvitation relacionada.
+        NOTA DE ANONIMIDADE: Não enviamos resultado individual ao respondente
+        pois não há vínculo entre convite e resposta (padrão blind-drop).
+        Tentar encontrar o convite correspondente quebraria a anonimidade.
+        Em vez disso, criamos uma notificação in-app para o gestor da campanha.
         """
         try:
-            # Buscar convite relacionado para obter email do respondente
-            from apps.invitations.models import SurveyInvitation
-
-            invitation = SurveyInvitation.objects.filter(
-                campaign=survey_response.campaign,
-                # Aqui seria necessário um identificador único do respondente
-                # Por enquanto, estrutura básica
-            ).first()
-
-            if not invitation:
-                logger.warning(
-                    f"Não foi possível enviar resultado individual: "
-                    f"convite não encontrado para SurveyResponse #{survey_response.id}"
-                )
+            campaign = survey_response.campaign
+            if not campaign.created_by:
                 return None
 
-            # Calcular scores por dimensão
-            from app_selectors.analytics_selectors import AnalyticsSelectors
-            scores = AnalyticsSelectors.calcular_scores_individuais(survey_response)
+            from apps.core.models import UserNotification
+            try:
+                UserNotification.objects.create(
+                    user=campaign.created_by,
+                    empresa=campaign.empresa,
+                    notification_type='info',
+                    title=f'Nova resposta - {campaign.nome}',
+                    message=f'Uma nova resposta foi registrada na campanha {campaign.nome}.',
+                    link_url=f'/dashboard/?campaign={campaign.id}',
+                    link_text='Ver Dashboard',
+                )
+            except Exception:
+                pass  # UniqueConstraint pode bloquear duplicatas
 
-            # Renderizar template de email
-            html_body = render_to_string('emails/resultado_individual.html', {
-                'campaign': survey_response.campaign,
-                'scores': scores,
-                'empresa': survey_response.campaign.empresa,
-                'data_resposta': survey_response.created_at,
-            })
-
-            subject = f"Seu resultado - {survey_response.campaign.nome}"
-
-            # Enviar email de forma assíncrona
-            return NotificationService._enfileirar_email(
-                to_email=invitation.email_destinatario,
-                subject=subject,
-                html_body=html_body,
-                task_metadata={
-                    'tipo': 'resultado_individual',
-                    'survey_response_id': survey_response.id,
-                    'campaign_id': survey_response.campaign.id,
-                }
-            )
+            return None
 
         except Exception as e:
-            logger.error(f"Erro ao enviar resultado individual: {str(e)}", exc_info=True)
+            logger.error(f"Erro ao processar notificação de resposta: {str(e)}", exc_info=True)
             return None
 
     @staticmethod
@@ -197,42 +170,34 @@ class NotificationService:
     @staticmethod
     def alerta_risco_critico(survey_response):
         """
-        Alerta quando colaborador classificado como risco crítico.
+        Alerta quando resposta indica risco crítico.
 
-        Args:
-            survey_response: Objeto SurveyResponse a ser avaliado
-
-        Returns:
-            list[TaskQueue]: Lista de tarefas de envio criadas
-
-        Nota:
-            Considera risco crítico quando:
-            - Score médio < 2.0 em qualquer dimensão negativa
-            - Score médio < 2.5 em múltiplas dimensões
+        NOTA DE ANONIMIDADE: O alerta NÃO inclui cargo, nome ou qualquer
+        dado que permita identificar o respondente. Apenas informa o setor
+        (dado agregado) e as dimensões em risco.
         """
         try:
-            from app_selectors.analytics_selectors import AnalyticsSelectors
+            from services.score_service import ScoreService
 
-            # Calcular scores individuais
-            scores = AnalyticsSelectors.calcular_scores_individuais(survey_response)
+            # Calcular scores por dimensão
+            scores = ScoreService.processar_resposta_completa(survey_response.respostas)
 
             # Verificar critérios de risco crítico
             dimensoes_criticas = []
-            for dimensao, score in scores.items():
-                if score < 2.0:
+            for dimensao, data in scores.items():
+                if data['nivel'] >= 13:
                     dimensoes_criticas.append({
                         'dimensao': dimensao,
-                        'score': score,
+                        'score': data['score'],
                         'nivel': 'crítico'
                     })
-                elif score < 2.5:
+                elif data['nivel'] >= 9:
                     dimensoes_criticas.append({
                         'dimensao': dimensao,
-                        'score': score,
+                        'score': data['score'],
                         'nivel': 'atenção'
                     })
 
-            # Verificar se há risco crítico
             tem_risco_critico = any(
                 d['nivel'] == 'crítico' for d in dimensoes_criticas
             ) or len(dimensoes_criticas) >= 3
@@ -240,20 +205,17 @@ class NotificationService:
             if not tem_risco_critico:
                 return []
 
-            # Renderizar template de alerta
+            # Renderizar template de alerta - SEM dados identificáveis
             html_body = render_to_string('emails/alerta_risco_critico.html', {
                 'campaign': survey_response.campaign,
-                'survey_response': survey_response,
                 'dimensoes_criticas': dimensoes_criticas,
                 'empresa': survey_response.campaign.empresa,
-                'unidade': survey_response.unidade,
                 'setor': survey_response.setor,
-                'cargo': survey_response.cargo,
+                # NÃO incluir cargo, unidade ou qualquer dado que identifique
             })
 
-            subject = f"🚨 Alerta: Risco crítico detectado - {survey_response.campaign.nome}"
+            subject = f"Alerta: Risco critico detectado - {survey_response.campaign.nome}"
 
-            # Enviar para criador da campanha
             tasks = []
             if survey_response.campaign.created_by and survey_response.campaign.created_by.email:
                 task = NotificationService._enfileirar_email(
@@ -262,14 +224,11 @@ class NotificationService:
                     html_body=html_body,
                     task_metadata={
                         'tipo': 'alerta_risco_critico',
-                        'survey_response_id': survey_response.id,
                         'campaign_id': survey_response.campaign.id,
                         'dimensoes_criticas': len(dimensoes_criticas),
                     }
                 )
                 tasks.append(task)
-
-            # TODO: Enviar para RH e gestores responsáveis
 
             return tasks
 

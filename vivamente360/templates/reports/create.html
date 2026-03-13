@@ -1,0 +1,135 @@
+{% extends 'reports/base_public.html' %}
+
+{% block title %}Nova Denúncia - Canal de Denúncias{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body p-4">
+        <div class="alert alert-success border-0 mb-4" style="background-color: rgba(25, 135, 84, 0.08);">
+            <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-shield-check fs-5 text-success mt-1"></i>
+                <div>
+                    <h6 class="fw-bold mb-1 text-success">Garantia de Anonimato</h6>
+                    <ul class="mb-0 small text-muted">
+                        <li>Seu IP <strong>não será registrado</strong></li>
+                        <li>Nenhum dado de identificação é coletado</li>
+                        <li>Ao final, você receberá um <strong>protocolo + chave de acesso</strong> para acompanhamento</li>
+                        <li>Guarde essas informações em local seguro - são a única forma de acompanhar</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {% if errors %}
+        <div class="alert alert-danger border-0">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Corrija os erros abaixo:</strong>
+            <ul class="mb-0 mt-2">
+                {% for error in errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {{ csrf_input }}
+
+            <div class="mb-3">
+                <label for="categoria" class="form-label fw-semibold">
+                    <i class="bi bi-tag"></i> Categoria da Denúncia <span class="text-danger">*</span>
+                </label>
+                <select name="categoria" id="categoria" class="form-select" required>
+                    <option value="">Selecione uma categoria...</option>
+                    {% for value, label in categorias %}
+                    <option value="{{ value }}" {{ 'selected' if form_data and form_data.get('categoria') == value }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="gravidade" class="form-label fw-semibold">
+                    <i class="bi bi-speedometer2"></i> Gravidade
+                </label>
+                <select name="gravidade" id="gravidade" class="form-select">
+                    {% for value, label in gravidades %}
+                    <option value="{{ value }}" {{ 'selected' if (form_data and form_data.get('gravidade') == value) or (not form_data and value == 'media') }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="titulo" class="form-label fw-semibold">
+                    <i class="bi bi-chat-square-text"></i> Título / Assunto <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="titulo" id="titulo" class="form-control"
+                       placeholder="Breve descrição do ocorrido"
+                       value="{{ form_data.get('titulo', '') if form_data else '' }}"
+                       minlength="10" maxlength="255" required>
+                <div class="form-text">Mínimo 10 caracteres</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="descricao" class="form-label fw-semibold">
+                    <i class="bi bi-body-text"></i> Descrição Detalhada <span class="text-danger">*</span>
+                </label>
+                <textarea name="descricao" id="descricao" class="form-control" rows="6"
+                          placeholder="Descreva o ocorrido com o máximo de detalhes possível. Evite incluir seu nome ou informações que possam identificá-lo(a)."
+                          minlength="30" maxlength="5000" required>{{ form_data.get('descricao', '') if form_data else '' }}</textarea>
+                <div class="form-text">
+                    <span id="charCount">0</span>/5000 caracteres (mínimo 30)
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="local_ocorrencia" class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt"></i> Local da Ocorrência
+                    </label>
+                    <input type="text" name="local_ocorrencia" id="local_ocorrencia" class="form-control"
+                           placeholder="Ex: escritório, fábrica, filial..."
+                           value="{{ form_data.get('local_ocorrencia', '') if form_data else '' }}">
+                    <div class="form-text">Opcional - seja genérico para preservar seu anonimato</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="data_ocorrencia_aproximada" class="form-label fw-semibold">
+                        <i class="bi bi-calendar3"></i> Data Aproximada
+                    </label>
+                    <input type="text" name="data_ocorrencia_aproximada" id="data_ocorrencia_aproximada" class="form-control"
+                           placeholder="Ex: início de março, últimas semanas..."
+                           value="{{ form_data.get('data_ocorrencia_aproximada', '') if form_data else '' }}">
+                    <div class="form-text">Opcional - use termos aproximados</div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning border-0 mb-4" style="background-color: rgba(255, 193, 7, 0.1);">
+                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                <strong>Importante:</strong> Não inclua seu nome, e-mail ou qualquer informação pessoal na descrição.
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-send-fill"></i> Enviar Denúncia Anônima
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ url('reports:track', empresa_slug=empresa.slug) }}" class="text-muted small">
+        <i class="bi bi-search"></i> Já fez uma denúncia? Acompanhe aqui
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const descricao = document.getElementById('descricao');
+    const charCount = document.getElementById('charCount');
+    descricao.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+    });
+    charCount.textContent = descricao.value.length;
+</script>
+{% endblock %}

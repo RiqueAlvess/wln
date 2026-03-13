@@ -1,6 +1,7 @@
 from django.views.generic import ListView, View
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.utils import timezone
 from cryptography.exceptions import InvalidTag
 from apps.core.mixins import RHRequiredMixin
 from apps.invitations.models import SurveyInvitation
@@ -146,6 +147,12 @@ class DispatchEmailsView(RHRequiredMixin, View):
                         'invitation_id': invitation.id
                     }
                 )
+
+                # Atualizar status do convite para 'sent'
+                invitation.status = 'sent'
+                invitation.sent_at = timezone.now()
+                invitation.save(update_fields=['status', 'sent_at', 'updated_at'])
+
                 count += 1
 
             except InvalidTag:

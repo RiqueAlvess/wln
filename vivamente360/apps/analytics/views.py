@@ -148,6 +148,20 @@ class SectorAnalysisView(DashboardAccessMixin, TemplateView):
     """
     template_name = 'analytics/sector_analysis.html'
 
+    def get(self, request, *args, **kwargs):
+        setor_id = self.kwargs.get('setor_id')
+        campaign_id = self.kwargs.get('campaign_id')
+
+        setor = get_object_or_404(Setor, id=setor_id)
+
+        # Validar permissão: usuário pode acessar este setor?
+        setores_permitidos = self.get_setores_permitidos()
+        if setor not in setores_permitidos:
+            messages.error(request, 'Você não tem permissão para acessar análises deste setor.')
+            return redirect('analytics:sector_analysis_list')
+
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -156,12 +170,6 @@ class SectorAnalysisView(DashboardAccessMixin, TemplateView):
 
         setor = get_object_or_404(Setor, id=setor_id)
         campaign = get_object_or_404(Campaign, id=campaign_id)
-
-        # Validar permissão: usuário pode acessar este setor?
-        setores_permitidos = self.get_setores_permitidos()
-        if setor not in setores_permitidos:
-            messages.error(self.request, 'Você não tem permissão para acessar análises deste setor.')
-            return redirect('analytics:sector_analysis_list')
 
         # Buscar ou gerar análise
         analysis = SectorAnalysisService.get_analise(setor_id, campaign_id)
@@ -272,7 +280,7 @@ class GenerateSectorAnalysisView(DashboardAccessMixin, TemplateView):
             }, status=500)
 
 
-class CheckAnalysisStatusView(View):
+class CheckAnalysisStatusView(DashboardAccessMixin, View):
     """Verifica status de análise em processamento"""
 
     def get(self, request, task_id):
@@ -557,6 +565,27 @@ class SectorRiskDetailView(DashboardAccessMixin, TemplateView):
     """View detalhada de risco de um setor específico"""
     template_name = 'analytics/sector_risk_detail.html'
 
+    def get(self, request, *args, **kwargs):
+        campaign_id = kwargs.get('campaign_id')
+        setor_id = kwargs.get('setor_id')
+
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        setor = get_object_or_404(Setor, id=setor_id)
+
+        # Verificar permissão de campanha
+        campaigns = CampaignSelectors.get_user_campaigns(request.user)
+        if campaign not in campaigns:
+            messages.error(request, 'Você não tem permissão para acessar esta campanha.')
+            return redirect('analytics:dashboard')
+
+        # Verificar permissão de setor
+        setores_permitidos = self.get_setores_permitidos()
+        if setor not in setores_permitidos:
+            messages.error(request, 'Você não tem permissão para acessar dados deste setor.')
+            return redirect('analytics:psychosocial_risk_matrix')
+
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -565,18 +594,6 @@ class SectorRiskDetailView(DashboardAccessMixin, TemplateView):
 
         campaign = get_object_or_404(Campaign, id=campaign_id)
         setor = get_object_or_404(Setor, id=setor_id)
-
-        # Verificar permissão de campanha
-        campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
-        if campaign not in campaigns:
-            messages.error(self.request, 'Você não tem permissão para acessar esta campanha.')
-            return redirect('analytics:dashboard')
-
-        # Verificar permissão de setor (Liderança vê apenas seus setores)
-        setores_permitidos = self.get_setores_permitidos()
-        if setor not in setores_permitidos:
-            messages.error(self.request, 'Você não tem permissão para acessar dados deste setor.')
-            return redirect('analytics:psychosocial_risk_matrix')
 
         from services.risk_assessment_service import RiskAssessmentService
 

@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Canal de Denúncias - Gestão RH{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center rounded" style="width: 70px; height: 70px; background-color: #fce4ec;">
+            <i class="bi bi-shield-exclamation" style="font-size: 2.5rem; color: #c62828;"></i>
+        </div>
+        <div>
+            <h1 class="h2 mb-1 fw-bold">Canal de Denúncias</h1>
+            <p class="text-muted mb-0">Gestão de denúncias anônimas recebidas</p>
+        </div>
+    </div>
+</div>
+
+{# Métricas #}
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-semibold">Total</p>
+                        <h2 class="mb-0 fw-bold">{{ total_count }}</h2>
+                    </div>
+                    <div class="rounded p-2" style="background-color: #e7f1ff;">
+                        <i class="bi bi-inbox-fill" style="font-size: 1.5rem; color: #0d6efd;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-semibold">Abertas</p>
+                        <h2 class="mb-0 fw-bold text-danger">{{ abertas_count }}</h2>
+                    </div>
+                    <div class="rounded p-2" style="background-color: #fce4ec;">
+                        <i class="bi bi-exclamation-circle-fill" style="font-size: 1.5rem; color: #c62828;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-semibold">Em Análise / Investigação</p>
+                        <h2 class="mb-0 fw-bold" style="color: #f57c00;">{{ em_analise_count + investigando_count }}</h2>
+                    </div>
+                    <div class="rounded p-2" style="background-color: #fff3e0;">
+                        <i class="bi bi-hourglass-split" style="font-size: 1.5rem; color: #f57c00;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-semibold">Resolvidas</p>
+                        <h2 class="mb-0 fw-bold text-success">{{ resolvidas_count }}</h2>
+                    </div>
+                    <div class="rounded p-2" style="background-color: #e8f5e9;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; color: #2e7d32;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Filtros #}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Status</label>
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    <option value="aberta" {{ 'selected' if filter_status == 'aberta' }}>Aberta</option>
+                    <option value="em_analise" {{ 'selected' if filter_status == 'em_analise' }}>Em Análise</option>
+                    <option value="investigando" {{ 'selected' if filter_status == 'investigando' }}>Investigando</option>
+                    <option value="resolvida" {{ 'selected' if filter_status == 'resolvida' }}>Resolvida</option>
+                    <option value="arquivada" {{ 'selected' if filter_status == 'arquivada' }}>Arquivada</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Categoria</label>
+                <select name="categoria" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    {% for value, label in categorias %}
+                    <option value="{{ value }}" {{ 'selected' if filter_categoria == value }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Gravidade</label>
+                <select name="gravidade" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    {% for value, label in gravidades %}
+                    <option value="{{ value }}" {{ 'selected' if filter_gravidade == value }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <a href="{{ url('reports:rh_list') }}" class="btn btn-sm btn-outline-secondary w-100">
+                    <i class="bi bi-x-circle"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Lista #}
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th width="120">Protocolo</th>
+                    <th>Título</th>
+                    <th>Categoria</th>
+                    <th>Gravidade</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th width="100">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reports %}
+                {% for report in reports %}
+                <tr>
+                    <td><code class="fw-bold">{{ report.protocolo }}</code></td>
+                    <td>{{ report.titulo[:50] }}{{ '...' if report.titulo|length > 50 }}</td>
+                    <td><span class="badge bg-secondary">{{ report.get_categoria_display() }}</span></td>
+                    <td>
+                        {% if report.gravidade == 'critica' %}
+                        <span class="badge bg-danger">Crítica</span>
+                        {% elif report.gravidade == 'alta' %}
+                        <span class="badge bg-warning text-dark">Alta</span>
+                        {% elif report.gravidade == 'media' %}
+                        <span class="badge bg-info">Média</span>
+                        {% else %}
+                        <span class="badge bg-success">Baixa</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if report.status == 'aberta' %}
+                        <span class="badge bg-info">Aberta</span>
+                        {% elif report.status == 'em_analise' %}
+                        <span class="badge bg-warning text-dark">Em Análise</span>
+                        {% elif report.status == 'investigando' %}
+                        <span class="badge bg-primary">Investigando</span>
+                        {% elif report.status == 'resolvida' %}
+                        <span class="badge bg-success">Resolvida</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Arquivada</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ report.reported_at.strftime('%d/%m/%Y') }}</small></td>
+                    <td>
+                        <a href="{{ url('reports:rh_detail', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                        <p>Nenhuma denúncia encontrada.</p>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if reports and page_obj and page_obj.has_other_pages %}
+    <div class="card-footer bg-white">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {{ 'active' if num == page_obj.number }}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próximo</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

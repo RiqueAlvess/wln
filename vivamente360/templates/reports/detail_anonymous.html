@@ -1,0 +1,154 @@
+{% extends 'reports/base_public.html' %}
+
+{% block title %}Denúncia {{ report.protocolo }}{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">{{ report.titulo }}</h5>
+                <span class="badge bg-secondary">{{ report.get_categoria_display() }}</span>
+            </div>
+            <div>
+                {% if report.status == 'aberta' %}
+                <span class="badge bg-info fs-6">Aberta</span>
+                {% elif report.status == 'em_analise' %}
+                <span class="badge bg-warning text-dark fs-6">Em Análise</span>
+                {% elif report.status == 'investigando' %}
+                <span class="badge bg-primary fs-6">Investigando</span>
+                {% elif report.status == 'resolvida' %}
+                <span class="badge bg-success fs-6">Resolvida</span>
+                {% elif report.status == 'arquivada' %}
+                <span class="badge bg-secondary fs-6">Arquivada</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-light rounded p-3 mb-4">
+            <small class="text-muted">
+                <i class="bi bi-hash"></i> Protocolo: <strong>{{ report.protocolo }}</strong>
+                &nbsp;&bull;&nbsp;
+                <i class="bi bi-calendar3"></i> Registrada em: {{ report.reported_at.strftime('%d/%m/%Y') }}
+                {% if report.gravidade %}
+                &nbsp;&bull;&nbsp;
+                <i class="bi bi-speedometer2"></i> Gravidade: <strong>{{ report.get_gravidade_display() }}</strong>
+                {% endif %}
+            </small>
+        </div>
+
+        <div class="mb-4">
+            <h6 class="fw-bold text-muted small text-uppercase">Descrição</h6>
+            <p>{{ report.descricao }}</p>
+        </div>
+
+        {% if report.local_ocorrencia %}
+        <p class="small text-muted"><i class="bi bi-geo-alt"></i> Local: {{ report.local_ocorrencia }}</p>
+        {% endif %}
+        {% if report.data_ocorrencia_aproximada %}
+        <p class="small text-muted"><i class="bi bi-calendar3"></i> Data aprox.: {{ report.data_ocorrencia_aproximada }}</p>
+        {% endif %}
+    </div>
+</div>
+
+{# Timeline de respostas e followups #}
+{% if respostas or followups %}
+<h6 class="fw-bold mb-3"><i class="bi bi-chat-dots"></i> Comunicações</h6>
+
+{% set all_messages = [] %}
+{% for resp in respostas %}
+<div class="card mb-3 border-start border-primary border-4">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-primary">Resposta do RH</span>
+            <small class="text-muted">{{ resp.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+        </div>
+        <p class="mb-0">{{ resp.mensagem }}</p>
+        {% if resp.novo_status %}
+        <div class="mt-2">
+            <small class="text-muted">Status atualizado para:
+                <span class="badge bg-secondary">{{ resp.get_novo_status_display() }}</span>
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% for followup in followups %}
+<div class="card mb-3 border-start border-success border-4">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-success">Informação Adicional</span>
+            <small class="text-muted">{{ followup.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+        </div>
+        <p class="mb-0">{{ followup.mensagem }}</p>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{# Formulário de informação adicional #}
+{% if report.status not in ('resolvida', 'arquivada') %}
+<div class="card mt-4">
+    <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle"></i> Enviar Informação Adicional</h6>
+        <form id="followupForm">
+            <input type="hidden" name="protocolo" value="{{ protocolo }}">
+            <input type="hidden" name="access_token" value="{{ access_token }}">
+            <div class="mb-3">
+                <textarea name="mensagem" id="mensagem" class="form-control" rows="3"
+                          placeholder="Informação adicional sobre a denúncia..."
+                          maxlength="3000" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-send"></i> Enviar
+            </button>
+        </form>
+        <div id="followupAlert" class="mt-2" style="display: none;"></div>
+    </div>
+</div>
+{% endif %}
+
+<div class="text-center mt-4">
+    <a href="{{ url('reports:track', empresa_slug=empresa.slug) }}" class="text-muted small">
+        <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('followupForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const data = new FormData(form);
+        const alertDiv = document.getElementById('followupAlert');
+
+        try {
+            const response = await fetch('{{ url("reports:followup", empresa_slug=empresa.slug) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: data,
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alertDiv.innerHTML = '<div class="alert alert-success small">Informação registrada. Recarregue a página para ver.</div>';
+                alertDiv.style.display = 'block';
+                form.reset();
+            } else {
+                alertDiv.innerHTML = `<div class="alert alert-danger small">${result.error}</div>`;
+                alertDiv.style.display = 'block';
+            }
+        } catch (err) {
+            alertDiv.innerHTML = '<div class="alert alert-danger small">Erro ao enviar. Tente novamente.</div>';
+            alertDiv.style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

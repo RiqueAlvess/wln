@@ -34,9 +34,6 @@ class SurveyFormView(View):
         elif step == 'demographics':
             return render(request, 'survey/step_demographics.html', {
                 'campaign': invitation.campaign,
-                'unidade': invitation.unidade,
-                'setor': invitation.setor,
-                'cargo': invitation.cargo
             })
 
         elif step == 'feedback':
@@ -86,6 +83,12 @@ class SurveyFormView(View):
             # Processar feedback do colaborador
             demographics = request.session.get(f'survey_{token}', {})
             respostas = request.session.get(f'respostas_{token}', {})
+
+            # Validar que temos dados demográficos e respostas
+            if not demographics or not demographics.get('faixa_etaria'):
+                return redirect(f'/survey/{token}/?step=demographics')
+            if not respostas:
+                return redirect(f'/survey/{token}/?step=1')
             comentario_livre = request.POST.get('comentario_livre', '').strip()
             skip = request.POST.get('skip', False)
 
@@ -93,12 +96,11 @@ class SurveyFormView(View):
             if skip:
                 comentario_livre = ''
 
-            # Criar resposta do questionário
+            # Criar resposta do questionário (SEM cargo para garantir anonimidade)
             survey_response = SurveyResponse.objects.create(
                 campaign=invitation.campaign,
                 unidade=invitation.unidade,
                 setor=invitation.setor,
-                cargo=invitation.cargo,
                 faixa_etaria=demographics['faixa_etaria'],
                 tempo_empresa=demographics['tempo_empresa'],
                 genero=demographics['genero'],
@@ -124,9 +126,9 @@ class SurveyFormView(View):
 
             TokenService.invalidate_token(invitation)
 
-            # Limpar sessão
-            del request.session[f'survey_{token}']
-            del request.session[f'respostas_{token}']
+            # Limpar sessão de forma segura
+            request.session.pop(f'survey_{token}', None)
+            request.session.pop(f'respostas_{token}', None)
 
             return render(request, 'survey/step_success.html')
 

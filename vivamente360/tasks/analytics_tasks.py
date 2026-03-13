@@ -9,7 +9,7 @@ from services.risk_service import RiskService
 
 def rebuild_campaign_analytics(campaign):
     responses = SurveyResponse.objects.filter(campaign=campaign).select_related(
-        'unidade', 'setor', 'cargo'
+        'unidade', 'setor'
     )
 
     for response in responses:
@@ -25,6 +25,7 @@ def rebuild_campaign_analytics(campaign):
             }
         )
 
+        # cargo_id=0 para respostas anônimas (campo removido para proteção de identidade)
         dim_estrutura, _ = DimEstrutura.objects.get_or_create(
             empresa_id=campaign.empresa.id,
             empresa_nome=campaign.empresa.nome,
@@ -32,9 +33,9 @@ def rebuild_campaign_analytics(campaign):
             unidade_nome=response.unidade.nome,
             setor_id=response.setor.id,
             setor_nome=response.setor.nome,
-            cargo_id=response.cargo.id,
-            cargo_nome=response.cargo.nome,
-            cargo_nivel=response.cargo.nivel
+            cargo_id=0,
+            cargo_nome='',
+            cargo_nivel=''
         )
 
         dim_demografia, _ = DimDemografia.objects.get_or_create(

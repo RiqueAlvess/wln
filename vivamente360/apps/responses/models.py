@@ -1,10 +1,18 @@
 from django.db import models
 from apps.core.models import TimeStampedModel
-from apps.structure.models import Unidade, Setor, Cargo
+from apps.structure.models import Unidade, Setor
 from apps.surveys.models import Campaign
 
 
 class SurveyResponse(TimeStampedModel):
+    """
+    Resposta anônima de pesquisa.
+
+    ANONIMIDADE: Este modelo NÃO contém referência a cargo, nome, email
+    ou qualquer dado que permita identificar o respondente individualmente.
+    O campo 'cargo' foi removido para impedir regressão de codificação
+    (cross-reference com SurveyInvitation que possui cargo).
+    """
     FAIXA_ETARIA_CHOICES = [
         ('18-24', '18 a 24 anos'),
         ('25-34', '25 a 34 anos'),
@@ -31,7 +39,6 @@ class SurveyResponse(TimeStampedModel):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='responses')
     unidade = models.ForeignKey(Unidade, on_delete=models.CASCADE)
     setor = models.ForeignKey(Setor, on_delete=models.CASCADE)
-    cargo = models.ForeignKey(Cargo, on_delete=models.CASCADE)
 
     faixa_etaria = models.CharField(max_length=10, choices=FAIXA_ETARIA_CHOICES)
     tempo_empresa = models.CharField(max_length=10, choices=TEMPO_EMPRESA_CHOICES)
@@ -73,4 +80,4 @@ class SurveyResponse(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.campaign.nome} - {self.setor.nome}"
+        return f"Resposta anônima - {self.campaign.nome} - {self.setor.nome}"
