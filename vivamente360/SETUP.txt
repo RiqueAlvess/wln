@@ -18,20 +18,25 @@ VIVAMENTE 360º - Setup Instructions
 5. Criar banco de dados PostgreSQL:
    createdb vivamente360
 
-6. Executar migrations:
-   python manage.py makemigrations
-   python manage.py migrate
+6. Executar migrations (OBRIGATÓRIO antes do runserver):
+   python manage.py migrate --settings=config.settings.development
+
+   ATENÇÃO: Nunca execute runserver sem rodar migrate primeiro.
+   Caso contrário, você verá erros de "column does not exist".
 
 7. Popular dimensões e perguntas HSE-IT:
-   python manage.py populate_hse
+   python manage.py populate_hse --settings=config.settings.development
 
 8. Criar superusuário:
-   python manage.py createsuperuser
+   python manage.py createsuperuser --settings=config.settings.development
 
 9. Executar servidor de desenvolvimento:
-   python manage.py runserver
+   python manage.py runserver --settings=config.settings.development
 
 10. Em outro terminal, executar worker de e-mails:
-    python manage.py process_email_queue
+    python manage.py process_email_queue --settings=config.settings.development
 
 Acesse: http://localhost:8000/admin para configurar empresas e usuários
+
+---
+Atalho: Use "make help" para ver todos os comandos disponíveis via Makefile.

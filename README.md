@@ -15,7 +15,7 @@ Plataforma web desenvolvida em Django 5.0.1 que permite:
 
 ## 🛠️ Stack Tecnológica
 
-- **Backend:** Django 5.0.1 (Python 3.11+)
+- **Backend:** Django 6.0.1 (Python 3.11+)
 - **Templates:** Jinja2
 - **Frontend:** Bootstrap 5.3.3 + Chart.js 4.4.1
 - **Banco de Dados:** PostgreSQL 15+
@@ -246,18 +246,19 @@ Plataforma web desenvolvida em Django 5.0.1 que permite:
 
 ### 1. Requisitos
 
-```bash
+```
 - Python 3.11+
 - PostgreSQL 15+
 - pip
+- make (opcional, mas recomendado)
 ```
 
-### 2. Configuração
+### 2. Configuração Rápida (com make)
 
 ```bash
 # Clone o repositório
 git clone <repo_url>
-cd vivamente360
+cd vivamente360/vivamente360
 
 # Crie e ative o ambiente virtual
 python3 -m venv venv
@@ -265,62 +266,53 @@ source venv/bin/activate  # Linux/Mac
 # ou
 venv\Scripts\activate  # Windows
 
-# Instale as dependências
-pip install -r requirements.txt
-```
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Edite o .env com suas configurações (DB, ENCRYPTION_KEY, etc.)
 
-### 3. Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz:
-
-```env
-# Django
-SECRET_KEY=sua-chave-secreta-aqui
-DEBUG=True
-
-# Database
-DB_NAME=vivamente360
-DB_USER=postgres
-DB_PASSWORD=senha
-DB_HOST=localhost
-DB_PORT=5432
-
-# Email
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=sua-chave-resend
-DEFAULT_FROM_EMAIL=noreply@suaempresa.com
-
-# Encryption
-ENCRYPTION_KEY=chave-base64-32-bytes
-```
-
-### 4. Banco de Dados
-
-```bash
-# Criar banco
+# Criar banco de dados
 createdb vivamente360
 
-# Aplicar migrations
-python manage.py migrate
-
-# Popular dimensões HSE-IT
-python manage.py populate_hse
+# Setup completo (instala deps + migrate + populate_hse)
+make setup
 
 # Criar superusuário
-python manage.py createsuperuser
+make superuser
+
+# Iniciar servidor
+make run
 ```
 
-### 5. Executar
+Veja todos os comandos disponíveis com `make help`.
+
+### 3. Configuração Manual
 
 ```bash
-# Servidor web
-python manage.py runserver
+# Instalar dependências
+pip install -r requirements.txt
+
+# Gerar chave de criptografia
+python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"
+
+# Aplicar migrations
+python manage.py migrate --settings=config.settings.development
+
+# Popular dimensões HSE-IT
+python manage.py populate_hse --settings=config.settings.development
+
+# Criar superusuário
+python manage.py createsuperuser --settings=config.settings.development
+
+# Iniciar servidor
+python manage.py runserver --settings=config.settings.development
 
 # Worker de emails (em outro terminal)
-python manage.py process_email_queue
+python manage.py process_email_queue --settings=config.settings.development
 ```
 
 Acesse: `http://localhost:8000`
+
+> **Importante:** Sempre execute `python manage.py migrate` antes de `runserver` para garantir que o banco de dados está atualizado.
 
 ---
 
