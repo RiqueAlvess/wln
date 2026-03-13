@@ -1,10 +1,17 @@
 from django.db import models
+from django.utils.text import slugify
 from apps.core.models import TimeStampedModel
 
 
 class Empresa(TimeStampedModel):
     nome = models.CharField(max_length=255)
     cnpj = models.CharField(max_length=18, unique=True)
+    slug = models.SlugField(
+        max_length=255,
+        unique=True,
+        blank=True,
+        help_text="Slug para URLs públicas (gerado automaticamente)"
+    )
     total_funcionarios = models.IntegerField(default=0)
 
     # CNAE para análise de riscos específicos por setor econômico
@@ -36,3 +43,14 @@ class Empresa(TimeStampedModel):
 
     def __str__(self):
         return self.nome
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.nome)
+            slug = base_slug
+            counter = 1
+            while Empresa.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)

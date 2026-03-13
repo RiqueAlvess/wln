@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}Denúncia {{ report.protocolo }} - Gestão RH{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url('reports:rh_list') }}" class="text-muted small">
+            <i class="bi bi-arrow-left"></i> Voltar à lista
+        </a>
+        <h2 class="fw-bold mt-2 mb-0">
+            Denúncia <code>{{ report.protocolo }}</code>
+        </h2>
+    </div>
+    <div>
+        {% if report.status == 'aberta' %}
+        <span class="badge bg-info fs-6 px-3 py-2">Aberta</span>
+        {% elif report.status == 'em_analise' %}
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2">Em Análise</span>
+        {% elif report.status == 'investigando' %}
+        <span class="badge bg-primary fs-6 px-3 py-2">Investigando</span>
+        {% elif report.status == 'resolvida' %}
+        <span class="badge bg-success fs-6 px-3 py-2">Resolvida</span>
+        {% elif report.status == 'arquivada' %}
+        <span class="badge bg-secondary fs-6 px-3 py-2">Arquivada</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    {# Coluna principal - Detalhes da denúncia #}
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="fw-bold mb-0">{{ report.titulo }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Categoria</small>
+                        <span class="badge bg-secondary">{{ report.get_categoria_display() }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Gravidade</small>
+                        {% if report.gravidade == 'critica' %}
+                        <span class="badge bg-danger">Crítica</span>
+                        {% elif report.gravidade == 'alta' %}
+                        <span class="badge bg-warning text-dark">Alta</span>
+                        {% elif report.gravidade == 'media' %}
+                        <span class="badge bg-info">Média</span>
+                        {% else %}
+                        <span class="badge bg-success">Baixa</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Data do Reporte</small>
+                        <strong>{{ report.reported_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                    </div>
+                </div>
+
+                {% if report.local_ocorrencia %}
+                <p class="small mb-1"><i class="bi bi-geo-alt text-muted"></i> <strong>Local:</strong> {{ report.local_ocorrencia }}</p>
+                {% endif %}
+                {% if report.data_ocorrencia_aproximada %}
+                <p class="small mb-3"><i class="bi bi-calendar3 text-muted"></i> <strong>Data aprox.:</strong> {{ report.data_ocorrencia_aproximada }}</p>
+                {% endif %}
+
+                <hr>
+                <h6 class="fw-bold text-muted small text-uppercase mb-2">Descrição</h6>
+                <div class="bg-light rounded p-3">
+                    <p class="mb-0" style="white-space: pre-wrap;">{{ report.descricao }}</p>
+                </div>
+            </div>
+        </div>
+
+        {# Timeline de comunicações #}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="fw-bold mb-0"><i class="bi bi-chat-dots"></i> Histórico de Comunicações</h6>
+            </div>
+            <div class="card-body">
+                {% if respostas or followups %}
+                    {% for resp in respostas %}
+                    <div class="border-start border-primary border-3 ps-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary">Resposta RH</span>
+                            <small class="text-muted">
+                                {{ resp.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                {% if resp.respondido_por %}
+                                - por {{ resp.respondido_por.username }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <p class="mb-1">{{ resp.mensagem }}</p>
+                        {% if resp.novo_status %}
+                        <small class="text-muted">Status alterado para: <span class="badge bg-secondary">{{ resp.get_novo_status_display() }}</span></small>
+                        {% endif %}
+                        {% if not resp.visivel_denunciante %}
+                        <br><small class="text-warning"><i class="bi bi-eye-slash"></i> Não visível ao denunciante</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% for followup in followups %}
+                    <div class="border-start border-success border-3 ps-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-success">Info. Adicional (Denunciante)</span>
+                            <small class="text-muted">{{ followup.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                        <p class="mb-0">{{ followup.mensagem }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">Nenhuma comunicação registrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Coluna lateral - Ações do RH #}
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="fw-bold mb-0"><i class="bi bi-reply"></i> Responder / Atualizar</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url('reports:rh_respond', report_id=report.id) }}">
+                    {{ csrf_input }}
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mensagem</label>
+                        <textarea name="mensagem" class="form-control" rows="4"
+                                  placeholder="Escreva sua resposta ou atualização..." required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Alterar Status</label>
+                        <select name="novo_status" class="form-select form-select-sm">
+                            <option value="">Manter atual</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {{ 'selected' if value == report.status }}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="visivel" name="visivel_denunciante" checked>
+                        <label class="form-check-label small" for="visivel">
+                            Visível para o denunciante
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Enviar Resposta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body">
+                <h6 class="fw-bold small text-muted mb-3">
+                    <i class="bi bi-shield-lock"></i> Informações de Segurança
+                </h6>
+                <ul class="list-unstyled small text-muted mb-0">
+                    <li class="mb-2"><i class="bi bi-check-circle text-success"></i> Denúncia 100% anônima</li>
+                    <li class="mb-2"><i class="bi bi-check-circle text-success"></i> IP do denunciante não registrado</li>
+                    <li class="mb-2"><i class="bi bi-check-circle text-success"></i> Sem vínculo com colaboradores</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Empresa: {{ report.empresa.nome }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

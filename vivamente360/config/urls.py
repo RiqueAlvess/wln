@@ -13,6 +13,7 @@ urlpatterns = [
     path('survey/', include('apps.responses.urls')),
     path('actions/', include('apps.actions.urls')),
     path('artigos/', include('apps.articles.urls')),
+    path('reports/', include('apps.reports.urls')),
     path('', include('apps.core.urls')),
 ]
 
