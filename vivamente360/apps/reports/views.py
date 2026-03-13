@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
 from django.utils.decorators import method_decorator
+from django.urls import reverse
 from django_ratelimit.decorators import ratelimit
 from apps.core.mixins import RHRequiredMixin
 from apps.tenants.models import Empresa
@@ -240,6 +241,23 @@ class ReportListView(RHRequiredMixin, ListView):
         context['filter_gravidade'] = self.request.GET.get('gravidade', '')
         context['categorias'] = AnonymousReport.CATEGORIA_CHOICES
         context['gravidades'] = AnonymousReport.GRAVIDADE_CHOICES
+
+        # Links públicos do canal de denúncias por empresa
+        if user.is_superuser:
+            empresas = Empresa.objects.filter(ativo=True)
+        elif hasattr(user, 'profile'):
+            empresas = user.profile.empresas.filter(ativo=True)
+        else:
+            empresas = Empresa.objects.none()
+
+        canal_urls = []
+        for empresa in empresas:
+            path = reverse('reports:create', kwargs={'empresa_slug': empresa.slug})
+            canal_urls.append({
+                'empresa': empresa.nome,
+                'url': self.request.build_absolute_uri(path),
+            })
+        context['canal_urls'] = canal_urls
 
         return context
 
