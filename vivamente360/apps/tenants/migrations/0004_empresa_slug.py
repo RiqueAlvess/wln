@@ -1,4 +1,4 @@
-from django.db import migrations, models
+from django.db import connection, migrations, models
 from django.utils.text import slugify
 
 
@@ -15,6 +15,35 @@ def generate_slugs(apps, schema_editor):
         empresa.save(update_fields=['slug'])
 
 
+def add_slug_field_if_not_exists(apps, schema_editor):
+    """Add slug column only if it doesn't already exist."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'tenants_empresa' AND column_name = 'slug'"
+        )
+        if not cursor.fetchone():
+            cursor.execute(
+                'ALTER TABLE "tenants_empresa" ADD COLUMN "slug" varchar(255) '
+                "NOT NULL DEFAULT ''"
+            )
+
+
+def make_slug_unique_if_not_already(apps, schema_editor):
+    """Add unique constraint on slug only if it doesn't already exist."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT 1 FROM pg_indexes "
+            "WHERE tablename = 'tenants_empresa' AND indexname = 'tenants_empresa_slug_304ba91f_like'"
+        )
+        if cursor.fetchone():
+            return
+        cursor.execute(
+            'ALTER TABLE "tenants_empresa" ADD CONSTRAINT '
+            '"tenants_empresa_slug_key" UNIQUE ("slug")'
+        )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -22,26 +51,40 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='empresa',
-            name='slug',
-            field=models.SlugField(
-                blank=True,
-                default='',
-                help_text='Slug para URLs públicas (gerado automaticamente)',
-                max_length=255,
-            ),
-            preserve_default=False,
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(
+                    model_name='empresa',
+                    name='slug',
+                    field=models.SlugField(
+                        blank=True,
+                        default='',
+                        help_text='Slug para URLs públicas (gerado automaticamente)',
+                        max_length=255,
+                    ),
+                    preserve_default=False,
+                ),
+            ],
+            database_operations=[
+                migrations.RunPython(add_slug_field_if_not_exists, migrations.RunPython.noop),
+            ],
         ),
         migrations.RunPython(generate_slugs, migrations.RunPython.noop),
-        migrations.AlterField(
-            model_name='empresa',
-            name='slug',
-            field=models.SlugField(
-                blank=True,
-                help_text='Slug para URLs públicas (gerado automaticamente)',
-                max_length=255,
-                unique=True,
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name='empresa',
+                    name='slug',
+                    field=models.SlugField(
+                        blank=True,
+                        help_text='Slug para URLs públicas (gerado automaticamente)',
+                        max_length=255,
+                        unique=True,
+                    ),
+                ),
+            ],
+            database_operations=[
+                migrations.RunPython(make_slug_unique_if_not_already, migrations.RunPython.noop),
+            ],
         ),
     ]
