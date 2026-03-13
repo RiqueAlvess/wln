@@ -339,13 +339,13 @@ class ChecklistNR1ItemUpdateView(RHRequiredMixin, View):
         item = get_object_or_404(ChecklistNR1Etapa, id=item_id)
 
         # Atualizar campos
-        concluido = request.POST.get('concluido') == 'true'
-        item.concluido = concluido
-
-        if concluido and not item.data_conclusao:
-            item.data_conclusao = timezone.now()
-        elif not concluido:
-            item.data_conclusao = None
+        if 'concluido' in request.POST:
+            concluido = request.POST.get('concluido') == 'true'
+            item.concluido = concluido
+            if concluido and not item.data_conclusao:
+                item.data_conclusao = timezone.now()
+            elif not concluido:
+                item.data_conclusao = None
 
         if 'responsavel' in request.POST:
             item.responsavel = request.POST.get('responsavel', '')
@@ -359,12 +359,28 @@ class ChecklistNR1ItemUpdateView(RHRequiredMixin, View):
 
         item.save()
 
+        # Calcular progresso geral da campanha
+        total_itens = ChecklistNR1Etapa.objects.filter(campaign=item.campaign).count()
+        total_concluidos = ChecklistNR1Etapa.objects.filter(campaign=item.campaign, concluido=True).count()
+        progresso_geral = (total_concluidos / total_itens * 100) if total_itens > 0 else 0
+
+        # Calcular concluidos/total desta etapa para atualizar badge
+        itens_etapa = ChecklistNR1Etapa.objects.filter(campaign=item.campaign, etapa=item.etapa)
+        concluidos_etapa = itens_etapa.filter(concluido=True).count()
+        total_etapa = itens_etapa.count()
+
         return JsonResponse({
             'success': True,
             'item_id': item.id,
             'concluido': item.concluido,
             'data_conclusao': item.data_conclusao.isoformat() if item.data_conclusao else None,
-            'progresso_etapa': item.get_progresso_etapa()
+            'etapa': item.etapa,
+            'progresso_etapa': item.get_progresso_etapa(),
+            'concluidos_etapa': concluidos_etapa,
+            'total_etapa': total_etapa,
+            'progresso_geral': progresso_geral,
+            'total_concluidos': total_concluidos,
+            'total_itens': total_itens,
         })
 
 
