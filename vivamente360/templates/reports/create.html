@@ -32,7 +32,7 @@
         </div>
         {% endif %}
 
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {{ csrf_input }}
 
             <div class="mb-3">
@@ -99,6 +99,16 @@
                            placeholder="Ex: início de março, últimas semanas..."
                            value="{{ form_data.get('data_ocorrencia_aproximada', '') if form_data else '' }}">
                     <div class="form-text">Opcional - use termos aproximados</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="anexos" class="form-label fw-semibold">
+                    <i class="bi bi-paperclip"></i> Anexos
+                </label>
+                <input type="file" name="anexos" id="anexos" class="form-control" multiple>
+                <div class="form-text">
+                    Opcional — qualquer tipo de arquivo aceito, até 20 MB por arquivo. Você pode selecionar múltiplos arquivos.
                 </div>
             </div>
 

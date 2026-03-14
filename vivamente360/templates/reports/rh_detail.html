@@ -70,6 +70,21 @@
                 <div class="bg-light rounded p-3">
                     <p class="mb-0" style="white-space: pre-wrap;">{{ report.descricao }}</p>
                 </div>
+
+                {% if anexos %}
+                <hr>
+                <h6 class="fw-bold text-muted small text-uppercase mb-2">Anexos</h6>
+                <ul class="list-group list-group-flush">
+                    {% for anexo in anexos %}
+                    <li class="list-group-item px-0">
+                        <a href="{{ anexo.arquivo.url }}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-paperclip"></i> {{ anexo.nome_original }}
+                        </a>
+                        <small class="text-muted ms-2">{{ anexo.tamanho_formatado }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
             </div>
         </div>
 

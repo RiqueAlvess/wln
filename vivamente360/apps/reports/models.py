@@ -179,6 +179,48 @@ class ReportResponse(TimeStampedModel):
         return f"Resposta para [{self.report.protocolo}]"
 
 
+class ReportAttachment(TimeStampedModel):
+    """
+    Anexos enviados junto com a denúncia anônima.
+    Aceita qualquer tipo de arquivo (sem restrição de extensão).
+    """
+    report = models.ForeignKey(
+        AnonymousReport,
+        on_delete=models.CASCADE,
+        related_name='anexos'
+    )
+    arquivo = models.FileField(
+        upload_to='denuncias/%Y/%m/',
+        help_text="Arquivo anexado à denúncia"
+    )
+    nome_original = models.CharField(
+        max_length=255,
+        help_text="Nome original do arquivo enviado"
+    )
+    tamanho = models.PositiveIntegerField(
+        default=0,
+        help_text="Tamanho do arquivo em bytes"
+    )
+
+    class Meta:
+        db_table = 'reports_report_attachment'
+        verbose_name = 'Anexo de Denúncia'
+        verbose_name_plural = 'Anexos de Denúncias'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Anexo '{self.nome_original}' para [{self.report.protocolo}]"
+
+    @property
+    def tamanho_formatado(self):
+        size = self.tamanho
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+
 class ReportFollowUp(TimeStampedModel):
     """
     Mensagens adicionais do denunciante anônimo.

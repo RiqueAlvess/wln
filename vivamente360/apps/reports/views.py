@@ -9,7 +9,7 @@ from django.urls import reverse
 from django_ratelimit.decorators import ratelimit
 from apps.core.mixins import RHRequiredMixin
 from apps.tenants.models import Empresa
-from .models import AnonymousReport, ReportResponse, ReportFollowUp
+from .models import AnonymousReport, ReportAttachment, ReportResponse, ReportFollowUp
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,18 @@ class ReportCreateView(View):
             access_token_hash=access_token_hash,
         )
 
+        # Processar anexos (qualquer tipo de arquivo, máximo 20MB por arquivo)
+        for arquivo in request.FILES.getlist('anexos'):
+            if arquivo.size > 20 * 1024 * 1024:
+                logger.warning("Anexo ignorado por exceder 20MB: %s", arquivo.name)
+                continue
+            ReportAttachment.objects.create(
+                report=report,
+                arquivo=arquivo,
+                nome_original=arquivo.name,
+                tamanho=arquivo.size,
+            )
+
         return render(request, 'reports/success.html', {
             'empresa': empresa,
             'protocolo': report.protocolo,
@@ -129,12 +141,14 @@ class ReportTrackView(View):
         # Buscar respostas visíveis ao denunciante
         respostas = report.respostas_rh.filter(visivel_denunciante=True)
         followups = report.followups.all()
+        anexos = report.anexos.all()
 
         return render(request, 'reports/detail_anonymous.html', {
             'empresa': empresa,
             'report': report,
             'respostas': respostas,
             'followups': followups,
+            'anexos': anexos,
             'protocolo': protocolo,
             'access_token': access_token,
         })
@@ -287,6 +301,7 @@ class ReportDetailView(RHRequiredMixin, TemplateView):
         context['report'] = report
         context['respostas'] = report.respostas_rh.select_related('respondido_por')
         context['followups'] = report.followups.all()
+        context['anexos'] = report.anexos.all()
         context['status_choices'] = AnonymousReport.STATUS_CHOICES
 
         return context
