@@ -5,7 +5,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0001_initial'),
+        ('reports', '0002_rename_reports_ano_empresa_4f5c6a_idx_reports_ano_empresa_962fde_idx_and_more'),
     ]
 
     operations = [
