@@ -8,7 +8,7 @@
         background: linear-gradient(135deg, {{ branding.cor_primaria }} 0%, {{ branding.cor_secundaria }} 100%);
         color: white;
         padding: 3rem 0;
-        margin: -2rem -1.5rem 2rem;
+        margin: -2rem calc(-1 * var(--bs-gutter-x, 0.75rem)) 2rem;
         border-radius: 8px;
     }
 
@@ -103,6 +103,20 @@
         height: auto;
         border-radius: 8px;
         margin: 1.5rem 0;
+    }
+
+    .artigo-conteudo table {
+        max-width: 100%;
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .artigo-conteudo iframe,
+    .artigo-conteudo embed,
+    .artigo-conteudo object,
+    .artigo-conteudo video {
+        max-width: 100%;
     }
 
     .autor-card {
