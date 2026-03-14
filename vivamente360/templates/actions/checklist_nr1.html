@@ -172,12 +172,11 @@
                                 {% endif %}
                             </label>
 
-                            {% if item.concluido and item.data_conclusao %}
-                            <div class="text-muted small">
+                            <div class="text-muted small {% if not item.concluido or not item.data_conclusao %}d-none{% endif %}"
+                                 id="conclusao-{{ item.id }}">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                Concluído: {{ item.data_conclusao|dateformat }}
+                                Concluído: <span id="conclusao-data-{{ item.id }}">{% if item.data_conclusao %}{{ item.data_conclusao|dateformat }}{% endif %}</span>
                             </div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -324,6 +323,7 @@
 
 {% block scripts %}
 <script>
+    const csrfToken = '{{ csrf_token }}';
     let evidenciaModal;
     let currentItemId = null;
 
@@ -405,13 +405,28 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrfToken
             },
             body: `concluido=${concluido}`
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
+                // Atualizar data de conclusão no item
+                const conclusaoEl = document.getElementById(`conclusao-${itemId}`);
+                if (conclusaoEl) {
+                    if (concluido && data.data_conclusao) {
+                        const date = new Date(data.data_conclusao);
+                        document.getElementById(`conclusao-data-${itemId}`).textContent =
+                            date.toLocaleDateString('pt-BR');
+                        conclusaoEl.classList.remove('d-none');
+                    } else {
+                        conclusaoEl.classList.add('d-none');
+                    }
+                }
                 // Atualizar progresso da etapa
                 atualizarProgressoEtapa(data.etapa, data.progresso_etapa, data.concluidos_etapa, data.total_etapa);
                 // Atualizar progresso geral
@@ -419,6 +434,13 @@
                 // Atualizar timestamp
                 document.getElementById('ultima-atualizacao').textContent = 'agora';
             }
+        })
+        .catch(error => {
+            console.error('Erro ao salvar item:', error);
+            // Reverter o checkbox para o estado anterior
+            const checkbox = document.getElementById(`check-${itemId}`);
+            if (checkbox) checkbox.checked = !concluido;
+            alert('Erro ao salvar. Verifique sua conexão e tente novamente.');
         });
     }
 
@@ -485,10 +507,10 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrfToken
             },
             body: `${campo}=${encodeURIComponent(valor)}`
-        });
+        }).catch(error => console.error(`Erro ao salvar ${campo}:`, error));
     }
 
     function abrirModalEvidencia(itemId) {
@@ -521,7 +543,7 @@
         fetch(`/actions/checklist-nr1/item/${itemId}/upload-evidencia/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrfToken
             },
             body: formData
         })
@@ -547,7 +569,7 @@
         fetch(`/actions/evidencia-nr1/${evidenciaId}/delete/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrfToken
             }
         })
         .then(response => response.json())
