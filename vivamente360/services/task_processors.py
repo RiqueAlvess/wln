@@ -445,8 +445,7 @@ class TaskProcessor:
 
     @staticmethod
     def _process_export_pgr_document(task):
-        """Processa exportação de documento PGR (Programa de Gerenciamento de Riscos)."""
-        from services.risk_assessment_service import RiskAssessmentService
+        """Processa exportação de documento PGR (Programa de Gerenciamento de Riscos) em PDF."""
         from services.psychosocial_risk_export_service import PsychosocialRiskExportService
 
         payload = task.payload
@@ -458,31 +457,21 @@ class TaskProcessor:
 
         campaign = Campaign.objects.get(id=campaign_id)
 
-        task.progress = 40
-        task.progress_message = 'Avaliando riscos psicossociais...'
+        task.progress = 50
+        task.progress_message = 'Gerando relatório PGR...'
         task.save(update_fields=['progress', 'progress_message'])
 
-        # Gerar avaliação completa com processamento de IA
-        avaliacao = RiskAssessmentService.avaliar_campanha_completa(
-            campaign,
-            processar_ia=True
-        )
-
-        task.progress = 70
-        task.progress_message = 'Gerando documento PGR...'
-        task.save(update_fields=['progress', 'progress_message'])
-
-        # Gerar documento PGR
-        doc_bio = PsychosocialRiskExportService.export_pgr_document(avaliacao)
+        # Gerar PDF do PGR
+        pdf_bio = PsychosocialRiskExportService.export_pgr_document(campaign)
 
         task.progress = 85
         task.progress_message = 'Salvando arquivo...'
         task.save(update_fields=['progress', 'progress_message'])
 
-        filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.txt"
+        filename = f"PGR_Riscos_Psicossociais_{campaign.empresa.nome.replace(' ', '_')}.pdf"
         file_type = TaskFileStorage.get_file_type_from_task_type(task.task_type)
 
-        file_info = TaskFileStorage.save_task_file(doc_bio, filename, task.id, file_type)
+        file_info = TaskFileStorage.save_task_file(pdf_bio, filename, task.id, file_type)
 
         task.file_path = file_info['file_path']
         task.file_name = file_info['file_name']

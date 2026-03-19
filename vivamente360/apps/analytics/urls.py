@@ -7,6 +7,7 @@ from .views import (
     SectorAnalysisListView,
     CampaignComparisonView,
     ExportCampaignComparisonView,
+    ExportRiskMatrixPGRView,
 )
 
 app_name = 'analytics'
@@ -19,4 +20,5 @@ urlpatterns = [
     path('sector-analysis/status/<int:task_id>/', CheckAnalysisStatusView.as_view(), name='check_analysis_status'),
     path('campaign-comparison/', CampaignComparisonView.as_view(), name='campaign_comparison'),
     path('campaign-comparison/export/', ExportCampaignComparisonView.as_view(), name='export_campaign_comparison'),
+    path('export-pgr/<int:campaign_id>/', ExportRiskMatrixPGRView.as_view(), name='export_pgr'),
 ]

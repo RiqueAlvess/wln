@@ -41,7 +41,7 @@ def branding(request):
     return {
         'empresa': None,
         'branding': {
-            'nome_app': 'VIVAMENTE 360º',
+            'nome_app': 'Sistema de Gestão',
             'logo_url': '',
             'favicon_url': '',
             'cor_primaria': '#0d6efd',
