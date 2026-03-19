@@ -869,6 +869,42 @@ CARGOS = [
     "TECNICO MANUTENÇÃO II", "TECNICO OP",
 ]
 
+# Configurações das empresas de demonstração
+EMPRESAS_CONFIG = [
+    {
+        "cnpj": "12.345.678/0001-99",
+        "defaults": {
+            "nome": "Demo Indústria e Comércio Ltda",
+            "slug": "demo-industria-e-comercio",
+            "total_funcionarios": 820,
+            "cnae": "62.01-5",
+            "cnae_descricao": "Desenvolvimento de programas de computador sob encomenda",
+            "cor_primaria": "#0d6efd",
+            "cor_secundaria": "#6c757d",
+            "cor_fonte": "#ffffff",
+            "nome_app": "VIVAMENTE 360º Demo",
+            "ativo": True,
+        },
+        "campaign_nome": "Campanha ACME 2025 – Saúde Psicossocial",
+    },
+    {
+        "cnpj": "98.765.432/0001-11",
+        "defaults": {
+            "nome": "Demo Serviços e Consultoria SA",
+            "slug": "demo-servicos-e-consultoria",
+            "total_funcionarios": 450,
+            "cnae": "70.20-4",
+            "cnae_descricao": "Atividades de consultoria em gestão empresarial",
+            "cor_primaria": "#198754",
+            "cor_secundaria": "#6c757d",
+            "cor_fonte": "#ffffff",
+            "nome_app": "VIVAMENTE 360º Demo B",
+            "ativo": True,
+        },
+        "campaign_nome": "Campanha Beta 2025 – Saúde Psicossocial",
+    },
+]
+
 
 class Command(BaseCommand):
     help = "Importa campanha ACME com 812 respostas reais do dataset HSE-IT"
@@ -890,21 +926,32 @@ class Command(BaseCommand):
         if options["clear"]:
             self._clear(Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo)
 
+        for config in EMPRESAS_CONFIG:
+            self._seed_empresa(
+                Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo,
+                config,
+            )
+
+        self.stdout.write("")
+        self.stdout.write("  Próximos passos:")
+        self.stdout.write("    1. Crie um superusuário: make superuser")
+        self.stdout.write("    2. Inicie o servidor  : make run")
+        self.stdout.write("    3. Acesse o dashboard em /dashboard/")
+
+    def _seed_empresa(self, Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo, config):
+        """Cria empresa, estrutura organizacional, campanha e importa respostas."""
+        empresa_cnpj = config["cnpj"]
+        empresa_defaults = config["defaults"]
+        campaign_nome = config["campaign_nome"]
+
+        self.stdout.write(f"\n{'─' * 55}")
+        self.stdout.write(f"  Empresa: {empresa_defaults['nome']}")
+        self.stdout.write(f"{'─' * 55}")
+
         # ── 1. Empresa ────────────────────────────────────────────────────
         empresa, created = Empresa.objects.get_or_create(
-            cnpj="12.345.678/0001-99",
-            defaults={
-                "nome": "Demo Indústria e Comércio Ltda",
-                "slug": "demo-industria-e-comercio",
-                "total_funcionarios": 820,
-                "cnae": "62.01-5",
-                "cnae_descricao": "Desenvolvimento de programas de computador sob encomenda",
-                "cor_primaria": "#0d6efd",
-                "cor_secundaria": "#6c757d",
-                "cor_fonte": "#ffffff",
-                "nome_app": "VIVAMENTE 360º Demo",
-                "ativo": True,
-            },
+            cnpj=empresa_cnpj,
+            defaults=empresa_defaults,
         )
         self._log(created, "Empresa", empresa.nome)
 
@@ -952,7 +999,7 @@ class Command(BaseCommand):
         hoje = date.today()
         campaign, created = Campaign.objects.get_or_create(
             empresa=empresa,
-            nome="Campanha ACME 2025 – Saúde Psicossocial",
+            nome=campaign_nome,
             defaults={
                 "descricao": (
                     "Campanha de avaliação dos fatores de risco psicossocial "
@@ -967,14 +1014,9 @@ class Command(BaseCommand):
         )
         self._log(created, "Campanha", campaign.nome)
 
-        if not created and not options["clear"]:
-            self.stdout.write(self.style.WARNING(
-                "  Campanha já existe. Use --clear para recriar as respostas."
-            ))
-
         # ── 6. Respostas anônimas ─────────────────────────────────────────
         existentes = SurveyResponse.objects.filter(campaign=campaign).count()
-        if existentes and not options["clear"]:
+        if existentes:
             self.stdout.write(
                 f"  Campanha já possui {existentes} respostas. "
                 "Use --clear para recriar."
@@ -999,7 +1041,6 @@ class Command(BaseCommand):
                 unidade = unidade_map[nome_unidade]
                 setor = setor_map[chave]
 
-                # Converte lista de scores (ordem CSV) para dict {db_q_num: score}
                 respostas = {}
                 for csv_idx, db_q_num in enumerate(CSV_TO_DB_QUESTION):
                     respostas[str(db_q_num)] = str(scores[csv_idx])
@@ -1023,13 +1064,13 @@ class Command(BaseCommand):
                     unidade=unidade,
                     setor=setor,
                     cargo=random.choice(cargos),
-                    email_encrypted=f"acme_user_{i}@example.com",
+                    email_encrypted=f"acme_{empresa_cnpj[:4]}_{i}@example.com",
                     expires_at=timezone.now() + timedelta(days=365),
                     status='used',
                     used_at=timezone.now(),
                 ))
 
-            # Adicionar convites não respondidos para simular taxa de adesão realista (~75%)
+            # Convites não respondidos para simular taxa de adesão realista (~75%)
             extra_inv = int(len(bulk) * 0.33)
             todos_setores_items = list(setor_map.items())
             for i in range(extra_inv):
@@ -1041,7 +1082,7 @@ class Command(BaseCommand):
                     unidade=unidade_extra,
                     setor=setor_extra,
                     cargo=random.choice(cargos),
-                    email_encrypted=f"acme_noreply_{i}@example.com",
+                    email_encrypted=f"acme_{empresa_cnpj[:4]}_noreply_{i}@example.com",
                     expires_at=timezone.now() - timedelta(days=1),
                     status='expired',
                 ))
@@ -1075,18 +1116,13 @@ class Command(BaseCommand):
         # ── Resumo ────────────────────────────────────────────────────────
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("=" * 55))
-        self.stdout.write(self.style.SUCCESS("  Campanha ACME importada com sucesso!"))
+        self.stdout.write(self.style.SUCCESS(f"  {empresa.nome} importada com sucesso!"))
         self.stdout.write(self.style.SUCCESS("=" * 55))
         self.stdout.write(f"  Empresa : {empresa.nome}")
         self.stdout.write(f"  Campanha: {campaign.nome}")
         self.stdout.write(f"  Status  : {campaign.status}")
         self.stdout.write(f"  Respostas no banco: "
                           f"{SurveyResponse.objects.filter(campaign=campaign).count()}")
-        self.stdout.write("")
-        self.stdout.write("  Próximos passos:")
-        self.stdout.write("    1. Crie um superusuário: make superuser")
-        self.stdout.write("    2. Inicie o servidor  : make run")
-        self.stdout.write("    3. Acesse o dashboard em /dashboard/")
 
     # ── helpers ───────────────────────────────────────────────────────────
 
@@ -1097,22 +1133,22 @@ class Command(BaseCommand):
             self.stdout.write(f"  · {tipo} já existe: {nome}")
 
     def _clear(self, Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo):
-        self.stdout.write(self.style.WARNING("Removendo dados ACME anteriores..."))
-        empresa_qs = Empresa.objects.filter(cnpj="12.345.678/0001-99")
-        if empresa_qs.exists():
+        self.stdout.write(self.style.WARNING("Removendo dados de demonstração anteriores..."))
+        for config in EMPRESAS_CONFIG:
+            empresa_cnpj = config["cnpj"]
+            campaign_nome = config["campaign_nome"]
+            empresa_qs = Empresa.objects.filter(cnpj=empresa_cnpj)
+            if not empresa_qs.exists():
+                self.stdout.write(f"  · Empresa não encontrada (CNPJ: {empresa_cnpj})")
+                continue
             empresa = empresa_qs.first()
-            camp_qs = Campaign.objects.filter(
-                empresa=empresa,
-                nome="Campanha ACME 2025 – Saúde Psicossocial",
-            )
-            if camp_qs.exists():
-                camp_ids = camp_qs.values_list("id", flat=True)
-                deleted, _ = SurveyResponse.objects.filter(campaign_id__in=camp_ids).delete()
-                self.stdout.write(f"  · {deleted} respostas removidas")
-                SurveyInvitation.objects.filter(campaign_id__in=camp_ids).delete()
-                camp_qs.delete()
-                self.stdout.write(self.style.SUCCESS("  ✓ Campanha ACME removida"))
-            else:
-                self.stdout.write("  · Campanha ACME não encontrada")
-        else:
-            self.stdout.write("  · Empresa não encontrada")
+            camp_qs = Campaign.objects.filter(empresa=empresa, nome=campaign_nome)
+            if not camp_qs.exists():
+                self.stdout.write(f"  · Campanha não encontrada ({empresa.nome})")
+                continue
+            camp_ids = camp_qs.values_list("id", flat=True)
+            deleted, _ = SurveyResponse.objects.filter(campaign_id__in=camp_ids).delete()
+            self.stdout.write(f"  · {deleted} respostas removidas ({empresa.nome})")
+            SurveyInvitation.objects.filter(campaign_id__in=camp_ids).delete()
+            camp_qs.delete()
+            self.stdout.write(self.style.SUCCESS(f"  ✓ Campanha removida ({empresa.nome})"))
