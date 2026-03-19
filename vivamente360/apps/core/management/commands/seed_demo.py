@@ -97,6 +97,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from apps.invitations.models import SurveyInvitation
         from apps.responses.models import SurveyResponse
         from apps.structure.models import Cargo, Setor, Unidade
         from apps.surveys.models import Campaign, Dimensao
@@ -105,7 +106,7 @@ class Command(BaseCommand):
         total_respostas = options["respostas"]
 
         if options["clear"]:
-            self._clear(Empresa, Campaign, SurveyResponse, Unidade, Setor, Cargo)
+            self._clear(Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo)
 
         # ── 1. Empresa ────────────────────────────────────────────────────
         empresa, created = Empresa.objects.get_or_create(
@@ -230,7 +231,10 @@ class Command(BaseCommand):
             generos = ["M", "F", "O", "N"]
             genero_pesos = [0.45, 0.45, 0.07, 0.03]
 
+            cargos = list(Cargo.objects.filter(empresa=empresa))
+
             bulk = []
+            inv_bulk = []
             for i, perfil_nome in enumerate(perfis_pool):
                 unidade, setor = random.choice(todos_setores)
                 genero = random.choices(generos, weights=genero_pesos, k=1)[0]
@@ -245,11 +249,42 @@ class Command(BaseCommand):
                     lgpd_aceito=True,
                     lgpd_aceito_em=timezone.now(),
                 ))
+                inv_bulk.append(SurveyInvitation(
+                    empresa=empresa,
+                    campaign=campaign,
+                    unidade=unidade,
+                    setor=setor,
+                    cargo=random.choice(cargos),
+                    email_encrypted=f"demo_user_{i}@example.com",
+                    expires_at=timezone.now() + timedelta(days=365),
+                    status='used',
+                    used_at=timezone.now(),
+                ))
+
+            # Adicionar convites não respondidos para simular taxa de adesão realista (~75%)
+            extra_inv = int(len(bulk) * 0.33)
+            for i in range(extra_inv):
+                unidade, setor = random.choice(todos_setores)
+                inv_bulk.append(SurveyInvitation(
+                    empresa=empresa,
+                    campaign=campaign,
+                    unidade=unidade,
+                    setor=setor,
+                    cargo=random.choice(cargos),
+                    email_encrypted=f"demo_noreply_{i}@example.com",
+                    expires_at=timezone.now() - timedelta(days=1),
+                    status='expired',
+                ))
 
             SurveyResponse.objects.bulk_create(bulk)
+            SurveyInvitation.objects.bulk_create(inv_bulk)
             self.stdout.write(self.style.SUCCESS(
                 f"  ✓ {len(bulk)} respostas criadas "
                 f"(30 % alto risco / 45 % moderado / 25 % baixo risco)"
+            ))
+            self.stdout.write(self.style.SUCCESS(
+                f"  ✓ {len(inv_bulk)} convites criados "
+                f"({len(bulk)} utilizados + {extra_inv} expirados)"
             ))
 
         # ── 7. Rebuild analytics (se disponível) ──────────────────────────
@@ -291,7 +326,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"  · {tipo} já existe: {nome}")
 
-    def _clear(self, Empresa, Campaign, SurveyResponse, Unidade, Setor, Cargo):
+    def _clear(self, Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo):
         self.stdout.write(self.style.WARNING("Removendo dados de demo anteriores..."))
         empresa_qs = Empresa.objects.filter(cnpj="12.345.678/0001-99")
         if empresa_qs.exists():
@@ -299,6 +334,7 @@ class Command(BaseCommand):
             camp_ids = Campaign.objects.filter(empresa=empresa).values_list("id", flat=True)
             deleted, _ = SurveyResponse.objects.filter(campaign_id__in=camp_ids).delete()
             self.stdout.write(f"  · {deleted} respostas removidas")
+            SurveyInvitation.objects.filter(campaign_id__in=camp_ids).delete()
             Campaign.objects.filter(empresa=empresa).delete()
             Setor.objects.filter(unidade__empresa=empresa).delete()
             Unidade.objects.filter(empresa=empresa).delete()
