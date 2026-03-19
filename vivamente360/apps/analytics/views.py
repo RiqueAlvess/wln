@@ -29,12 +29,30 @@ class DashboardView(DashboardAccessMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         campaigns = CampaignSelectors.get_user_campaigns(self.request.user)
-        campaign_id = self.request.GET.get('campaign')
 
-        if campaign_id:
-            campaign = campaigns.filter(id=campaign_id).first()
+        # Resolve campanha: parâmetro explícito > sessão > primeira ativa
+        if 'campaign' in self.request.GET:
+            campaign_id = self.request.GET.get('campaign')
+            if campaign_id:
+                campaign = campaigns.filter(id=campaign_id).first()
+                if campaign:
+                    self.request.session['selected_campaign_id'] = str(campaign.id)
+            else:
+                # Usuário selecionou opção vazia — limpa a sessão
+                self.request.session.pop('selected_campaign_id', None)
+                campaign = None
         else:
+            session_campaign_id = self.request.session.get('selected_campaign_id')
+            if session_campaign_id:
+                campaign = campaigns.filter(id=session_campaign_id).first()
+            else:
+                campaign = None
+
+        # Fallback: primeira campanha ativa
+        if not campaign:
             campaign = campaigns.filter(status='active').first()
+            if campaign:
+                self.request.session['selected_campaign_id'] = str(campaign.id)
 
         if not campaign:
             context['campaigns'] = campaigns
