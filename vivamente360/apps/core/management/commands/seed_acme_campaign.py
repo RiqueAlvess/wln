@@ -890,18 +890,18 @@ EMPRESAS_CONFIG = [
     {
         "cnpj": "98.765.432/0001-11",
         "defaults": {
-            "nome": "Demo Serviços e Consultoria SA",
-            "slug": "demo-servicos-e-consultoria",
+            "nome": "Demo2",
+            "slug": "demo2",
             "total_funcionarios": 450,
             "cnae": "70.20-4",
             "cnae_descricao": "Atividades de consultoria em gestão empresarial",
             "cor_primaria": "#198754",
             "cor_secundaria": "#6c757d",
             "cor_fonte": "#ffffff",
-            "nome_app": "VIVAMENTE 360º Demo B",
+            "nome_app": "VIVAMENTE 360º Demo2",
             "ativo": True,
         },
-        "campaign_nome": "Campanha Beta 2025 – Saúde Psicossocial",
+        "campaign_nome": "Campanha Demo2 2025 – Saúde Psicossocial",
     },
 ]
 
@@ -940,6 +940,7 @@ class Command(BaseCommand):
 
     def _seed_empresa(self, Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo, config):
         """Cria empresa, estrutura organizacional, campanha e importa respostas."""
+        from apps.surveys.models import Dimensao
         empresa_cnpj = config["cnpj"]
         empresa_defaults = config["defaults"]
         campaign_nome = config["campaign_nome"]
