@@ -8,6 +8,14 @@ from django.utils import timezone
 from apps.articles.models import Artigo
 
 
+def _publicados_qs():
+    """Queryset base de artigos publicados (inclui os sem data definida)."""
+    return Artigo.objects.filter(
+        Q(status='published') &
+        (Q(publicado_em__lte=timezone.now()) | Q(publicado_em__isnull=True))
+    )
+
+
 class ArticleSelectors:
     """Selectors para consultas relacionadas a artigos."""
 
@@ -16,10 +24,7 @@ class ArticleSelectors:
         """
         Retorna todos os artigos publicados, ordenados por data de publicação.
         """
-        return Artigo.objects.filter(
-            status='published',
-            publicado_em__lte=timezone.now()
-        ).select_related('autor').order_by('-publicado_em')
+        return _publicados_qs().select_related('autor').order_by('-publicado_em', '-created_at')
 
     @staticmethod
     def get_destaque() -> Artigo | None:
@@ -27,11 +32,9 @@ class ArticleSelectors:
         Retorna o artigo em destaque mais recente.
         Se houver múltiplos em destaque, retorna o mais recente.
         """
-        return Artigo.objects.filter(
-            status='published',
-            destaque=True,
-            publicado_em__lte=timezone.now()
-        ).select_related('autor').order_by('-publicado_em').first()
+        return _publicados_qs().filter(
+            destaque=True
+        ).select_related('autor').order_by('-publicado_em', '-created_at').first()
 
     @staticmethod
     def get_recentes(limit: int = 6) -> QuerySet[Artigo]:
@@ -42,15 +45,12 @@ class ArticleSelectors:
             limit: Número máximo de artigos a retornar (padrão: 6)
         """
         destaque = ArticleSelectors.get_destaque()
-        queryset = Artigo.objects.filter(
-            status='published',
-            publicado_em__lte=timezone.now()
-        ).select_related('autor')
+        queryset = _publicados_qs().select_related('autor')
 
         if destaque:
             queryset = queryset.exclude(pk=destaque.pk)
 
-        return queryset.order_by('-publicado_em')[:limit]
+        return queryset.order_by('-publicado_em', '-created_at')[:limit]
 
     @staticmethod
     def get_por_categoria(categoria: str) -> QuerySet[Artigo]:
@@ -60,11 +60,9 @@ class ArticleSelectors:
         Args:
             categoria: Código da categoria (nr1, saude, gestao, etc.)
         """
-        return Artigo.objects.filter(
-            status='published',
-            categoria=categoria,
-            publicado_em__lte=timezone.now()
-        ).select_related('autor').order_by('-publicado_em')
+        return _publicados_qs().filter(
+            categoria=categoria
+        ).select_related('autor').order_by('-publicado_em', '-created_at')
 
     @staticmethod
     def get_by_slug(slug: str) -> Artigo | None:
@@ -87,13 +85,11 @@ class ArticleSelectors:
         Args:
             query: Termo de busca
         """
-        return Artigo.objects.filter(
+        return _publicados_qs().filter(
             Q(titulo__icontains=query) |
             Q(resumo__icontains=query) |
-            Q(conteudo__icontains=query),
-            status='published',
-            publicado_em__lte=timezone.now()
-        ).select_related('autor').order_by('-publicado_em')
+            Q(conteudo__icontains=query)
+        ).select_related('autor').order_by('-publicado_em', '-created_at')
 
     @staticmethod
     def get_relacionados(artigo: Artigo, limit: int = 3) -> QuerySet[Artigo]:
@@ -104,13 +100,11 @@ class ArticleSelectors:
             artigo: Artigo de referência
             limit: Número máximo de artigos relacionados
         """
-        return Artigo.objects.filter(
-            status='published',
-            categoria=artigo.categoria,
-            publicado_em__lte=timezone.now()
+        return _publicados_qs().filter(
+            categoria=artigo.categoria
         ).exclude(
             pk=artigo.pk
-        ).select_related('autor').order_by('-publicado_em')[:limit]
+        ).select_related('autor').order_by('-publicado_em', '-created_at')[:limit]
 
     @staticmethod
     def get_categorias_disponiveis() -> list[tuple[str, str]]:
@@ -137,7 +131,4 @@ class ArticleSelectors:
         Args:
             limit: Número máximo de artigos a retornar
         """
-        return Artigo.objects.filter(
-            status='published',
-            publicado_em__lte=timezone.now()
-        ).select_related('autor').order_by('-visualizacoes', '-publicado_em')[:limit]
+        return _publicados_qs().select_related('autor').order_by('-visualizacoes', '-publicado_em')[:limit]

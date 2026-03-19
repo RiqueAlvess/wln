@@ -46,12 +46,6 @@ class SurveyResponse(TimeStampedModel):
 
     respostas = models.JSONField()
 
-    # Campo de feedback livre
-    comentario_livre = models.TextField(
-        blank=True,
-        help_text="Comentário opcional do colaborador"
-    )
-
     # Análise de sentimento (preenchido pela IA)
     sentimento_score = models.DecimalField(
         max_digits=3,

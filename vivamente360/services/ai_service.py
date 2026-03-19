@@ -55,8 +55,8 @@ class AIService:
         headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://vivamente360.com.br',
-            'X-Title': 'VIVAMENTE 360º'
+            'HTTP-Referer': 'https://sistema-gestao-riscos.com.br',
+            'X-Title': 'Sistema de Gestão de Riscos'
         }
 
         payload = {
