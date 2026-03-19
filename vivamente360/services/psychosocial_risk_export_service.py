@@ -394,70 +394,219 @@ class PsychosocialRiskExportService:
             ws[f'{col}{row}'].alignment = Alignment(horizontal='center', vertical='center')
 
     @classmethod
-    def export_pgr_document(cls, avaliacao: Dict):
+    def export_pgr_document(cls, campaign) -> BytesIO:
         """
-        Exporta relatório PGR em formato Word.
+        Exporta relatório PGR (PDF) com uma seção por dimensão HSE-IT.
+        Cada seção contém uma tabela com: Unidade, Setor, Cargo, Nível do Risco, Pontuação.
 
         Args:
-            avaliacao: Dict retornado por RiskAssessmentService
+            campaign: objeto Campaign
 
         Returns:
-            Document do python-docx (ou BytesIO se python-docx não disponível)
+            BytesIO com o PDF gerado
         """
-        # Criar documento simples em texto (fallback se docx não disponível)
-        from io import StringIO
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import (
+            SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        )
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from apps.responses.models import SurveyResponse
+        from apps.invitations.models import SurveyInvitation
+        from services.score_service import ScoreService
+        from collections import defaultdict
 
-        output = StringIO()
-        campaign = avaliacao['campaign']
-        empresa = avaliacao['empresa']
-        resumo = avaliacao['resumo']
+        buffer = BytesIO()
 
-        output.write("=" * 80 + "\n")
-        output.write("PROGRAMA DE GERENCIAMENTO DE RISCOS PSICOSSOCIAIS (PGR)\n")
-        output.write("Conforme NR-1 - Item 1.5.4.1.1\n")
-        output.write("=" * 80 + "\n\n")
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2 * cm,
+            leftMargin=2 * cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm,
+        )
 
-        output.write(f"Empresa: {empresa.nome}\n")
-        output.write(f"CNPJ: {empresa.cnpj}\n")
-        output.write(f"CNAE: {avaliacao.get('cnae', 'N/A')}\n")
-        output.write(f"Campanha: {campaign.nome}\n")
-        output.write(f"Período: {campaign.data_inicio} a {campaign.data_fim}\n")
-        output.write(f"Data da Avaliação: {timezone.now().strftime('%d/%m/%Y')}\n\n")
+        styles = getSampleStyleSheet()
 
-        output.write("-" * 80 + "\n")
-        output.write("RESUMO EXECUTIVO\n")
-        output.write("-" * 80 + "\n\n")
+        style_title = ParagraphStyle(
+            'PGRTitle',
+            parent=styles['Title'],
+            fontSize=18,
+            spaceAfter=6,
+            textColor=colors.HexColor('#0d3b6e'),
+            alignment=TA_CENTER,
+        )
+        style_subtitle = ParagraphStyle(
+            'PGRSubtitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=4,
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+        )
+        style_section = ParagraphStyle(
+            'PGRSection',
+            parent=styles['Heading2'],
+            fontSize=13,
+            spaceBefore=16,
+            spaceAfter=8,
+            textColor=colors.HexColor('#0d3b6e'),
+            borderPad=4,
+        )
+        style_normal = ParagraphStyle(
+            'PGRNormal',
+            parent=styles['Normal'],
+            fontSize=9,
+            spaceAfter=4,
+        )
 
-        output.write(f"Total de Fatores Avaliados: {resumo.get('total_fatores', 0)}\n\n")
+        # Cores de risco
+        risk_colors = {
+            'Aceitável':  colors.HexColor('#c6efce'),
+            'Moderado':   colors.HexColor('#ffeb9c'),
+            'Importante': colors.HexColor('#ffc7ce'),
+            'Crítico':    colors.HexColor('#f4cccc'),
+        }
 
-        output.write("Distribuição de Riscos:\n")
-        output.write(f"  - Intoleráveis: {resumo.get('intoleraveis', 0)}\n")
-        output.write(f"  - Substanciais: {resumo.get('substanciais', 0)}\n")
-        output.write(f"  - Moderados: {resumo.get('moderados', 0)}\n")
-        output.write(f"  - Toleráveis: {resumo.get('toleraveis', 0)}\n")
-        output.write(f"  - Triviais: {resumo.get('triviais', 0)}\n\n")
+        # ── Coletar dados por (unidade, setor, cargo) para cada dimensão ──
+        responses = SurveyResponse.objects.filter(campaign=campaign).select_related('unidade', 'setor')
+        # Cargos por (setor_id) a partir dos convites
+        setor_cargos = defaultdict(set)
+        for inv in SurveyInvitation.objects.filter(campaign=campaign).select_related('setor', 'cargo'):
+            setor_cargos[inv.setor_id].add(inv.cargo.nome)
 
-        # Fatores críticos
-        matriz = avaliacao.get('matriz_ajustada', avaliacao['matriz_base'])
-        fatores_criticos = matriz.get('fatores_criticos', [])
+        # Calcular scores por (unidade, setor) para cada dimensão
+        dimensao_dados = {dim: defaultdict(list) for dim in ScoreService.DIMENSOES.keys()}
 
-        if fatores_criticos:
-            output.write("-" * 80 + "\n")
-            output.write("FATORES CRÍTICOS IDENTIFICADOS\n")
-            output.write("-" * 80 + "\n\n")
+        for response in responses:
+            key = (response.unidade.nome, response.setor.nome, response.setor_id)
+            for dimensao in ScoreService.DIMENSOES.keys():
+                score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
+                dimensao_dados[dimensao][key].append(score)
 
-            for idx, fator_data in enumerate(fatores_criticos, start=1):
-                fator = fator_data.get('fator')
-                output.write(f"{idx}. {fator.codigo} - {fator.nome}\n")
-                output.write(f"   Categoria: {fator.categoria.nome}\n")
-                output.write(f"   Classificação: {fator_data.get('classificacao')}\n")
-                output.write(f"   Nível de Risco (NR): {fator_data.get('nr')}\n")
-                output.write(f"   Prazo: {fator_data.get('prazo')}\n")
-                output.write(f"   Ação: {fator_data.get('acao')}\n\n")
+        empresa = campaign.empresa
 
-        # Retornar como BytesIO
-        content = output.getvalue()
-        output.close()
+        # ── Construir o documento ──
+        story = []
 
-        bio = BytesIO(content.encode('utf-8'))
-        return bio
+        # Cabeçalho
+        story.append(Paragraph("PROGRAMA DE GERENCIAMENTO DE RISCOS", style_title))
+        story.append(Paragraph("Relatório PGR - Riscos Psicossociais (NR-1)", style_subtitle))
+        story.append(Paragraph(
+            f"Empresa: <b>{empresa.nome}</b> &nbsp;|&nbsp; CNPJ: {empresa.cnpj} &nbsp;|&nbsp; "
+            f"Campanha: <b>{campaign.nome}</b> &nbsp;|&nbsp; "
+            f"Data: {timezone.now().strftime('%d/%m/%Y')}",
+            style_subtitle
+        ))
+        story.append(Spacer(1, 0.5 * cm))
+
+        # Legenda
+        legenda_data = [
+            ['Nível', 'Faixa', 'Ação'],
+            ['Aceitável', '> 3,0', 'Manter controles'],
+            ['Moderado', '2,1 – 3,0', 'Monitoramento'],
+            ['Importante', '1,1 – 2,0', 'Ação prioritária'],
+            ['Crítico', '≤ 1,0', 'Intervenção imediata'],
+        ]
+        legenda_table = Table(legenda_data, colWidths=[4 * cm, 3 * cm, 8 * cm])
+        legenda_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#c6efce')),
+            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#ffeb9c')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#ffc7ce')),
+            ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#f4cccc')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
+        ]))
+        story.append(legenda_table)
+        story.append(Spacer(1, 0.5 * cm))
+
+        dim_labels = {
+            'demandas': 'Demandas',
+            'controle': 'Controle',
+            'apoio_chefia': 'Apoio da Chefia',
+            'apoio_colegas': 'Apoio dos Colegas',
+            'relacionamentos': 'Relacionamentos',
+            'cargo': 'Cargo / Função',
+            'comunicacao_mudancas': 'Comunicação e Mudanças',
+        }
+
+        for dimensao, label in dim_labels.items():
+            dados = dimensao_dados.get(dimensao, {})
+
+            story.append(Paragraph(f"Dimensão: {label}", style_section))
+
+            if not dados:
+                story.append(Paragraph("Sem dados disponíveis para esta dimensão.", style_normal))
+                story.append(Spacer(1, 0.3 * cm))
+                continue
+
+            # Cabeçalho da tabela
+            table_data = [['Unidade', 'Setor', 'Cargo(s)', 'Pontuação', 'Nível do Risco']]
+
+            # Linhas ordenadas por score (pior primeiro)
+            rows = []
+            for (unidade_nome, setor_nome, setor_id), scores in dados.items():
+                avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
+                risco = ScoreService.classificar_risco(avg_score, dimensao)
+                nivel_risco = risco['classificacao']
+
+                # Mapear classificação interna para rótulo amigável
+                nivel_map = {
+                    'ALTO RISCO': 'Crítico',
+                    'Risco Moderado': 'Importante',
+                    'Risco Médio': 'Moderado',
+                    'Baixo Risco': 'Aceitável',
+                }
+                nivel_label = nivel_map.get(nivel_risco, nivel_risco)
+
+                cargos = ', '.join(sorted(setor_cargos.get(setor_id, []))) or '—'
+                rows.append((unidade_nome, setor_nome, cargos, avg_score, nivel_label))
+
+            # Ordenar: Crítico primeiro
+            order = {'Crítico': 0, 'Importante': 1, 'Moderado': 2, 'Aceitável': 3}
+            rows.sort(key=lambda r: order.get(r[4], 9))
+
+            for unidade_nome, setor_nome, cargos, avg_score, nivel_label in rows:
+                table_data.append([
+                    Paragraph(unidade_nome, style_normal),
+                    Paragraph(setor_nome, style_normal),
+                    Paragraph(cargos, style_normal),
+                    f"{avg_score:.2f}",
+                    nivel_label,
+                ])
+
+            col_widths = [4.5 * cm, 3.5 * cm, 5.5 * cm, 2.5 * cm, 3 * cm]
+            tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+            tbl_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('ALIGN', (3, 0), (4, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
+                ('ROWBACKGROUND', (0, 1), (-1, -1), colors.white),
+            ]
+
+            # Colorir coluna de nível do risco por linha
+            for row_idx, (_, _, _, _, nivel_label) in enumerate(rows, start=1):
+                bg = risk_colors.get(nivel_label, colors.white)
+                tbl_style.append(('BACKGROUND', (4, row_idx), (4, row_idx), bg))
+
+            tbl.setStyle(TableStyle(tbl_style))
+            story.append(tbl)
+            story.append(Spacer(1, 0.4 * cm))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer

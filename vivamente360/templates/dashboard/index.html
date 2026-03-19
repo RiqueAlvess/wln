@@ -187,11 +187,19 @@
                     <i class="bi bi-x-circle"></i> Limpar Filtros
                 </button>
             </div>
-            {# Análises IA - exclusivo para RH e Superusuário #}
+            {# Análises IA e Exportar PGR - exclusivo para RH e Superusuário #}
             {% if request.user.is_superuser or (request.user.profile and request.user.profile.role == 'rh') %}
             <div class="col-md-2 d-flex align-items-end">
                 <a href="{{ url('analytics:sector_analysis_list') }}?campaign={{ campaign.id }}" class="btn btn-primary w-100">
                     <i class="bi bi-robot"></i> Análises IA
+                </a>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <a href="{{ url('analytics:export_pgr', campaign.id) }}"
+                   class="btn btn-success w-100 async-export-pgr"
+                   id="btn-export-pgr"
+                   data-campaign-id="{{ campaign.id }}">
+                    <i class="bi bi-file-earmark-pdf"></i> Exportar PGR
                 </a>
             </div>
             {% endif %}
@@ -782,6 +790,38 @@
 {% endblock %}
 
 {% block scripts %}
+{% if campaign %}
+<script>
+// Handler para exportação PGR com modal de processamento
+document.addEventListener('DOMContentLoaded', function() {
+    const btnExportPGR = document.getElementById('btn-export-pgr');
+    if (!btnExportPGR) return;
+
+    btnExportPGR.addEventListener('click', function(e) {
+        e.preventDefault();
+        const url = this.href;
+
+        fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.task_id && window.ExportStatusManager) {
+                window.ExportStatusManager.show(data.task_id, 'Gerando relatório PGR...');
+            } else if (data.error) {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(err => {
+            console.error('Erro ao iniciar exportação PGR:', err);
+            alert('Erro ao iniciar exportação PGR. Tente novamente.');
+        });
+    });
+});
+</script>
+{% endif %}
 {% if campaign %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>

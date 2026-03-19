@@ -51,11 +51,13 @@
             })
             .then(data => {
                 if (data.task_id) {
-                    // Mostrar toast de sucesso ao invés de modal bloqueante
-                    if (window.showToast) {
+                    // Mostrar modal de processamento com polling e botão de download
+                    if (window.ExportStatusManager) {
+                        window.ExportStatusManager.show(data.task_id, 'Processando exportação...');
+                    } else if (window.showToast) {
                         showToast(
-                            `<strong>Exportação iniciada com sucesso!</strong><br>
-                            Você receberá uma notificação quando o arquivo estiver pronto para download.
+                            `<strong>Exportação iniciada!</strong><br>
+                            Você receberá uma notificação quando o arquivo estiver pronto.
                             <br><small class="text-white-50">Disponível por 48 horas</small>`,
                             'success',
                             6000
@@ -156,11 +158,13 @@
             })
             .then(data => {
                 if (data.task_id) {
-                    // Mostrar toast de sucesso
-                    if (window.showToast) {
+                    // Mostrar modal de processamento com polling e botão de download
+                    if (window.ExportStatusManager) {
+                        window.ExportStatusManager.show(data.task_id, message || 'Processando exportação...');
+                    } else if (window.showToast) {
                         showToast(
-                            message || `<strong>Exportação iniciada com sucesso!</strong><br>
-                            Você receberá uma notificação quando o arquivo estiver pronto para download.
+                            message || `<strong>Exportação iniciada!</strong><br>
+                            Você receberá uma notificação quando o arquivo estiver pronto.
                             <br><small class="text-white-50">Disponível por 48 horas</small>`,
                             'success',
                             6000
