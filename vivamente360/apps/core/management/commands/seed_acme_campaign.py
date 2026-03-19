@@ -881,13 +881,14 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from apps.invitations.models import SurveyInvitation
         from apps.responses.models import SurveyResponse
         from apps.structure.models import Cargo, Setor, Unidade
         from apps.surveys.models import Campaign, Dimensao
         from apps.tenants.models import Empresa
 
         if options["clear"]:
-            self._clear(Empresa, Campaign, SurveyResponse, Unidade, Setor, Cargo)
+            self._clear(Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo)
 
         # ── 1. Empresa ────────────────────────────────────────────────────
         empresa, created = Empresa.objects.get_or_create(
@@ -984,9 +985,12 @@ class Command(BaseCommand):
             generos = ["M", "F", "O", "N"]
             genero_pesos = [0.45, 0.45, 0.07, 0.03]
 
+            cargos = list(Cargo.objects.filter(empresa=empresa))
+
             bulk = []
+            inv_bulk = []
             skipped = 0
-            for (nome_unidade, nome_setor, nome_cargo, scores) in RESPONSES_DATA:
+            for i, (nome_unidade, nome_setor, nome_cargo, scores) in enumerate(RESPONSES_DATA):
                 chave = (nome_unidade, nome_setor)
                 if chave not in setor_map:
                     skipped += 1
@@ -1013,11 +1017,44 @@ class Command(BaseCommand):
                     lgpd_aceito=True,
                     lgpd_aceito_em=timezone.now(),
                 ))
+                inv_bulk.append(SurveyInvitation(
+                    empresa=empresa,
+                    campaign=campaign,
+                    unidade=unidade,
+                    setor=setor,
+                    cargo=random.choice(cargos),
+                    email_encrypted=f"acme_user_{i}@example.com",
+                    expires_at=timezone.now() + timedelta(days=365),
+                    status='used',
+                    used_at=timezone.now(),
+                ))
+
+            # Adicionar convites não respondidos para simular taxa de adesão realista (~75%)
+            extra_inv = int(len(bulk) * 0.33)
+            todos_setores_items = list(setor_map.items())
+            for i in range(extra_inv):
+                (chave_setor, setor_extra) = random.choice(todos_setores_items)
+                unidade_extra = unidade_map[chave_setor[0]]
+                inv_bulk.append(SurveyInvitation(
+                    empresa=empresa,
+                    campaign=campaign,
+                    unidade=unidade_extra,
+                    setor=setor_extra,
+                    cargo=random.choice(cargos),
+                    email_encrypted=f"acme_noreply_{i}@example.com",
+                    expires_at=timezone.now() - timedelta(days=1),
+                    status='expired',
+                ))
 
             SurveyResponse.objects.bulk_create(bulk)
+            SurveyInvitation.objects.bulk_create(inv_bulk)
             self.stdout.write(self.style.SUCCESS(
                 f"  ✓ {len(bulk)} respostas importadas do dataset real ACME"
                 + (f" ({skipped} ignoradas por setor não mapeado)" if skipped else "")
+            ))
+            self.stdout.write(self.style.SUCCESS(
+                f"  ✓ {len(inv_bulk)} convites criados "
+                f"({len(bulk)} utilizados + {extra_inv} expirados)"
             ))
 
         # ── 7. Rebuild analytics ──────────────────────────────────────────
@@ -1059,7 +1096,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"  · {tipo} já existe: {nome}")
 
-    def _clear(self, Empresa, Campaign, SurveyResponse, Unidade, Setor, Cargo):
+    def _clear(self, Empresa, Campaign, SurveyResponse, SurveyInvitation, Unidade, Setor, Cargo):
         self.stdout.write(self.style.WARNING("Removendo dados ACME anteriores..."))
         empresa_qs = Empresa.objects.filter(cnpj="12.345.678/0001-99")
         if empresa_qs.exists():
@@ -1072,6 +1109,7 @@ class Command(BaseCommand):
                 camp_ids = camp_qs.values_list("id", flat=True)
                 deleted, _ = SurveyResponse.objects.filter(campaign_id__in=camp_ids).delete()
                 self.stdout.write(f"  · {deleted} respostas removidas")
+                SurveyInvitation.objects.filter(campaign_id__in=camp_ids).delete()
                 camp_qs.delete()
                 self.stdout.write(self.style.SUCCESS("  ✓ Campanha ACME removida"))
             else:

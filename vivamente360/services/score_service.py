@@ -70,7 +70,7 @@ class ScoreService:
             return {"nivel": nr, "interpretacao": "Crítico", "cor": "vermelho"}
 
     @classmethod
-    def processar_resposta_completa(cls, respostas: dict, severidade_base: int = 2) -> dict:
+    def processar_resposta_completa(cls, respostas: dict, severidade_base: int = 4) -> dict:
         resultado = {}
         for dimensao in cls.DIMENSOES.keys():
             score = cls.calcular_score_dimensao(respostas, dimensao)
