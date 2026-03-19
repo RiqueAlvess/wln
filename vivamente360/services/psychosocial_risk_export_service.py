@@ -396,8 +396,8 @@ class PsychosocialRiskExportService:
     @classmethod
     def export_pgr_document(cls, campaign) -> BytesIO:
         """
-        Exporta relatório PGR (PDF) com uma seção por dimensão HSE-IT.
-        Cada seção contém uma tabela com: Unidade, Setor, Cargo, Nível do Risco, Pontuação.
+        Exporta relatório PGR (PDF) agrupado por Unidade > Setor > Cargo.
+        Cada grupo (Unidade/Setor) exibe uma tabela com todas as dimensões HSE-IT.
 
         Args:
             campaign: objeto Campaign
@@ -410,7 +410,7 @@ class PsychosocialRiskExportService:
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
         from reportlab.platypus import (
-            SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+            SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether
         )
         from reportlab.lib.enums import TA_CENTER, TA_LEFT
         from apps.responses.models import SurveyResponse
@@ -447,20 +447,38 @@ class PsychosocialRiskExportService:
             textColor=colors.HexColor('#555555'),
             alignment=TA_CENTER,
         )
-        style_section = ParagraphStyle(
-            'PGRSection',
+        style_unidade = ParagraphStyle(
+            'PGRUnidade',
+            parent=styles['Heading1'],
+            fontSize=14,
+            spaceBefore=20,
+            spaceAfter=6,
+            textColor=colors.white,
+            backColor=colors.HexColor('#0d3b6e'),
+            borderPad=6,
+            leading=20,
+        )
+        style_setor = ParagraphStyle(
+            'PGRSetor',
             parent=styles['Heading2'],
-            fontSize=13,
-            spaceBefore=16,
-            spaceAfter=8,
+            fontSize=11,
+            spaceBefore=10,
+            spaceAfter=4,
             textColor=colors.HexColor('#0d3b6e'),
             borderPad=4,
+        )
+        style_cargo = ParagraphStyle(
+            'PGRCargo',
+            parent=styles['Normal'],
+            fontSize=9,
+            spaceAfter=4,
+            textColor=colors.HexColor('#555555'),
         )
         style_normal = ParagraphStyle(
             'PGRNormal',
             parent=styles['Normal'],
             fontSize=9,
-            spaceAfter=4,
+            spaceAfter=2,
         )
 
         # Cores de risco
@@ -471,21 +489,47 @@ class PsychosocialRiskExportService:
             'Crítico':    colors.HexColor('#f4cccc'),
         }
 
-        # ── Coletar dados por (unidade, setor, cargo) para cada dimensão ──
+        nivel_map = {
+            'ALTO RISCO': 'Crítico',
+            'Risco Moderado': 'Importante',
+            'Risco Médio': 'Moderado',
+            'Baixo Risco': 'Aceitável',
+        }
+
+        dim_labels = {
+            'demandas': 'Demandas',
+            'controle': 'Controle',
+            'apoio_chefia': 'Apoio da Chefia',
+            'apoio_colegas': 'Apoio dos Colegas',
+            'relacionamentos': 'Relacionamentos',
+            'cargo': 'Cargo / Função',
+            'comunicacao_mudancas': 'Comunicação e Mudanças',
+        }
+
+        # ── Coletar dados por (unidade, setor) para cada dimensão ──
         responses = SurveyResponse.objects.filter(campaign=campaign).select_related('unidade', 'setor')
-        # Cargos por (setor_id) a partir dos convites
+
+        # Cargos por setor_id a partir dos convites
         setor_cargos = defaultdict(set)
         for inv in SurveyInvitation.objects.filter(campaign=campaign).select_related('setor', 'cargo'):
             setor_cargos[inv.setor_id].add(inv.cargo.nome)
 
-        # Calcular scores por (unidade, setor) para cada dimensão
-        dimensao_dados = {dim: defaultdict(list) for dim in ScoreService.DIMENSOES.keys()}
-
+        # scores[(unidade_nome, setor_nome, setor_id)][dimensao] = [score, ...]
+        scores_por_grupo = defaultdict(lambda: defaultdict(list))
         for response in responses:
             key = (response.unidade.nome, response.setor.nome, response.setor_id)
             for dimensao in ScoreService.DIMENSOES.keys():
                 score = ScoreService.calcular_score_dimensao(response.respostas, dimensao)
-                dimensao_dados[dimensao][key].append(score)
+                scores_por_grupo[key][dimensao].append(score)
+
+        # Agrupar por unidade -> setor
+        unidades = defaultdict(list)  # unidade_nome -> [(setor_nome, setor_id), ...]
+        for (unidade_nome, setor_nome, setor_id) in scores_por_grupo.keys():
+            unidades[unidade_nome].append((setor_nome, setor_id))
+
+        # Deduplicar setores por unidade
+        for u in unidades:
+            unidades[u] = sorted(set(unidades[u]), key=lambda x: x[0])
 
         empresa = campaign.empresa
 
@@ -523,88 +567,71 @@ class PsychosocialRiskExportService:
             ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#ffc7ce')),
             ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#f4cccc')),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ROWBACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
         ]))
         story.append(legenda_table)
         story.append(Spacer(1, 0.5 * cm))
 
-        dim_labels = {
-            'demandas': 'Demandas',
-            'controle': 'Controle',
-            'apoio_chefia': 'Apoio da Chefia',
-            'apoio_colegas': 'Apoio dos Colegas',
-            'relacionamentos': 'Relacionamentos',
-            'cargo': 'Cargo / Função',
-            'comunicacao_mudancas': 'Comunicação e Mudanças',
-        }
+        # ── Seções por Unidade ──
+        for unidade_nome in sorted(unidades.keys()):
+            setores = unidades[unidade_nome]
 
-        for dimensao, label in dim_labels.items():
-            dados = dimensao_dados.get(dimensao, {})
+            # Cabeçalho da unidade
+            story.append(Paragraph(f"  Unidade: {unidade_nome}", style_unidade))
 
-            story.append(Paragraph(f"Dimensão: {label}", style_section))
+            for setor_nome, setor_id in setores:
+                key = (unidade_nome, setor_nome, setor_id)
+                dim_scores = scores_por_grupo.get(key, {})
+                cargos_str = ', '.join(sorted(setor_cargos.get(setor_id, []))) or '—'
 
-            if not dados:
-                story.append(Paragraph("Sem dados disponíveis para esta dimensão.", style_normal))
-                story.append(Spacer(1, 0.3 * cm))
-                continue
+                setor_block = []
+                setor_block.append(Paragraph(f"Setor: {setor_nome}", style_setor))
+                setor_block.append(Paragraph(f"Cargo(s): {cargos_str}", style_cargo))
 
-            # Cabeçalho da tabela
-            table_data = [['Unidade', 'Setor', 'Cargo(s)', 'Pontuação', 'Nível do Risco']]
+                # Tabela de dimensões
+                table_data = [['Dimensão', 'Pontuação', 'Nível do Risco']]
+                row_niveis = []
 
-            # Linhas ordenadas por score (pior primeiro)
-            rows = []
-            for (unidade_nome, setor_nome, setor_id), scores in dados.items():
-                avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
-                risco = ScoreService.classificar_risco(avg_score, dimensao)
-                nivel_risco = risco['classificacao']
+                for dimensao, dim_label in dim_labels.items():
+                    dim_score_list = dim_scores.get(dimensao, [])
+                    if dim_score_list:
+                        avg_score = round(sum(dim_score_list) / len(dim_score_list), 2)
+                    else:
+                        avg_score = 0.0
 
-                # Mapear classificação interna para rótulo amigável
-                nivel_map = {
-                    'ALTO RISCO': 'Crítico',
-                    'Risco Moderado': 'Importante',
-                    'Risco Médio': 'Moderado',
-                    'Baixo Risco': 'Aceitável',
-                }
-                nivel_label = nivel_map.get(nivel_risco, nivel_risco)
+                    risco = ScoreService.classificar_risco(avg_score, dimensao)
+                    nivel_label = nivel_map.get(risco['classificacao'], risco['classificacao'])
+                    row_niveis.append(nivel_label)
 
-                cargos = ', '.join(sorted(setor_cargos.get(setor_id, []))) or '—'
-                rows.append((unidade_nome, setor_nome, cargos, avg_score, nivel_label))
+                    table_data.append([
+                        Paragraph(dim_label, style_normal),
+                        f"{avg_score:.2f}",
+                        nivel_label,
+                    ])
 
-            # Ordenar: Crítico primeiro
-            order = {'Crítico': 0, 'Importante': 1, 'Moderado': 2, 'Aceitável': 3}
-            rows.sort(key=lambda r: order.get(r[4], 9))
+                col_widths = [8 * cm, 3 * cm, 4.5 * cm]
+                tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
 
-            for unidade_nome, setor_nome, cargos, avg_score, nivel_label in rows:
-                table_data.append([
-                    Paragraph(unidade_nome, style_normal),
-                    Paragraph(setor_nome, style_normal),
-                    Paragraph(cargos, style_normal),
-                    f"{avg_score:.2f}",
-                    nivel_label,
-                ])
+                tbl_style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5276')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUND', (0, 1), (-1, -1), colors.white),
+                ]
 
-            col_widths = [4.5 * cm, 3.5 * cm, 5.5 * cm, 2.5 * cm, 3 * cm]
-            tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+                for row_idx, nivel_label in enumerate(row_niveis, start=1):
+                    bg = risk_colors.get(nivel_label, colors.white)
+                    tbl_style.append(('BACKGROUND', (2, row_idx), (2, row_idx), bg))
 
-            tbl_style = [
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('ALIGN', (3, 0), (4, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ROWBACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d3b6e')),
-                ('ROWBACKGROUND', (0, 1), (-1, -1), colors.white),
-            ]
+                tbl.setStyle(TableStyle(tbl_style))
+                setor_block.append(tbl)
+                setor_block.append(Spacer(1, 0.3 * cm))
 
-            # Colorir coluna de nível do risco por linha
-            for row_idx, (_, _, _, _, nivel_label) in enumerate(rows, start=1):
-                bg = risk_colors.get(nivel_label, colors.white)
-                tbl_style.append(('BACKGROUND', (4, row_idx), (4, row_idx), bg))
+                story.append(KeepTogether(setor_block))
 
-            tbl.setStyle(TableStyle(tbl_style))
-            story.append(tbl)
             story.append(Spacer(1, 0.4 * cm))
 
         doc.build(story)
