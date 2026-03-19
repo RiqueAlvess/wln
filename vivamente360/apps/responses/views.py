@@ -8,7 +8,6 @@ from apps.responses.models import SurveyResponse
 from apps.surveys.models import Pergunta
 from services.token_service import TokenService
 from services.notification_service import NotificationService
-from services.sentiment_service import SentimentService
 
 
 class SurveyFormView(View):
@@ -37,9 +36,30 @@ class SurveyFormView(View):
             })
 
         elif step == 'feedback':
-            return render(request, 'survey/step_feedback.html', {
-                'campaign': invitation.campaign
-            })
+            # Etapa de feedback removida - processar diretamente
+            demographics = request.session.get(f'survey_{token}', {})
+            respostas = request.session.get(f'respostas_{token}', {})
+
+            if not demographics or not demographics.get('faixa_etaria'):
+                return redirect(f'/survey/{token}/?step=demographics')
+            if not respostas:
+                return redirect(f'/survey/{token}/?step=1')
+
+            SurveyResponse.objects.create(
+                campaign=invitation.campaign,
+                unidade=invitation.unidade,
+                setor=invitation.setor,
+                faixa_etaria=demographics['faixa_etaria'],
+                tempo_empresa=demographics['tempo_empresa'],
+                genero=demographics['genero'],
+                respostas=respostas,
+                lgpd_aceito=True,
+                lgpd_aceito_em=timezone.now()
+            )
+            TokenService.invalidate_token(invitation)
+            request.session.pop(f'survey_{token}', None)
+            request.session.pop(f'respostas_{token}', None)
+            return render(request, 'survey/step_success.html')
 
         else:
             perguntas = Pergunta.objects.filter(ativo=True).order_by('numero')
@@ -80,57 +100,8 @@ class SurveyFormView(View):
             return redirect(f'/survey/{token}/?step=1')
 
         elif step == 'feedback':
-            # Processar feedback do colaborador
-            demographics = request.session.get(f'survey_{token}', {})
-            respostas = request.session.get(f'respostas_{token}', {})
-
-            # Validar que temos dados demográficos e respostas
-            if not demographics or not demographics.get('faixa_etaria'):
-                return redirect(f'/survey/{token}/?step=demographics')
-            if not respostas:
-                return redirect(f'/survey/{token}/?step=1')
-            comentario_livre = request.POST.get('comentario_livre', '').strip()
-            skip = request.POST.get('skip', False)
-
-            # Se pulou, comentário fica vazio
-            if skip:
-                comentario_livre = ''
-
-            # Criar resposta do questionário (SEM cargo para garantir anonimidade)
-            survey_response = SurveyResponse.objects.create(
-                campaign=invitation.campaign,
-                unidade=invitation.unidade,
-                setor=invitation.setor,
-                faixa_etaria=demographics['faixa_etaria'],
-                tempo_empresa=demographics['tempo_empresa'],
-                genero=demographics['genero'],
-                respostas=respostas,
-                comentario_livre=comentario_livre,
-                lgpd_aceito=True,
-                lgpd_aceito_em=timezone.now()
-            )
-
-            # Processar análise de sentimento se houver comentário
-            if comentario_livre:
-                try:
-                    SentimentService.processar_resposta(survey_response)
-                except Exception as e:
-                    # Log do erro mas não falha o processo
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.error(f"Erro ao processar sentimento: {e}")
-
-            # Enviar notificações após salvar resposta
-            NotificationService.enviar_resultado_individual(survey_response)
-            NotificationService.alerta_risco_critico(survey_response)
-
-            TokenService.invalidate_token(invitation)
-
-            # Limpar sessão de forma segura
-            request.session.pop(f'survey_{token}', None)
-            request.session.pop(f'respostas_{token}', None)
-
-            return render(request, 'survey/step_success.html')
+            # Etapa de feedback removida - redirecionar para sucesso
+            return redirect(f'/survey/{token}/?step=feedback')
 
         elif step.isdigit():
             current = int(step)
@@ -142,8 +113,33 @@ class SurveyFormView(View):
 
             perguntas = Pergunta.objects.filter(ativo=True).count()
             if current >= perguntas:
-                # Após a última pergunta, redirecionar para feedback
-                return redirect(f'/survey/{token}/?step=feedback')
+                # Última pergunta: criar resposta e finalizar
+                demographics = request.session.get(f'survey_{token}', {})
+                respostas = request.session.get(f'respostas_{token}', {})
+
+                if not demographics or not demographics.get('faixa_etaria'):
+                    return redirect(f'/survey/{token}/?step=demographics')
+
+                survey_response = SurveyResponse.objects.create(
+                    campaign=invitation.campaign,
+                    unidade=invitation.unidade,
+                    setor=invitation.setor,
+                    faixa_etaria=demographics['faixa_etaria'],
+                    tempo_empresa=demographics['tempo_empresa'],
+                    genero=demographics['genero'],
+                    respostas=respostas,
+                    lgpd_aceito=True,
+                    lgpd_aceito_em=timezone.now()
+                )
+
+                NotificationService.enviar_resultado_individual(survey_response)
+                NotificationService.alerta_risco_critico(survey_response)
+                TokenService.invalidate_token(invitation)
+
+                request.session.pop(f'survey_{token}', None)
+                request.session.pop(f'respostas_{token}', None)
+
+                return render(request, 'survey/step_success.html')
 
             return redirect(f'/survey/{token}/?step={current + 1}')
 

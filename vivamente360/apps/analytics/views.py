@@ -501,13 +501,8 @@ class ExportCampaignComparisonView(DashboardAccessMixin, TemplateView):
             logger.error(f"Erro ao criar task de comparação: {e}")
             return JsonResponse({'error': f'Erro ao exportar relatório: {str(e)}'}, status=500)
 
-
-# ============================================================================
-# VIEWS - MATRIZ DE RISCO PSICOSSOCIAL NR-1
-# ============================================================================
-
-class PsychosocialRiskMatrixView(DashboardAccessMixin, TemplateView):
-    """View principal da Matriz de Risco Psicossocial (NR-1)"""
+class _PsychosocialRiskMatrixView(DashboardAccessMixin, TemplateView):
+    """Módulo removido - mantido apenas para referência interna."""
     template_name = 'analytics/psychosocial_risk_matrix.html'
 
     def get_context_data(self, **kwargs):

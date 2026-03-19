@@ -63,8 +63,8 @@ IMPORTANTE:
             headers = {
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://vivamente360.com.br",
-                "X-Title": "VIVAMENTE 360º - Análise de Sentimento"
+                "HTTP-Referer": "https://sistema-gestao-riscos.com.br",
+                "X-Title": "Sistema de Gestão de Riscos - Análise de Sentimento"
             }
 
             payload = {
